@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Jam — Hang out, without the noise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ===================== AUTH SCREEN ===================== -->
+<div id="screen-auth" class="screen screen-auth">
+  <div class="bg-grid"></div>
+  <div class="bg-halo"></div>
+
+  <div class="auth-shell">
+    <!-- Brand panel -->
+    <div class="auth-brand">
+      <div class="wordmark">
+        <span class="wordmark-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3 5 21"/><path d="M22 17a2 2 0 1 0-4-1.5L16 21a2 2 0 1 0 4 0Z"/></svg>
+        </span>
+        Jam
+      </div>
+      <h1 class="auth-brand-title gradient-text">Hang out,<br /><em>without the noise.</em></h1>
+      <p class="auth-brand-sub">Rooms for your people. Find friends, drop into a jam, and talk — music and more are on the way.</p>
+
+      <div class="auth-brand-cards">
+        <div class="mini-card">
+          <span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span>Find friends by ID &amp; add them</span>
+        </div>
+        <div class="mini-card">
+          <span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+          <span>Public &amp; private jams</span>
+        </div>
+        <div class="mini-card">
+          <span class="mini-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></span>
+          <span>Music &amp; more coming soon</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth card -->
+    <div class="auth-card" id="auth-card">
+
+      <!-- ===== Login ===== -->
+      <div class="auth-view" id="view-login">
+        <h2 class="auth-card-title">Welcome back</h2>
+        <p class="auth-card-sub">Sign in to jump back into your jams.</p>
+
+        <form id="form-login" class="auth-form" novalidate>
+          <label class="field">
+            <span class="field-label">Username</span>
+            <input class="auth-input" id="login-username" type="text" placeholder="username" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span class="field-label">Password</span>
+            <input class="auth-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </label>
+          <div style="text-align:right;">
+            <button type="button" class="link-btn" data-goto="forgot">Forgot password?</button>
+          </div>
+          <button type="submit" class="btn btn-violet btn-block">Sign in</button>
+          <div class="or-divider"><span>or</span></div>
+          <button type="button" class="btn btn-social btn-block" id="btn-github-login">
+            <span class="gh-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+            </span>
+            Continue with GitHub
+          </button>
+        </form>
+        <p class="auth-switch">New to Jam? <button class="link-btn" data-goto="signup">Create an account</button></p>
+      </div>
+
+      <!-- ===== Signup ===== -->
+      <div class="auth-view" id="view-signup" hidden>
+        <h2 class="auth-card-title">Create your account</h2>
+        <p class="auth-card-sub">Pick a username &amp; a security question for password recovery.</p>
+
+        <form id="form-signup" class="auth-form" novalidate>
+          <label class="field">
+            <span class="field-label">Username</span>
+            <input class="auth-input" id="su-username" type="text" placeholder="e.g. nova" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span class="field-label">Email <span class="opt">(optional)</span></span>
+            <input class="auth-input" id="su-email" type="email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <div class="pair">
+            <label class="field">
+              <span class="field-label">Password</span>
+              <input class="auth-input" id="su-password" type="password" placeholder="Min 6 characters" autocomplete="new-password" />
+            </label>
+            <label class="field">
+              <span class="field-label">Confirm</span>
+              <input class="auth-input" id="su-password2" type="password" placeholder="Repeat it" autocomplete="new-password" />
+            </label>
+          </div>
+          <label class="field">
+            <span class="field-label">Security question</span>
+            <select class="auth-input" id="su-question">
+              <option>What city were you born in?</option>
+              <option>What was your childhood nickname?</option>
+              <option>What is your mother's first name?</option>
+              <option>What was your first pet's name?</option>
+              <option>What primary school did you attend?</option>
+              <option>What is your favorite food?</option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">Answer</span>
+            <input class="auth-input" id="su-answer" type="text" placeholder="Your secret answer" />
+          </label>
+          <button type="submit" class="btn btn-violet btn-block">Create account</button>
+          <div class="or-divider"><span>or</span></div>
+          <button type="button" class="btn btn-social btn-block" id="btn-github-signup">
+            <span class="gh-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg></span>
+            Sign up with GitHub
+          </button>
+        </form>
+        <p class="auth-switch">Already have an account? <button class="link-btn" data-goto="login">Sign in</button></p>
+      </div>
+
+      <!-- ===== Forgot ===== -->
+      <div class="auth-view" id="view-forgot" hidden>
+        <h2 class="auth-card-title">Reset your password</h2>
+        <p class="auth-card-sub">We'll ask the security question you set at signup.</p>
+
+        <div id="forgot-step1">
+          <label class="field">
+            <span class="field-label">Username</span>
+            <input class="auth-input" id="forgot-username" type="text" placeholder="username" />
+          </label>
+          <button type="button" class="btn btn-violet btn-block" id="btn-forgot-next">Continue</button>
+        </div>
+
+        <div id="forgot-step2" hidden>
+          <div class="question-chip" id="forgot-question-box">Security question: <strong id="forgot-question"></strong></div>
+          <div class="auth-form">
+            <label class="field">
+              <span class="field-label">Your answer</span>
+              <input class="auth-input" id="forgot-answer" type="text" placeholder="Secret answer" />
+            </label>
+            <label class="field">
+              <span class="field-label">New password</span>
+              <input class="auth-input" id="forgot-newpass" type="password" placeholder="Min 6 characters" />
+            </label>
+            <label class="field">
+              <span class="field-label">Confirm new password</span>
+              <input class="auth-input" id="forgot-newpass2" type="password" placeholder="Repeat it" />
+            </label>
+            <button type="button" class="btn btn-violet btn-block" id="btn-forgot-reset">Set new password</button>
+          </div>
+        </div>
+
+        <p class="auth-switch">Remembered it? <button class="link-btn" data-goto="login">Sign in</button></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PANEL SCREEN ===================== -->
+<div id="screen-panel" class="screen screen-panel" hidden>
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="wordmark">
+        <span class="wordmark-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 3 5 21"/><path d="M22 17a2 2 0 1 0-4-1.5L16 21a2 2 0 1 0 4 0Z"/></svg>
+        </span>
+        Jam
+      </div>
+    </div>
+    <div class="tb-right">
+      <div class="user-chip" id="user-chip"></div>
+      <button class="btn btn-ghost pill-sm" id="btn-logout">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </header>
+
+  <div class="panel-body">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <nav class="side-nav">
+        <button class="side-item active" data-tab="profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Profile</span>
+        </button>
+        <button class="side-item" data-tab="friends">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Friends</span>
+          <span class="side-badge" id="friends-badge" hidden></span>
+        </button>
+        <button class="side-item" data-tab="jams">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          <span>Jams</span>
+        </button>
+      </nav>
+      <div class="side-foot">
+        <div class="side-foot-card">
+          <div class="side-foot-title">Music &amp; more</div>
+          <div class="side-foot-text">Landing soon inside every jam.</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="content">
+
+      <!-- ===== PROFILE TAB ===== -->
+      <section class="tab-pane" id="tab-profile">
+        <div class="pane-head">
+          <h2 class="pane-title">Profile</h2>
+          <p class="pane-sub">Your identity across Jam.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title-row">
+              <h3 class="card-title">Avatar</h3>
+              <span class="hint">Choose from presets</span>
+            </div>
+            <div class="avatar-picker" id="avatar-picker"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row"><h3 class="card-title">Details</h3></div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Username</span>
+                <input class="auth-input" id="pf-username" type="text" />
+              </label>
+              <label class="field">
+                <span class="field-label">Email</span>
+                <input class="auth-input" id="pf-email" type="email" />
+              </label>
+            </div>
+            <label class="field">
+              <span class="field-label">Bio</span>
+              <textarea class="auth-input" id="pf-bio" rows="3" placeholder="Tell your friends something…"></textarea>
+            </label>
+            <button class="btn btn-violet" id="btn-save-profile">Save changes</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title-row"><h3 class="card-title">My ID</h3></div>
+            <p class="hint" style="margin:-8px 0 14px;">Share this to let friends add you.</p>
+            <div class="id-row">
+              <code class="id-code" id="pf-myid"></code>
+              <button class="btn btn-ghost pill-sm" id="btn-copy-id">Copy</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row"><h3 class="card-title">Change password</h3></div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">Current password</span>
+                <input class="auth-input" id="cp-current" type="password" autocomplete="current-password" />
+              </label>
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field-label">New password</span>
+                <input class="auth-input" id="cp-new" type="password" autocomplete="new-password" />
+              </label>
+              <label class="field">
+                <span class="field-label">Confirm</span>
+                <input class="auth-input" id="cp-new2" type="password" autocomplete="new-password" />
+              </label>
+            </div>
+            <button class="btn btn-ghost" id="btn-change-pass">Update password</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== FRIENDS TAB ===== -->
+      <section class="tab-pane" id="tab-friends" hidden>
+        <div class="pane-head pane-head-search">
+          <div>
+            <h2 class="pane-title">Friends</h2>
+            <p class="pane-sub">Add by ID or username — like a crew list.</p>
+          </div>
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="friend-search" type="text" placeholder="Search ID or username…" />
+          </div>
+        </div>
+        <div id="friend-search-results"></div>
+
+        <div class="friends-cols">
+          <div class="card">
+            <div class="card-title-row">
+              <h3 class="card-title">Friends</h3>
+              <span class="count-chip" id="friends-count">0</span>
+            </div>
+            <div class="list" id="friends-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h3 class="card-title">Incoming</h3>
+              <span class="count-chip violet" id="incoming-count">0</span>
+            </div>
+            <div class="list" id="incoming-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title-row">
+              <h3 class="card-title">Sent</h3>
+              <span class="count-chip" id="outgoing-count">0</span>
+            </div>
+            <div class="list" id="outgoing-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== JAMS TAB ===== -->
+      <section class="tab-pane" id="tab-jams" hidden>
+        <div class="pane-head">
+          <div>
+            <h2 class="pane-title">Jams</h2>
+            <p class="pane-sub">Drop into a room. Music coming soon.</p>
+          </div>
+          <button class="btn btn-violet" id="btn-new-jam">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New jam
+          </button>
+        </div>
+        <div class="jam-grid" id="jam-grid"></div>
+      </section>
+
+      <!-- ===== JAM ROOM (overlay inside jams tab) ===== -->
+      <section class="tab-pane" id="tab-room" hidden>
+        <div class="room">
+          <div class="room-head">
+            <button class="btn btn-ghost pill-sm" id="btn-back-jams">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              All jams
+            </button>
+            <div class="room-title-wrap">
+              <h2 class="room-title" id="room-title"></h2>
+              <span class="badge" id="room-type-badge"></span>
+            </div>
+            <span class="room-members" id="room-members"></span>
+          </div>
+
+          <div class="music-strip">
+            <span class="music-strip-icon">🎵</span>
+            <span><strong>Music &amp; more</strong> are coming to this jam — right now it's just voice of the chat.</span>
+          </div>
+
+          <div class="room-body">
+            <div class="msg-list" id="msg-list"></div>
+          </div>
+
+          <div class="composer-row">
+            <input class="auth-input" id="msg-input" type="text" placeholder="Message the jam…" autocomplete="off" />
+            <button class="btn btn-violet send-btn" id="btn-send-msg" aria-label="Send">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+
+          <div class="room-foot-actions" id="room-invite-area"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===================== MODAL ===================== -->
+<div class="modal-backdrop" id="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-head">
+      <h3 class="modal-title" id="modal-title"></h3>
+      <button class="icon-btn" id="btn-close-modal" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

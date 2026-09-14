@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AuthKit — Frosted Glass Auth at Midnight</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* === Colors === */
+    --midnight-canvas: #05060f;
+    --steel-plate: #2f343e;
+    --fog-veil: #9da7ba;
+    --moon-mist: #c7d3ea;
+    --frost-glow: #d1e4fa;
+    --ice-highlight: #d8ecf8;
+    --gradient-ice: linear-gradient(0deg, #d8ecf8 0%, #98c0ef 100%);
+    --pure-white: #ffffff;
+    --void-violet: #663af3;
+    --blueprint-blue: #b6d9fc;
+    --glass-edge: rgba(186, 215, 247, 0.12);
+    --glass-edge-8: rgba(186, 215, 247, 0.08);
+    --glass-edge-6: rgba(186, 214, 247, 0.06);
+    --glass-edge-24: rgba(186, 214, 247, 0.24);
+    --luminous-fill: rgba(199, 211, 234, 0.12);
+    --luminous-fill-6: rgba(199, 211, 234, 0.06);
+    --luminous-fill-3: rgba(186, 214, 247, 0.03);
+    --gridline: rgba(186, 215, 247, 0.06);
+
+    /* === Typography === */
+    --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-display: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* === Scale === */
+    --text-caption: 12px;
+    --text-body-sm: 14px;
+    --text-body: 16px;
+    --text-subheading: 18px;
+    --text-heading-sm: 24px;
+    --text-heading: 28px;
+    --text-heading-lg: 44px;
+    --text-display: 48px;
+
+    /* === Spacing === */
+    --sp-4: 4px; --sp-8: 8px; --sp-12: 12px; --sp-16: 16px;
+    --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-36: 36px;
+    --sp-40: 40px; --sp-48: 48px; --sp-56: 56px; --sp-100: 100px;
+    --sp-120: 120px;
+
+    /* === Layout === */
+    --max-w: 1200px;
+    --section-gap: 120px;
+
+    /* === Radius === */
+    --radius-card: 16px;
+    --radius-badge: 6px;
+    --radius-input: 6px;
+    --radius-pill: 999px;
+    --radius-circle: 9999px;
+
+    /* === Shadows === */
+    --shadow-inset-top: inset 0 1px 1px rgba(216, 236, 248, 0.2);
+    --shadow-inset-glow: inset 0 24px 48px rgba(168, 216, 245, 0.06);
+    --shadow-drop: 0 16px 32px rgba(0, 0, 0, 0.3);
+    --shadow-drop-sm: 0 24px 32px rgba(6, 6, 14, 0.7);
+    --shadow-frost-sm: 0 0 6px rgba(186, 207, 247, 0.32);
+    --shadow-frost-md: 0 0 12px rgba(238, 186, 247, 0.24);
+    --shadow-card: inset 0 1px 1px rgba(199, 211, 234, 0.12), inset 0 24px 48px rgba(199, 211, 234, 0.05), 0 24px 32px rgba(6, 6, 14, 0.7);
+    --shadow-modal: inset 0 1px 1px rgba(216, 236, 248, 0.2), inset 0 24px 48px rgba(168, 216, 245, 0.06), 0 16px 32px rgba(0, 0, 0, 0.3);
+    --shadow-glow: rgba(186, 214, 247, 0.24) 0px 0px 0px 1px inset;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body {
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: 1.5;
+    color: var(--frost-glow);
+    background: var(--midnight-canvas);
+    overflow-x: hidden;
+  }
+
+  /* === Background Grid === */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(var(--gridline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--gridline) 1px, transparent 1px);
+    background-size: 80px 80px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 70%);
+  }
+  .bg-halo {
+    position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+    width: 900px; height: 900px; z-index: 0; pointer-events: none;
+    background: conic-gradient(from 0deg at 50% 50%, transparent 45%, rgba(124,145,182,0.3) 49%, rgba(124,145,182,0.5) 50%, rgba(124,145,182,0.3) 51%, transparent 55%);
+    opacity: 0.5;
+    mask-image: radial-gradient(circle, black 10%, transparent 50%);
+    -webkit-mask-image: radial-gradient(circle, black 10%, transparent 50%);
+  }
+
+  /* === Container === */
+  .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* === Typography === */
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 500; }
+  a { color: var(--frost-glow); text-decoration: none; }
+
+  .gradient-text {
+    background: var(--gradient-ice);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* === Eyebrow Label === */
+  .eyebrow {
+    display: flex; align-items: center; gap: var(--sp-16);
+    font-family: var(--font-mono);
+    font-size: var(--text-body-sm);
+    font-weight: 400;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--moon-mist);
+    text-align: center;
+    margin-bottom: var(--sp-32);
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-edge), transparent);
+  }
+
+  /* === Pill Buttons === */
+  .pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--font-body);
+    font-size: var(--text-body-sm);
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--glass-edge);
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+    white-space: nowrap;
+  }
+  .pill-ghost {
+    background: var(--glass-edge-6);
+    color: var(--pure-white);
+    border-color: var(--glass-edge);
+  }
+  .pill-ghost:hover { background: var(--glass-edge-8); border-color: var(--glass-edge-24); }
+  .pill-outline {
+    background: transparent;
+    color: var(--frost-glow);
+    border-color: var(--glass-edge);
+  }
+  .pill-outline:hover { border-color: var(--glass-edge-24); }
+  .pill-violet {
+    background: var(--void-violet);
+    color: var(--pure-white);
+    border: none;
+    border-radius: var(--radius-badge);
+    padding: 12px 24px;
+    font-size: var(--text-body);
+  }
+  .pill-violet:hover { background: #5530e0; }
+  .pill svg { width: 16px; height: 16px; }
+
+  /* === Navigation === */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    padding: var(--sp-16) 0;
+    border-bottom: 1px solid rgba(186,215,247,0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(5, 6, 15, 0.7);
+  }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+  .wordmark { font-family: var(--font-body); font-size: 16px; font-weight: 500; color: var(--frost-glow); display: flex; align-items: center; gap: 10px; }
+  .wordmark-mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: var(--void-violet);
+    display: grid; place-items: center;
+  }
+  .wordmark-mark svg { width: 13px; height: 13px; color: #fff; }
+  .nav-right { display: flex; align-items: center; gap: 8px; }
+
+  /* === Hero === */
+  .hero { padding: var(--sp-120) 0 var(--sp-100); text-align: center; position: relative; }
+  .hero-wordmark {
+    font-family: var(--font-display);
+    font-size: clamp(80px, 14vw, 180px);
+    font-weight: 500;
+    line-height: 1.0;
+    margin-bottom: var(--sp-32);
+    text-shadow: var(--shadow-frost-sm), var(--shadow-frost-md);
+  }
+  .hero-tagline {
+    font-size: var(--text-subheading);
+    color: var(--moon-mist);
+    margin-bottom: var(--sp-48);
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-cta { display: flex; justify-content: center; gap: var(--sp-12); margin-bottom: var(--sp-48); flex-wrap: wrap; }
+
+  /* === Floating Auth Cards === */
+  .auth-cards { display: flex; justify-content: center; gap: var(--sp-20); perspective: 1200px; margin-top: var(--sp-48); }
+  .auth-card {
+    width: 260px;
+    background: rgba(5, 6, 15, 0.97);
+    border-radius: var(--radius-card);
+    padding: var(--sp-24);
+    box-shadow: var(--shadow-modal);
+    border: 1px solid var(--glass-edge);
+    flex-shrink: 0;
+  }
+  .auth-card.central { width: 300px; transform: scale(1.04); z-index: 2; }
+  .auth-card.left { transform: rotate(-3deg) translateY(12px); }
+  .auth-card.right { transform: rotate(3deg) translateY(12px); }
+  .auth-card-title { font-family: var(--font-display); font-size: var(--text-heading-sm); font-weight: 500; color: var(--pure-white); margin-bottom: var(--sp-20); }
+  .auth-input {
+    width: 100%; padding: 10px 12px;
+    background: var(--luminous-fill-6);
+    border: 1px solid var(--glass-edge);
+    border-radius: var(--radius-input);
+    color: var(--pure-white);
+    font-family: var(--font-body); font-size: var(--text-body-sm);
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .auth-input::placeholder { color: var(--moon-mist); opacity: 0.6; }
+  .auth-input:focus { border-color: var(--glass-edge-24); }
+  .auth-form { display: flex; flex-direction: column; gap: var(--sp-12); margin-bottom: var(--sp-16); }
+  .auth-divider { display: flex; align-items: center; gap: var(--sp-12); margin: var(--sp-16) 0; font-size: var(--text-caption); color: var(--fog-veil); text-transform: uppercase; letter-spacing: 0.05em; }
+  .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--glass-edge); }
+  .social-btn {
+    width: 100%; display: flex; align-items: center; gap: var(--sp-12);
+    padding: 10px 14px; border-radius: var(--radius-input);
+    background: var(--luminous-fill-6); border: 1px solid var(--glass-edge);
+    color: var(--pure-white); font-family: var(--font-body); font-size: var(--text-body-sm); font-weight: 500;
+    cursor: pointer; transition: background 150ms ease;
+  }
+  .social-btn:hover { background: var(--luminous-fill); }
+  .social-icon { width: 18px; height: 18px; border-radius: 4px; background: var(--pure-white); display: grid; place-items: center; }
+  .social-icon svg { width: 12px; height: 12px; }
+
+  /* === Theme Toggle === */
+  .theme-toggle {
+    display: inline-flex; align-items: center;
+    border-radius: var(--radius-pill);
+    background: rgba(186,214,247,0.06);
+    border: 1px solid var(--glass-edge);
+    padding: 4px; margin-top: var(--sp-48);
+  }
+  .theme-seg {
+    width: 36px; height: 32px; border-radius: var(--radius-pill);
+    display: grid; place-items: center; cursor: pointer;
+    color: var(--fog-veil); transition: background 150ms ease, color 150ms ease;
+  }
+  .theme-seg.active { background: rgba(186,214,247,0.12); color: var(--pure-white); }
+  .theme-seg svg { width: 16px; height: 16px; }
+
+  /* === Features === */
+  .features { padding: var(--section-gap) 0; }
+  .features .eyebrow { margin-bottom: var(--sp-24); }
+  .features-heading { font-size: var(--text-heading-lg); text-align: center; margin-bottom: var(--sp-16); }
+  .features-sub { font-size: var(--text-body); color: var(--moon-mist); text-align: center; max-width: 640px; margin: 0 auto var(--sp-64); }
+
+  /* Feature row — icon tiles */
+  .icon-row {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    position: relative; padding: 0 var(--sp-40);
+  }
+  .icon-row::before {
+    content: ''; position: absolute; top: 50%; left: var(--sp-80); right: var(--sp-80);
+    height: 1px; background: var(--glass-edge); z-index: 0;
+  }
+  .icon-tile {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: var(--sp-12);
+    width: 120px;
+  }
+  .icon-circle {
+    width: 56px; height: 56px; border-radius: var(--radius-circle);
+    background: var(--glass-edge-6); border: 1px solid var(--glass-edge);
+    display: grid; place-items: center;
+    color: var(--frost-glow);
+    transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .icon-circle:hover { background: var(--glass-edge); border-color: var(--glass-edge-24); box-shadow: var(--shadow-frost-sm); }
+  .icon-circle svg { width: 24px; height: 24px; stroke-width: 1.5; }
+  .icon-label { font-size: var(--text-body-sm); color: var(--moon-mist); text-align: center; }
+
+  /* === Feature Cards === */
+  .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-24); margin-top: var(--sp-64); }
+  .feature-card {
+    background: var(--luminous-fill-3);
+    border-radius: var(--radius-card);
+    padding: var(--sp-24);
+    border: 1px solid transparent;
+    box-shadow: var(--shadow-card);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  .feature-card:hover { border-color: var(--glass-edge); }
+  .card-icon { color: var(--frost-glow); margin-bottom: var(--sp-16); }
+  .card-icon svg { width: 28px; height: 28px; stroke-width: 1.5; }
+  .card-title { font-family: var(--font-display); font-size: var(--text-subheading); font-weight: 500; color: var(--pure-white); margin-bottom: var(--sp-8); }
+  .card-desc { font-size: var(--text-body-sm); color: var(--moon-mist); line-height: 1.55; }
+  .card-badges { display: flex; flex-wrap: wrap; gap: var(--sp-8); margin-top: var(--sp-16); }
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: var(--radius-badge);
+    background: var(--luminous-fill);
+    box-shadow: var(--shadow-glow);
+    font-size: var(--text-caption);
+    font-weight: 500;
+    color: var(--frost-glow);
+  }
+
+  /* === Showcase / Customization Section === */
+  .showcase { padding: var(--section-gap) 0; }
+  .showcase-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-100); align-items: center; }
+  .swatch-row { display: flex; gap: 4px; margin-top: var(--sp-12); }
+  .swatch { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--glass-edge); cursor: pointer; transition: transform 150ms ease; }
+  .swatch:hover { transform: scale(1.15); }
+  .mock-browser {
+    background: rgba(5,6,15,0.95);
+    border-radius: var(--radius-card);
+    border: 1px solid var(--glass-edge);
+    box-shadow: var(--shadow-modal);
+    overflow: hidden;
+    width: 100%;
+  }
+  .mock-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--glass-edge); }
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--steel-plate); }
+  .mock-body { padding: var(--sp-32); }
+  .inspector-panel {
+    background: rgba(5,6,15,0.97);
+    border: 1px solid var(--glass-edge);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow-modal);
+    position: absolute;
+    width: 180px;
+  }
+  .inspector-title { font-size: var(--text-caption); color: var(--fog-veil); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .inspector-row { display: flex; justify-content: space-between; align-items: center; font-size: var(--text-body-sm); color: var(--moon-mist); }
+  .inspector-field {
+    padding: 4px 8px; border-radius: 4px; font-size: 12px;
+    background: var(--luminous-fill-6); border: 1px solid var(--glass-edge);
+    color: var(--frost-glow); font-family: var(--font-body);
+  }
+
+  /* === Light / Dark Demo Strip === */
+  .mode-strip {
+    padding: var(--section-gap) 0;
+    text-align: center;
+  }
+  .mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-32); max-width: 800px; margin: var(--sp-48) auto 0; }
+  .mode-card {
+    padding: var(--sp-32); border-radius: var(--radius-card);
+    border: 1px solid var(--glass-edge);
+  }
+  .mode-card.dark { background: rgba(5,6,15,0.97); }
+  .mode-card.light { background: #ffffff; border-color: #e2e8f0; }
+  .mode-card h4 { font-family: var(--font-display); font-size: var(--text-heading-sm); font-weight: 500; margin-bottom: var(--sp-8); }
+  .mode-card p { font-size: var(--text-body-sm); }
+  .mode-card.dark h4, .mode-card.dark p { color: var(--frost-glow); }
+  .mode-card.light h4 { color: #0f172a; }
+  .mode-card.light p { color: #64748b; }
+
+  /* === Footer === */
+  footer { padding: var(--sp-56) 0 var(--sp-32); border-top: 1px solid rgba(186,215,247,0.06); }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: var(--sp-48); }
+  .footer-brand p { font-size: var(--text-body-sm); color: var(--fog-veil); max-width: 280px; margin-top: var(--sp-16); }
+  .footer-col h4 { font-size: var(--text-caption); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--moon-mist); margin-bottom: var(--sp-16); }
+  .footer-col a { display: block; font-size: var(--text-body-sm); color: var(--fog-veil); padding: 4px 0; transition: color 150ms ease; }
+  .footer-col a:hover { color: var(--frost-glow); }
+  .footer-bottom {
+    margin-top: var(--sp-48); padding-top: var(--sp-24);
+    border-top: 1px solid rgba(186,215,247,0.06);
+    display: flex; justify-content: space-between;
+    font-size: var(--text-caption); color: var(--fog-veil);
+  }
+
+  /* === Responsive === */
+  @media (max-width: 900px) {
+    .auth-cards { flex-direction: column; align-items: center; }
+    .auth-card.left, .auth-card.right { transform: none; }
+    .showcase-grid { grid-template-columns: 1fr; gap: var(--sp-48); }
+    .icon-row { flex-wrap: wrap; gap: var(--sp-24); padding: 0; }
+    .icon-row::before { display: none; }
+    .icon-tile { width: 100px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .mode-cards { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .hero-wordmark { font-size: 64px; }
+    .features-heading { font-size: 32px; }
+    .footer-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background atmosphere -->
+<div class="bg-grid"></div>
+<div class="bg-halo"></div>
+
+<!-- Navigation -->
+<header class="nav">
+  <div class="nav-inner">
+    <div class="wordmark">
+      <span class="wordmark-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+      </span>
+      AuthKit
+    </div>
+    <div class="nav-right">
+      <a href="#" class="pill pill-outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+        GitHub
+      </a>
+      <a href="#" class="pill pill-ghost">Sign in</a>
+      <a href="#" class="pill pill-violet">Get started</a>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Introducing</div>
+    <h1 class="hero-wordmark gradient-text">AuthKit</h1>
+    <p class="hero-tagline">The authentication layer that disappears into your product. Beautiful login, sign-up, and user management — built, not bolted on.</p>
+    <div class="hero-cta">
+      <a href="#" class="pill pill-violet" style="padding:12px 24px;">Get started — it's free</a>
+      <a href="#" class="pill pill-ghost">Read the docs</a>
+    </div>
+
+    <!-- Floating auth form cards -->
+    <div class="auth-cards">
+      <!-- Left card — social login -->
+      <div class="auth-card left">
+        <div class="auth-form">
+          <button class="social-btn">
+            <span class="social-icon">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            </span>
+            Continue with Google
+          </button>
+          <button class="social-btn">
+            <span class="social-icon">
+              <svg viewBox="0 0 24 24" fill="#fff"><path d="M11.4 24H0V0h24v11.4c0 3.1-.7 6-2 8.6l-4.2-3.3c1-1.7 1.6-3.6 1.6-5.7V7.6h-3.8v4c0 3.6-3 6.6-6.6 6.6-1.6 0-3.1-.6-4.2-1.6l4.2-3.3c.3.2.6.3 1 .3 2.2 0 4-1.8 4-4V7.6H5.5v4c0 3 2 5.3 4.9 5.3.5 0 1-.1 1.5-.2l4.5 3.5c-1.1.9-2.5 1.5-4 1.5-2.2 0-4.2-1-5.6-2.5"/></svg>
+            </span>
+            Continue with Microsoft
+          </button>
+        </div>
+        <div class="auth-divider">or</div>
+        <div class="auth-form">
+          <input class="auth-input" type="email" placeholder="name@company.com" />
+          <input class="auth-input" type="password" placeholder="••••••••" />
+        </div>
+        <button class="pill pill-violet" style="width:100%; border-radius:var(--radius-badge);">Continue</button>
+      </div>
+
+      <!-- Center card — passwordless -->
+      <div class="auth-card central">
+        <div class="auth-card-title">Welcome back</div>
+        <div class="auth-form">
+          <input class="auth-input" type="email" placeholder="Email address" />
+          <button class="pill pill-violet" style="width:100%; border-radius:var(--radius-badge);">Continue with email</button>
+        </div>
+        <div class="auth-divider">or</div>
+        <div class="auth-form">
+          <button class="social-btn">
+            <span class="social-icon">
+              <svg viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#000"/><text x="12" y="16" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">G</text></svg>
+            </span>
+            Continue with Google
+          </button>
+        </div>
+        <div style="text-align:center;margin-top:var(--sp-12);">
+          <span style="font-size:var(--text-caption);color:var(--fog-veil);">No account? <a href="#" style="color:var(--frost-glow);">Sign up</a></span>
+        </div>
+      </div>
+
+      <!-- Right card — signup -->
+      <div class="auth-card right">
+        <div class="auth-card-title">Create account</div>
+        <div class="auth-form">
+          <input class="auth-input" type="text" placeholder="Full name" />
+          <input class="auth-input" type="email" placeholder="Work email" />
+          <input class="auth-input" type="password" placeholder="Password" />
+        </div>
+        <button class="pill pill-violet" style="width:100%; border-radius:var(--radius-badge);">Create account</button>
+      </div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle">
+      <div class="theme-seg active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </div>
+      <div class="theme-seg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="container">
+    <div class="eyebrow">Extensible by design</div>
+    <h2 class="features-heading">Every authentication method.<br /><span class="gradient-text">One integration.</span></h2>
+    <p class="features-sub">AuthKit handles login, signup, social auth, MFA, SSO, and magic links — so you can focus on what your product actually does.</p>
+
+    <!-- Icon tile row -->
+    <div class="icon-row">
+      <div class="icon-tile">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <span class="icon-label">Password</span>
+      </div>
+      <div class="icon-tile">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+        </div>
+        <span class="icon-label">MFA</span>
+      </div>
+      <div class="icon-tile">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        </div>
+        <span class="icon-label">Social Login</span>
+      </div>
+      <div class="icon-tile">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        </div>
+        <span class="icon-label">SSO / SAML</span>
+      </div>
+      <div class="icon-tile">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <span class="icon-label">Magic Auth</span>
+      </div>
+      <div class="icon-tile">
+        <div class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <span class="icon-label">RBAC</span>
+      </div>
+    </div>
+
+    <!-- Feature cards -->
+    <div class="card-grid">
+      <div class="feature-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+        </div>
+        <h3 class="card-title">Single Sign-On</h3>
+        <p class="card-desc">Enable SSO for enterprise customers with SAML and OIDC support. Deploy in minutes, not months.</p>
+        <div class="card-badges">
+          <span class="badge">SAML</span>
+          <span class="badge">OIDC</span>
+          <span class="badge">SCIM</span>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+        </div>
+        <h3 class="card-title">Multi-Factor Auth</h3>
+        <p class="card-desc">TOTP, SMS, email, and hardware keys. Protect every account with layered verification.</p>
+        <div class="card-badges">
+          <span class="badge">TOTP</span>
+          <span class="badge">SMS</span>
+          <span class="badge">WebAuthn</span>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h3 class="card-title">Magic Links</h3>
+        <p class="card-desc">Passwordless login via email. One link, one click, fully authenticated. Zero friction.</p>
+        <div class="card-badges">
+          <span class="badge">Email</span>
+          <span class="badge">One-click</span>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="card-title">Social Providers</h3>
+        <p class="card-desc">Google, Microsoft, GitHub, and 50+ providers. Let users sign in with the identity they already have.</p>
+        <div class="card-badges">
+          <span class="badge">Google</span>
+          <span class="badge">Microsoft</span>
+          <span class="badge">GitHub</span>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <h3 class="card-title">Role-Based Access</h3>
+        <p class="card-desc">Define roles, assign permissions, and enforce access policies at the auth layer — no middleware required.</p>
+        <div class="card-badges">
+          <span class="badge">RBAC</span>
+          <span class="badge">Policies</span>
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+        </div>
+        <h3 class="card-title">User Management</h3>
+        <p class="card-desc">Admin dashboard for users, teams, and sessions. Audit logs, invitations, and org-level settings.</p>
+        <div class="card-badges">
+          <span class="badge">Dashboard</span>
+          <span class="badge">Audit</span>
+          <span class="badge">Orgs</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Customization Showcase -->
+<section class="showcase">
+  <div class="container">
+    <div class="eyebrow">Shine bright</div>
+    <div class="showcase-grid">
+      <div>
+        <h2 style="font-size:var(--text-heading-lg);font-weight:500;margin-bottom:var(--sp-16);"><span class="gradient-text">Your brand.</span><br />Your style.</h2>
+        <p style="color:var(--moon-mist);margin-bottom:var(--sp-32);max-width:440px;">Customize every element of the auth flow. Colors, logos, copy, and layout — all configurable without touching code.</p>
+        <div>
+          <span style="font-size:var(--text-caption);color:var(--fog-veil);display:block;margin-bottom:var(--sp-8);">Colour</span>
+          <div class="swatch-row">
+            <div class="swatch" style="background:#663af3;"></div>
+            <div class="swatch" style="background:#027dea;"></div>
+            <div class="swatch" style="background:#269684;"></div>
+            <div class="swatch" style="background:#e46d4c;"></div>
+            <div class="swatch" style="background:#172033;"></div>
+          </div>
+        </div>
+        <div style="margin-top:var(--sp-24);">
+          <span style="font-size:var(--text-caption);color:var(--fog-veil);display:block;margin-bottom:var(--sp-8);">Border radius</span>
+          <div style="display:flex;gap:var(--sp-8);">
+            <div class="inspector-field" style="border-radius:6px;">6px</div>
+            <div class="inspector-field" style="border-radius:12px;">12px</div>
+            <div class="inspector-field" style="border-radius:16px;">16px</div>
+            <div class="inspector-field" style="border-radius:999px;">pill</div>
+          </div>
+        </div>
+        <div style="margin-top:var(--sp-24);">
+          <span style="font-size:var(--text-caption);color:var(--fog-veil);display:block;margin-bottom:var(--sp-8);">Logo</span>
+          <div style="display:flex;gap:var(--sp-8);">
+            <div class="inspector-field" style="border-radius:50%;width:32px;height:32px;padding:0;display:grid;place-items:center;font-size:14px;">A</div>
+            <div class="inspector-field" style="border-radius:50%;width:32px;height:32px;padding:0;display:grid;place-items:center;font-size:14px;">N</div>
+            <div class="inspector-field" style="border-radius:50%;width:32px;height:32px;padding:0;display:grid;place-items:center;font-size:14px;">W</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-browser">
+        <div class="mock-bar">
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <span style="font-size:12px;color:var(--fog-veil);margin-left:auto;font-family:var(--font-mono);">yourapp.com/login</span>
+        </div>
+        <div class="mock-body" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-24);">
+          <div style="text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <div style="width:48px;height:48px;border-radius:12px;background:var(--void-violet);display:grid;place-items:center;margin-bottom:var(--sp-16);">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+            </div>
+            <span style="font-family:var(--font-display);font-size:var(--text-subheading);font-weight:500;color:var(--pure-white);margin-bottom:var(--sp-8);">Welcome back</span>
+            <span style="font-size:var(--text-body-sm);color:var(--fog-veil);margin-bottom:var(--sp-16);">Sign in to your account</span>
+            <div style="width:100%;max-width:200px;display:flex;flex-direction:column;gap:8px;">
+              <div class="auth-input" style="height:32px;pointer-events:none;"></div>
+              <div class="pill pill-violet" style="width:100%;height:32px;border-radius:var(--radius-badge);pointer-events:none;font-size:12px;padding:0 12px;">Sign in</div>
+            </div>
+          </div>
+          <div style="position:relative;">
+            <div class="inspector-panel" style="top:0;right:0;">
+              <div class="inspector-title">Page Background</div>
+              <div class="inspector-row"><span>Colour</span><div style="width:16px;height:16px;border-radius:4px;background:#05060f;border:1px solid var(--glass-edge);"></div></div>
+            </div>
+            <div class="inspector-panel" style="bottom:0;left:0;width:160px;">
+              <div class="inspector-title">Button</div>
+              <div class="inspector-row"><span>Text</span><span class="inspector-field" style="font-size:10px;">Sign in</span></div>
+              <div class="inspector-row" style="margin-top:6px;"><span>Radius</span><span class="inspector-field" style="font-size:10px;">6px</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Light & Dark Modes -->
+<section class="mode-strip">
+  <div class="container">
+    <div class="eyebrow">Light and dark modes supported</div>
+    <h2 class="features-heading">Crafted for both worlds.</h2>
+    <p class="features-sub" style="margin-left:auto;margin-right:auto;">AuthKit adapts seamlessly to your user's preference — dark by default, light when they want it.</p>
+    <div class="mode-cards">
+      <div class="mode-card dark">
+        <h4>Dark Mode</h4>
+        <p>Midnight canvas with frosted glass. The default experience — calm, focused, premium.</p>
+      </div>
+      <div class="mode-card light">
+        <h4>Light Mode</h4>
+        <p>Clean white surfaces with subtle borders. Available as a user preference toggle.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="wordmark">
+          <span class="wordmark-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+          </span>
+          AuthKit
+        </div>
+        <p>The authentication layer that disappears into your product. Build login in hours, not weeks.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#">Features</a>
+        <a href="#">Pricing</a>
+        <a href="#">Documentation</a>
+        <a href="#">Changelog</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Blog</a>
+        <a href="#">Careers</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="#">Help Center</a>
+        <a href="#">Community</a>
+        <a href="#">Status</a>
+        <a href="#">Privacy</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 WorkOS. Design system preview — AuthKit style.</span>
+      <span style="color:var(--frost-glow);font-weight:500;">Frosted glass &middot; Midnight &middot; Violet accent</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
