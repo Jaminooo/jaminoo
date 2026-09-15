@@ -1,6 +1,7 @@
 import { pubUser } from '@/lib/users';
 import { MAX_VOICE_BYTES, ALLOWED_VOICE_TYPES } from '@/lib/constants';
 import { prisma } from '@/lib/prisma';
+import { BadRequestError } from '@/lib/api';
 import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
@@ -41,11 +42,12 @@ export function msgPayload(m: MsgRow, meId?: number) {
 }
 
 export async function storeVoice(file: File, userId: number) {
-  if (file.size <= 0) throw new Error('Empty voice message');
-  if (file.size > MAX_VOICE_BYTES) throw new Error('Voice too large (max 3 MB)');
-  if (!ALLOWED_VOICE_TYPES.includes(file.type)) throw new Error('Unsupported audio type');
+  if (file.size <= 0) throw new BadRequestError('Empty voice message');
+  if (file.size > MAX_VOICE_BYTES) throw new BadRequestError('Voice too large (max 3 MB)');
+  const mime = (file.type || '').split(';')[0].trim().toLowerCase();
+  if (!ALLOWED_VOICE_TYPES.includes(mime)) throw new BadRequestError('Unsupported audio type');
 
-  const ext = file.type === 'audio/ogg' ? 'ogg' : file.type === 'audio/mpeg' ? 'mp3' : file.type === 'audio/mp4' ? 'm4a' : 'webm';
+  const ext = mime === 'audio/ogg' ? 'ogg' : mime === 'audio/mpeg' ? 'mp3' : mime === 'audio/mp4' ? 'm4a' : 'webm';
   const id = `${userId}-${Date.now()}-${randomBytes(3).toString('hex')}`;
   const filename = `${id}.${ext}`;
   const buf = Buffer.from(await file.arrayBuffer());
@@ -54,6 +56,6 @@ export async function storeVoice(file: File, userId: number) {
   await writeFile(path.join(UPLOAD_DIR, filename), buf);
 
   return prisma.media.create({
-    data: { id, userId, kind: 'VOICE', filename, mime: file.type, size: file.size },
+    data: { id, userId, kind: 'VOICE', filename, mime, size: file.size },
   });
 }
