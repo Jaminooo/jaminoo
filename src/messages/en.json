@@ -132,6 +132,10 @@
     "profilePhotos": "Profile photos",
     "dropHint": "Drop up to 5 photos or tap to choose.",
     "removePhoto": "Remove photo",
-    "photosCount": "{current} of {max} photos"
+    "photosCount": "{current} of {max} photos",
+    "setAsPhoto": "Use as profile photo",
+    "photoActive": "A photo is used as your profile picture.",
+    "presetActive": "Using a preset avatar.",
+    "clearPhoto": "Clear profile photo"
   }
 }

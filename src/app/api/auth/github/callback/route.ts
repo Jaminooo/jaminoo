@@ -47,10 +47,6 @@ export const GET = async (req: Request) => {
           bio: 'Signed in with GitHub',
         },
       });
-      const publicJams = await prisma.jam.findMany({ where: { type: 'PUBLIC' } });
-      for (const j of publicJams) {
-        await prisma.jamMember.upsert({ where: { jamId_userId: { jamId: j.id, userId: user.id } }, update: {}, create: { jamId: j.id, userId: user.id } });
-      }
     }
 
     await createSession(user.id);

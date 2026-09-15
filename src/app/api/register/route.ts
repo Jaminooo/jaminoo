@@ -39,24 +39,6 @@ export const POST = handle(async (req) => {
     },
   });
 
-  // Auto-join public seed jams and get a hello from sara (demo nicety)
-  const sara = await prisma.user.findUnique({ where: { username: 'sara' } });
-  if (sara && sara.id !== user.id) {
-    await prisma.friendRequest.create({
-      data: { fromId: sara.id, toId: user.id, status: 'PENDING' },
-    }).catch(() => {});
-  }
-  const publicJams = await prisma.jam.findMany({ where: { type: 'PUBLIC' } });
-  for (const j of publicJams) {
-    if (j.id === 'J1' || j.id === 'J2') {
-      await prisma.jamMember.upsert({
-        where: { jamId_userId: { jamId: j.id, userId: user.id } },
-        update: {},
-        create: { jamId: j.id, userId: user.id },
-      });
-    }
-  }
-
   await createSession(user.id);
   return json({ ok: true, id: user.id, uid: uidDisplay(user.id) }, 201);
 });

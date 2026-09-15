@@ -14,6 +14,7 @@ interface PubUser {
   avatarId: number;
   bio: string;
   github: boolean;
+  avatarPhoto: string | null;
   friend?: boolean;
 }
 
@@ -80,7 +81,7 @@ export function FriendsPanel() {
     const [view, setView] = useState(false);
     return (
       <div className="friend-row">
-        <JaminoAvatar avatarId={u.avatarId} size={40} />
+        <JaminoAvatar avatarId={u.avatarId} size={40} photo={u.avatarPhoto} />
         <div className="friend-meta">
           <div className="friend-name">
             {u.username} {u.github && <span title="GitHub" style={{ fontSize: 12 }}>gh</span>}

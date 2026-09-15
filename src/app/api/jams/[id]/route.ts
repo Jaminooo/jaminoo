@@ -1,6 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { uidDisplay } from '@/lib/constants';
+import { pubUser } from '@/lib/users';
 
 type Ctx = { params: { id: string } };
 
@@ -9,9 +9,35 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   const jam = await prisma.jam.findUnique({
     where: { id: params.id },
     include: {
-      members: { include: { user: { select: { id: true, username: true, avatarId: true, github: true } } } },
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarId: true,
+              bio: true,
+              github: true,
+              createdAt: true,
+              profilePhotoId: true,
+            },
+          },
+        },
+      },
       messages: {
-        include: { user: { select: { id: true, username: true, avatarId: true, github: true } } },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              avatarId: true,
+              bio: true,
+              github: true,
+              createdAt: true,
+              profilePhotoId: true,
+            },
+          },
+        },
         orderBy: { createdAt: 'asc' },
         take: 100,
       },
@@ -29,24 +55,13 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       type: jam.type,
       ownerId: jam.ownerId,
       createdAt: jam.createdAt.toISOString(),
-      members: jam.members.map((m) => ({
-        id: m.user.id,
-        username: m.user.username,
-        uid: uidDisplay(m.user.id),
-        avatarId: m.user.avatarId,
-        github: m.user.github,
-      })),
+      members: jam.members.map((m) => pubUser(m.user)),
       messages: jam.messages.map((m) => ({
         id: m.id,
         userId: m.userId,
         text: m.text,
         createdAt: m.createdAt.toISOString(),
-        user: {
-          id: m.user.id,
-          username: m.user.username,
-          avatarId: m.user.avatarId,
-          github: m.user.github,
-        },
+        user: pubUser(m.user),
       })),
     },
   });

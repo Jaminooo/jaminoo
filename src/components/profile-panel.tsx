@@ -8,7 +8,7 @@ import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { uidDisplay } from '@/store/app-store';
 import { MAX_PROFILE_MEDIA } from '@/lib/constants';
-import { Copy, Check, Lock, Upload, X } from 'lucide-react';
+import { Copy, Check, Lock, Upload, X, Star } from 'lucide-react';
 
 const AVATAR_COUNT = 12;
 
@@ -18,6 +18,7 @@ interface MediaItem {
   size: number;
   createdAt: string;
   url: string;
+  isProfile: boolean;
 }
 
 export function ProfilePanel() {
@@ -57,7 +58,34 @@ export function ProfilePanel() {
   const pickAvatar = async (avatarId: number) => {
     try {
       await api('/api/profile/avatar', { method: 'PATCH', body: JSON.stringify({ avatarId }) });
-      setMe({ ...me, avatarId });
+      await api('/api/profile/photo', { method: 'DELETE' }).catch(() => {});
+      setMe({ ...me, avatarId, avatarPhoto: null });
+      setMedia((p) => p.map((m) => ({ ...m, isProfile: false })));
+      toast(t('toast.avatarUpdated'));
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
+
+  const setProfile = async (id: string) => {
+    try {
+      const res = await api<{ avatarPhoto: string }>('/api/profile/photo', {
+        method: 'POST',
+        body: JSON.stringify({ mediaId: id }),
+      });
+      setMe({ ...me, avatarPhoto: res.avatarPhoto });
+      setMedia((p) => p.map((m) => ({ ...m, isProfile: m.id === id })));
+      toast(t('toast.avatarUpdated'));
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
+
+  const clearProfile = async () => {
+    try {
+      await api('/api/profile/photo', { method: 'DELETE' });
+      setMe({ ...me, avatarPhoto: null });
+      setMedia((p) => p.map((m) => ({ ...m, isProfile: false })));
       toast(t('toast.avatarUpdated'));
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
@@ -108,6 +136,9 @@ export function ProfilePanel() {
     try {
       await api(`/api/media/${id}`, { method: 'DELETE' });
       setMedia((p) => p.filter((m) => m.id !== id));
+      if (me.avatarPhoto?.endsWith(`/${id}`)) {
+        setMe({ ...me, avatarPhoto: null });
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
     }
@@ -127,9 +158,20 @@ export function ProfilePanel() {
         <section className="card" style={{ padding: 24 }}>
           <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 4 }}>{t('profile.avatar')}</h3>
           <p className="pane-sub" style={{ marginTop: 0, marginBottom: 16 }}>{t('profile.avatarHint')}</p>
+          <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+            <JaminoAvatar avatarId={me.avatarId} size={64} photo={me.avatarPhoto} />
+            <div style={{ fontSize: 13, color: 'var(--color-fog)', display: 'grid', gap: 8 }}>
+              <span>{me.avatarPhoto ? t('media.photoActive') : t('media.presetActive')}</span>
+              {me.avatarPhoto && (
+                <button type="button" className="btn btn-ghost pill-sm" style={{ width: 'max-content' }} onClick={clearProfile}>
+                  {t('media.clearPhoto')}
+                </button>
+              )}
+            </div>
+          </div>
           <div className="avatar-picker">
             {Array.from({ length: AVATAR_COUNT }, (_, i) => (
-              <button key={i} type="button" className={`avatar-opt ${me.avatarId === i ? 'selected' : ''}`} onClick={() => pickAvatar(i)}>
+              <button key={i} type="button" className={`avatar-opt ${!me.avatarPhoto && me.avatarId === i ? 'selected' : ''}`} onClick={() => pickAvatar(i)}>
                 <JaminoAvatar avatarId={i} size={64} />
               </button>
             ))}
@@ -240,6 +282,14 @@ export function ProfilePanel() {
                   <div key={m.id} className="media-item">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={m.url} alt="" />
+                    <button
+                      type="button"
+                      className={`media-set ${m.isProfile ? 'active' : ''}`}
+                      onClick={() => (m.isProfile ? clearProfile() : setProfile(m.id))}
+                      title={t('media.setAsPhoto')}
+                    >
+                      <Star size={12} fill={m.isProfile ? 'currentColor' : 'none'} />
+                    </button>
                     <button type="button" className="media-remove" onClick={() => removeMedia(m.id)} title={t('media.removePhoto')}>
                       <X size={12} />
                     </button>
