@@ -31,9 +31,9 @@ export const POST = handle(async (req, { params }: Ctx) => {
   const conv = await getOrCreateConvo(me.id, otherId);
   const msg = await prisma.dmMessage.create({
     data: { convId: conv.id, senderId: me.id, kind: 'TEXT', text: textClean },
-    include: { sender: { select: USER_SELECT }, media: true },
+    include: { sender: { select: USER_SELECT }, media: true, reactions: true },
   });
-  const message = msgPayload({ ...msg, userId: msg.senderId, user: msg.sender });
+  const message = msgPayload({ ...msg, userId: msg.senderId, user: msg.sender }, me.id);
   const payload = { userA: conv.userA, userB: conv.userB, message };
   livePublish([`user:${me.id}`, `user:${otherId}`], 'dm:new', payload);
   return json({ ok: true, msg: message }, 201);

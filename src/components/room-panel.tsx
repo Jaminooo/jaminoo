@@ -7,10 +7,12 @@ import { JaminoAvatar } from '@/components/jamino-avatar';
 import { EmojiText } from '@/components/emoji-text';
 import { VoicePlayer } from '@/components/voice-player';
 import { MessageComposer } from '@/components/message-composer';
+import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/message-reactions';
+import { useContextMenu, ContextMenu, type CmItem } from '@/components/context-menu';
 import { api } from '@/lib/client-api';
 import { connectLive, emitLive, onLive, liveConnected, liveSocketId } from '@/lib/live';
 import { toast } from '@/components/toast';
-import { ArrowLeft, Radio, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Hammer } from 'lucide-react';
 
 interface ChatUser {
   id: number;
@@ -30,6 +32,7 @@ interface ChatMsg {
   media: { id: string; url: string } | null;
   createdAt: string;
   user: ChatUser;
+  reactions?: ReactionAgg[];
 }
 
 interface LiveMsg extends ChatMsg {
@@ -41,15 +44,24 @@ interface JamDetail {
   name: string;
   desc: string;
   type: 'PUBLIC' | 'PRIVATE';
+  kind: string;
   ownerId: number;
   closed: boolean;
   members: (ChatUser & { uid: string })[];
   messages: ChatMsg[];
 }
 
+const KIND_ICON: Record<string, React.ReactNode> = {
+  CHAT: <Hammer size={13} />,
+  MOVIE: <Film size={13} />,
+  MUSIC: <Music2 size={13} />,
+  HANGOUT: <UsersIcon size={13} />,
+};
+
 export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void }) {
   const t = useTranslations();
   const me = useAppStore((s) => s.me);
+  const setProfileUserId = useAppStore((s) => s.setProfileUserId);
   const [jam, setJam] = useState<JamDetail | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [friends, setFriends] = useState<ChatUser[]>([]);
@@ -59,6 +71,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const { menu, closeCm, onContextMenu } = useContextMenu();
 
   const load = () => api<{ jam: JamDetail }>(`/api/jams/${jamId}`).then((d) => setJam(d.jam)).catch(() => {});
 
@@ -77,6 +90,15 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
     });
     const offUpdate = onLive('jam:update', (id: string) => {
       if (id === jamId) load();
+    });
+    const offReact = onLive('reaction:update', (d: { messageId: number; reactions: { emoji: string; userId: number }[] }) => {
+      setJam((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) => (m.id === d.messageId ? { ...m, reactions: aggReactions(d.reactions, me?.id ?? null) } : m)),
+        };
+      });
     });
     const offTyping = onLive('typing:update', (d: { jam?: string; user: number; from?: string }) => {
       if (d.jam !== jamId) return;
@@ -113,6 +135,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
     return () => {
       offChat();
       offUpdate();
+      offReact();
       offTyping();
       socket?.off('connect', onConn);
       socket?.off('disconnect', onDisc);
@@ -154,6 +177,34 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
 
   const onTyping = () => emitLive('typing', { jam: jamId });
 
+  const react = async (msgId: number, emoji: string) => {
+    try {
+      await api(`/api/jams/${jamId}/messages/${msgId}/react`, { method: 'POST', body: JSON.stringify({ emoji }) });
+      // optimistic mirror of the toggle
+      setJam((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.map((m) => {
+            if (m.id !== msgId) return m;
+            const had = m.reactions ?? [];
+            const meRest = had.filter((r) => (r.me ? r.emoji !== emoji : true));
+            const myCount = had.filter((r) => r.me && r.emoji === emoji)[0]?.count ?? 0;
+            const newMe = myCount > 0;
+            const selfEmoji = meRest.find((r) => r.emoji === emoji);
+            let next = meRest;
+            if (!newMe && selfEmoji) next = next.map((r) => (r.emoji === emoji ? { ...r, count: r.count + 1, me: true } : r));
+            else if (!newMe) next = [...next, { emoji, count: 1, me: true }];
+            else if (selfEmoji) next = next.map((r) => (r.emoji === emoji ? { ...r, count: r.count - 1, me: false } : r));
+            return { ...m, reactions: next.filter((r) => r.count > 0) };
+          }),
+        };
+      });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
+
   const openInvite = async () => {
     setShowInvite((v) => !v);
     if (!showInvite) {
@@ -172,6 +223,13 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
     }
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`);
+      toast(t('toast.copiedLink'), 'ok');
+    } catch {}
   };
 
   const toggleClose = async () => {
@@ -194,6 +252,25 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
     }
   };
 
+  const msgMenu = (m: ChatMsg): CmItem[] => {
+    const items: CmItem[] = [];
+    if (m.text) {
+      items.push({
+        icon: <Copy size={14} />,
+        label: t('room.copy'),
+        onClick: () => navigator.clipboard?.writeText(m.text).catch(() => {}),
+      });
+    }
+    if (m.user.id !== me?.id) {
+      items.push({
+        icon: <User size={14} />,
+        label: t('room.profile'),
+        onClick: () => setProfileUserId(m.user.id),
+      });
+    }
+    return items;
+  };
+
   if (!jam) return <div className="empty-state" style={{ padding: 48 }}>…</div>;
   const isOwner = jam.ownerId === me?.id;
 
@@ -210,7 +287,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           <div style={{ minWidth: 0 }}>
             <div className="room-title">{jam.name}</div>
             <div className="room-members">
-              <UsersIcon size={13} /> {jam.members.length} · {t('jams.lastActive')}
+              <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind]} {t(`jams.kind${jam.kind}` as any)}</span>
               {jam.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
               {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
             </div>
@@ -233,6 +310,9 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
             <LogOut size={14} /> {t('room.leave')}
           </button>
         )}
+        <button type="button" className="btn btn-ghost pill-sm" onClick={copyLink}>
+          <Copy size={14} /> {t('jams.copyLink')}
+        </button>
         <span className="room-desc">{jam.desc || ' '}</span>
       </div>
 
@@ -251,16 +331,26 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         </div>
       )}
 
-      <div className="music-strip">
-        <span className="music-strip-icon">♪</span>
-        <span>{t('room.musicComing')}</span>
+      <div className="room-members-list">
+        {jam.members.map((mb) => (
+          <button key={mb.uid} type="button" className="member-chip" onClick={() => mb.id !== me?.id && setProfileUserId(mb.id)}>
+            <JaminoAvatar avatarId={mb.avatarId} size={26} photo={mb.avatarPhoto} name={mb.username} />
+            <span>{mb.username}</span>
+          </button>
+        ))}
       </div>
 
       <div className="room-body" ref={bodyRef}>
         {jam.messages.length === 0 && <div className="empty-state" style={{ padding: 40 }}>{t('room.noMessages')}</div>}
         {jam.messages.map((m) => (
-          <div key={m.id} className={`msg ${m.userId === me?.id ? 'me' : ''}`}>
-            <JaminoAvatar avatarId={m.user.avatarId} size={32} photo={m.user.avatarPhoto} name={m.user.username} />
+          <div
+            key={m.id}
+            className={`msg ${m.userId === me?.id ? 'me' : ''}`}
+            onContextMenu={(e) => onContextMenu(e, msgMenu(m), 'room')}
+          >
+            <button type="button" className="msg-avatar-btn" onClick={() => m.user.id !== me?.id && setProfileUserId(m.user.id)}>
+              <JaminoAvatar avatarId={m.user.avatarId} size={32} photo={m.user.avatarPhoto} name={m.user.username} />
+            </button>
             <div>
               <div className="msg-bubble">
                 <div className="msg-name">{m.user.username}</div>
@@ -275,6 +365,9 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
               <div className="msg-time">
                 {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
+              {m.reactions && m.reactions.length > 0 && (
+                <MessageReactions reactions={m.reactions} onReact={(em) => react(m.id, em)} myReaction={m.reactions?.find((r) => r.me)?.emoji ?? null} />
+              )}
             </div>
           </div>
         ))}
@@ -282,13 +375,15 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
 
       {typingUser && <div className="typing-hint">{t('room.typing', { name: typingUser })}</div>}
 
-<MessageComposer
-        placeholder={t('room.placeholder')}
+      <MessageComposer
+        placeholder={t('room.messagePlaceholder')}
         onSendText={sendText}
         onSendVoice={sendVoice}
         onTyping={onTyping}
         busy={sendingVoice}
       />
+
+      {menu && <ContextMenu menu={menu} onClose={closeCm} />}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { pubUser } from '@/lib/users';
 import { getOrCreateConvo, areFriends } from '@/lib/dm';
 import { msgPayload } from '@/lib/messages';
+import { livePublish } from '@/lib/live-publish';
 
 type Ctx = { params: { otherId: string } };
 
@@ -36,10 +37,18 @@ export const GET = handle(async (_req, { params }: Ctx) => {
     include: {
       sender: { select: USER_SELECT },
       media: true,
+      reactions: true,
     },
     orderBy: { id: 'asc' },
     take: 200,
   });
+
+  // mark incoming as seen
+  await prisma.dmMessage.updateMany({
+    where: { convId: conv.id, senderId: otherId, seenAt: null },
+    data: { seenAt: new Date() },
+  });
+  livePublish(`user:${otherId}`, 'dm:seen', { by: me.id, convId: conv.id });
 
   return json({
     convo: {
@@ -47,8 +56,10 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       otherId,
       other: pubUser(other),
     },
-    messages: messages.map((m) =>
-      msgPayload({ ...m, userId: m.senderId, user: m.sender })
-    ),
+    messages: messages.map((m) => {
+      const justSeen = !m.seenAt && m.senderId === otherId ? new Date() : m.seenAt;
+      const p = msgPayload({ ...m, userId: m.senderId, user: m.sender, seenAt: justSeen }, me.id);
+      return { ...p, seenAt: justSeen?.toISOString() ?? null };
+    }),
   });
 });

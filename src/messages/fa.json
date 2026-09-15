@@ -6,7 +6,7 @@
   },
   "auth": {
     "welcomeBack": "خوش برگشتی",
-    "signInSub": "برای بازگشت به جیم‌هات وارد شو.",
+    "signInSub": "برای بازگشت به جم‌هات وارد شو.",
     "username": "نام کاربری",
     "password": "رمز عبور",
     "forgotPassword": "رمز را فراموش کرده‌ای؟",
@@ -42,11 +42,18 @@
     "profileSub": "هویت تو در جیمینو.",
     "friends": "دوستان",
     "friendsSub": "با آیدی یا نام کاربری اضافه کن — مثل فهرست تیمت.",
-    "jams": "جیم‌ها",
+    "jams": "جم‌ها",
     "jamsSub": "برو توی یک اتاق. موسیقی به‌زودی.",
-    "newJam": "جیم جدید",
+    "newJam": "جم جدید",
     "logout": "خروج",
-    "security": "امنیت"
+    "security": "امنیت",
+    "messages": "پیام‌ها"
+  },
+  "status": {
+    "online": "آنلاین",
+    "idle": "دور از صفحه",
+    "busy": "مشغول",
+    "offline": "آفلاین"
   },
   "security": {
     "title": "نشست‌ها و دستگاه‌ها",
@@ -75,7 +82,8 @@
     "statusBusy": "مشغول",
     "statusOffline": "آفلاین",
     "statusText": "متن وضعیت",
-    "statusPlaceholder": "چه خبر؟..."
+    "statusPlaceholder": "چه خبر؟...",
+    "title": "مشاهدهٔ پروفایل"
   },
   "friends": {
     "search": "جستجوی آیدی یا نام کاربری...",
@@ -97,45 +105,95 @@
     "requestAlready": "درخواست داده شده"
   },
   "jams": {
-    "allJams": "همه جیم‌ها",
-    "createJam": "ساخت جیم",
+    "allJams": "همه جم‌ها",
+    "createJam": "ساخت جم",
     "jamName": "نام",
     "jamDesc": "توضیحات",
     "optional": "اختیاری",
     "public": "عمومی",
     "private": "خصوصی",
-    "privateHint": "جیم خصوصی — فقط اعضای دعوت‌شده می‌توانند بیایند.",
-    "publicHint": "جیم عمومی — هر کسی می‌تواند عضو شود.",
+    "privateHint": "جم خصوصی — فقط اعضای دعوت‌شده می‌توانند بیایند.",
+    "publicHint": "جم عمومی — هر کسی می‌تواند عضو شود.",
+    "kind": "نوع جم",
+    "kindChat": "چت",
+    "kindMovie": "فیلم",
+    "kindMusic": "موسیقی",
+    "kindHangout": "دورهمی",
+    "browse": "مرور جم‌ها",
+    "browseEmpty": "الان هیچ جم عمومی باز نیست.",
+    "joinJam": "ورود",
+    "inJam": "عضو",
+    "joined": "ملحق شدی",
+    "openJam": "باز کردن",
+    "copyLink": "کپی لینک",
     "members": "{count} عضو",
     "inviteFriends": "دعوت دوستان",
-    "noJamsYet": "هنوز جیمی نداری — یکی بساز و دوستانت را دعوت کن.",
+    "noJamsYet": "هنوز جَمی نداری — یکی بساز و دوستانت را دعوت کن.",
     "lastActive": "آخرین فعالیت",
     "pendingInvites": "{count} درخواست دعوت در انتظار",
-    "joinedJam": "به جیم پیوستی!"
+    "joinedJam": "به جم پیوستی!"
   },
   "room": {
-    "messagePlaceholder": "به جیم پیام بده...",
-    "musicComing": "موسیقی و چیزهای بیشتر به‌زودی به این جیم اضافه می‌شود — فعلاً فقط چت است.",
+    "messagePlaceholder": "به جم پیام بده...",
+    "musicComing": "موسیقی و چیزهای بیشتر به‌زودی به این جم اضافه می‌شود — فعلاً فقط چت است.",
     "send": "ارسال",
     "noMessages": "هنوز پیامی نیست — چیزی بگو!",
     "closed": "بسته",
     "reopen": "باز کردن دوباره",
-    "close": "بستن جیم",
+    "close": "بستن جم",
     "leave": "خروج",
+    "left": "از جم خارج شدی.",
     "inviteSent": "درخواست دعوت به {name} ارسال شد.",
-    "typing": "{name} در حال تایپ است…"
+    "typing": "{name} در حال تایپ است…",
+    "copy": "کپی",
+    "profile": "پروفایل"
   },
   "dm": {
     "title": "پیام",
     "privateChat": "چت خصوصی",
     "noMessages": "هنوز پیامی نیست — چیزی بگو!",
     "placeholder": "پیام…",
-    "typing": "{name} در حال تایپ است…"
+    "typing": "{name} در حال تایپ است…",
+    "inbox": "صندوق پیام",
+    "noChats": "هنوز چتی نداری.",
+    "voiceMessage": "پیام صوتی",
+    "you": "شما",
+    "seen": "خوانده شد",
+    "copy": "کپی",
+    "profile": "پروفایل"
   },
   "voice": {
     "send": "ارسال صدا",
     "cancel": "حذف ضبط",
     "sending": "در حال ارسال صدا…"
+  },
+  "react": {
+    "add": "ری‌اکشن"
+  },
+  "fp": {
+    "joined": "عضویت",
+    "statFriends": "دوستان",
+    "statJams": "جم‌ها",
+    "statMessages": "پیام‌ها",
+    "chat": "چت",
+    "removeFriend": "حذف دوست",
+    "addFriend": "افزودن دوست",
+    "cancelRequest": "لغو درخواست",
+    "acceptRequest": "پذیرش درخواست",
+    "decline": "رد",
+    "removed": "دوست حذف شد.",
+    "requestSent": "درخواست ارسال شد.",
+    "nowFriends": "شما اکنون دوست هستید!",
+    "thisIsYou": "این پروفایل توست."
+  },
+  "join": {
+    "loading": "در حال باز کردن جم…",
+    "joined": "به جم پیوستی!",
+    "opening": "در حال ورود به جم…",
+    "signIn": "برای پیوستن وارد شو",
+    "signInHint": "یک حساب بساز یا وارد شو، بعد دوباره همین لینک را باز کن.",
+    "goHome": "بازگشت به جیمینو",
+    "failed": "نمی‌توان به این جم پیوست"
   },
   "modal": {
     "close": "بستن",
@@ -145,6 +203,7 @@
   },
   "toast": {
     "copy": "{id} کپی شد — برای اضافه شدن دوستان به اشتراک بگذار.",
+    "copiedLink": "لینک کپی شد — هر کسی می‌تواند وارد جم شود.",
     "saved": "پروفایل ذخیره شد.",
     "avatarUpdated": "آواتار به‌روز شد.",
     "passwordChanged": "رمز عبور تغییر کرد.",
@@ -158,9 +217,9 @@
     "requestSent": "درخواست به {name} ارسال شد.",
     "nowFriends": "تو و {name} حالا دوست هستید!",
     "joined": "{name} به «{jam}» پیوست",
-    "jamCreated": "جیم شروع شد",
+    "jamCreated": "جم شروع شد",
     "invalidUsername": "نام کاربری: ۳ تا ۲۰ حرف، فقط حروف/اعداد/خط زیرین.",
-    "notInJam": "تو در این جیم نیستی.",
+    "notInJam": "تو در این جم نیستی.",
     "unknownError": "مشکلی پیش آمد.",
     "revoked": "نشست خارج شد.",
     "loggedOut": "از این دستگاه خارج شدید."

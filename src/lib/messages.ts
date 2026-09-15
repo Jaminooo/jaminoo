@@ -14,11 +14,19 @@ type MsgRow = {
   text: string;
   mediaId: string | null;
   createdAt: Date;
+  seenAt?: Date | null;
   media?: { id: string } | null;
   user: any;
+  reactions?: { emoji: string; userId: number }[];
 };
 
-export function msgPayload(m: MsgRow) {
+export function msgPayload(m: MsgRow, meId?: number) {
+  const reactions: { emoji: string; count: number; me: boolean }[] = [];
+  for (const r of m.reactions ?? []) {
+    const cur = reactions.find((x) => x.emoji === r.emoji);
+    if (cur) cur.count++;
+    else reactions.push({ emoji: r.emoji, count: 1, me: meId != null && r.userId === meId });
+  }
   return {
     id: m.id,
     userId: m.userId,
@@ -27,6 +35,8 @@ export function msgPayload(m: MsgRow) {
     createdAt: m.createdAt.toISOString(),
     media: m.mediaId ? { id: m.mediaId, url: `/api/media/${m.mediaId}` } : null,
     user: pubUser(m.user),
+    reactions,
+    seenAt: m.seenAt ? m.seenAt.toISOString() : null,
   };
 }
 

@@ -8,7 +8,7 @@ import { OnlineDot } from '@/components/online-dot';
 import { connectLive, onLive } from '@/lib/live';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
-import { Search, UserPlus, Check, X, Trash2, UserMinus, MessageCircle } from 'lucide-react';
+import { Search, UserPlus, Check, X, Trash2, UserMinus, MessageCircle, User } from 'lucide-react';
 
 interface PubUser {
   id: number;
@@ -32,6 +32,7 @@ interface FriendsData {
 export function FriendsPanel() {
   const t = useTranslations();
   const setDmWith = useAppStore((s) => s.setDmWith);
+  const setProfileUserId = useAppStore((s) => s.setProfileUserId);
   const [data, setData] = useState<FriendsData | null>(null);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<PubUser[]>([]);
@@ -96,7 +97,7 @@ export function FriendsPanel() {
     }
   };
 
-  const FriendRow = ({ u, actions, canDm = false }: { u: PubUser; actions?: React.ReactNode; canDm?: boolean }) => {
+  const FriendRow = ({ u, actions, canDm = false, canProfile = false }: { u: PubUser; actions?: React.ReactNode; canDm?: boolean; canProfile?: boolean }) => {
     const [view, setView] = useState(false);
     const st = statuses[u.id] ?? u.status ?? 'ONLINE';
     return (
@@ -116,6 +117,11 @@ export function FriendsPanel() {
           {(u.statusText || u.bio) && <div className="friend-sub">{u.statusText || u.bio}</div>}
         </div>
         <div className="friend-actions">
+          {canProfile && (
+            <button type="button" className="btn-icon" onClick={() => setProfileUserId(u.id)} title={t('profile.title')}>
+              <User size={16} />
+            </button>
+          )}
           {canDm && (
             <button type="button" className="btn-icon violet" onClick={() => setDmWith(u.id)} title={t('dm.title')}>
               <MessageCircle size={16} />
@@ -154,6 +160,7 @@ export function FriendsPanel() {
               <FriendRow
                 key={u.id}
                 u={u}
+                canProfile
                 actions={
                   u.friend ? (
                     <button type="button" className="btn-icon" onClick={() => remove(u.id)} title={t('friends.remove')}>
@@ -179,7 +186,7 @@ export function FriendsPanel() {
               <div className="empty-state">{t('friends.noFriendsYet')}</div>
             ) : (
               data.friends.map((u) => (
-                <FriendRow key={u.id} u={u} actions={null} canDm />
+                <FriendRow key={u.id} u={u} actions={null} canDm canProfile />
               ))
             )}
           </div>
@@ -195,6 +202,7 @@ export function FriendsPanel() {
                 <FriendRow
                   key={id}
                   u={user}
+                  canProfile
                   actions={
                     <>
                       <button type="button" className="btn-icon violet" onClick={() => respond(id, 'accept')} title={t('friends.accept')}>
@@ -221,6 +229,7 @@ export function FriendsPanel() {
                 <FriendRow
                   key={id}
                   u={user}
+                  canProfile
                   actions={
                     <button type="button" className="btn-icon" onClick={() => respond(id, 'cancel')}>
                       <X size={16} />

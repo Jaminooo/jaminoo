@@ -34,12 +34,13 @@ export const GET = handle(async (req, { params }: Ctx) => {
     include: {
       user: { select: USER_SELECT },
       media: true,
+      reactions: true,
     },
     orderBy: { id: 'asc' },
     take: 200,
   });
 
-  return json({ messages: messages.map((m) => msgPayload(m)) });
+  return json({ messages: messages.map((m) => msgPayload(m, me.id)) });
 });
 
 // POST /api/jams/[id]/messages  { text }
@@ -55,9 +56,9 @@ export const POST = handle(async (req, { params }: Ctx) => {
 
   const msg = await prisma.jamMessage.create({
     data: { jamId: jam.id, userId: me.id, kind: 'TEXT', text: textClean },
-    include: { user: { select: USER_SELECT }, media: true },
+    include: { user: { select: USER_SELECT }, media: true, reactions: true },
   });
-  const payload = msgPayload(msg);
+  const payload = msgPayload(msg, me.id);
   livePublish(`jam:${jam.id}`, 'chat:new', { jamId: jam.id, ...payload });
   return json({ ok: true, msg: payload }, 201);
 });

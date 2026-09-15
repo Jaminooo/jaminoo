@@ -31,6 +31,7 @@ export const GET = handle(async (_req, { params }: Ctx) => {
         include: {
           user: { select: USER_SELECT },
           media: true,
+          reactions: true,
         },
         orderBy: { createdAt: 'asc' },
         take: 100,
@@ -47,11 +48,12 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       name: jam.name,
       desc: jam.desc,
       type: jam.type,
+      kind: jam.kind,
       ownerId: jam.ownerId,
       closed: jam.closed,
       createdAt: jam.createdAt.toISOString(),
       members: jam.members.map((m) => pubUser(m.user)),
-      messages: jam.messages.map((m) => msgPayload(m)),
+      messages: jam.messages.map((m) => msgPayload(m, me.id)),
     },
   });
 });

@@ -37,6 +37,7 @@ model User {
   dmMessages      DmMessage[]
   jamInvitesSent     JamInvite[] @relation("JamInviteFrom")
   jamInvitesReceived JamInvite[] @relation("JamInviteTo")
+  reactions       Reaction[]
 }
 
 model Session {
@@ -77,6 +78,7 @@ model Jam {
   name      String
   desc      String   @default("")
   type      JType    @default(PUBLIC)
+  kind      String   @default("CHAT") // CHAT | MOVIE | MUSIC | HANGOUT
   ownerId   Int
   closed    Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -107,9 +109,10 @@ model JamMessage {
   mediaId   String?
   createdAt DateTime @default(now())
 
-  jam   Jam   @relation(fields: [jamId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  media Media? @relation("MessageMedia", fields: [mediaId], references: [id], onDelete: SetNull)
+  jam       Jam          @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media     Media?       @relation("MessageMedia", fields: [mediaId], references: [id], onDelete: SetNull)
+  reactions Reaction[]
 }
 
 model Media {
@@ -147,11 +150,13 @@ model DmMessage {
   kind      String   @default("TEXT") // TEXT | VOICE
   text      String   @default("")
   mediaId   String?
+  seenAt    DateTime?
   createdAt DateTime @default(now())
 
-  conv   Conversation @relation(fields: [convId], references: [id], onDelete: Cascade)
-  sender User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  media  Media?       @relation("DmMedia", fields: [mediaId], references: [id], onDelete: SetNull)
+  conv        Conversation @relation(fields: [convId], references: [id], onDelete: Cascade)
+  sender      User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  media       Media?       @relation("DmMedia", fields: [mediaId], references: [id], onDelete: SetNull)
+  reactions   Reaction[]
 }
 
 model JamInvite {
@@ -171,4 +176,20 @@ enum SInvite {
   PENDING
   ACCEPTED
   DECLINED
+}
+
+model Reaction {
+  id        Int      @id @default(autoincrement())
+  jamMsgId  Int?
+  dmMsgId   Int?
+  emoji     String
+  userId    Int
+  createdAt DateTime @default(now())
+
+  jamMsg JamMessage? @relation(fields: [jamMsgId], references: [id], onDelete: Cascade)
+  dmMsg  DmMessage?  @relation(fields: [dmMsgId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jamMsgId, userId, emoji])
+  @@unique([dmMsgId, userId, emoji])
 }

@@ -107,3 +107,22 @@ export const POST = handle(async (req) => {
   livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
   return json({ ok: true, uid: uidDisplay(targetId) }, 201);
 });
+
+// DELETE { target } — remove a friend / cancel my outgoing request
+export const DELETE = handle(async (req) => {
+  const me = await requireUser();
+  const { target } = (await req.json()) as { target?: string };
+  const targetId = target ? parseUid(target) : null;
+  if (!targetId || targetId === me.id) return err('Invalid ID');
+
+  await prisma.friendRequest.deleteMany({
+    where: {
+      OR: [
+        { fromId: me.id, toId: targetId },
+        { fromId: targetId, toId: me.id },
+      ],
+    },
+  });
+  livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
+  return json({ ok: true });
+});

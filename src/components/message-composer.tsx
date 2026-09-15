@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
-import { EMOJI_LIST } from '@/lib/emoji';
+import { EMOJI_CATEGORIES } from '@/lib/emoji';
 import { MAX_VOICE_SECONDS } from '@/lib/constants';
 import { Send, Mic, X, Square, Check, Smile } from 'lucide-react';
 
@@ -19,6 +19,7 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
   const t = useTranslations();
   const [text, setText] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiCat, setEmojiCat] = useState(0);
   const [rec, setRec] = useState<'idle' | 'rec' | 'busy'>('idle');
   const [seconds, setSeconds] = useState(0);
   const recRef = useRef<{ chunks: Blob[]; mr: MediaRecorder | null; stream: MediaStream | null; timer: number; start: number } | null>(null);
@@ -139,8 +140,21 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
 
       {emojiOpen && (
         <div className="emoji-pop">
+          <div className="emoji-pop-tabs">
+            {EMOJI_CATEGORIES.map((c, i) => (
+              <button
+                key={c.key}
+                type="button"
+                className={i === emojiCat ? 'active' : ''}
+                onClick={() => setEmojiCat(i)}
+                title={c.label}
+              >
+                {c.emojis[0]}
+              </button>
+            ))}
+          </div>
           <div className="emoji-pop-grid">
-            {EMOJI_LIST.map((em) => (
+            {EMOJI_CATEGORIES[emojiCat]?.emojis.map((em) => (
               <button key={em} type="button" className="emoji-cell" onClick={() => insertEmoji(em)}>
                 <span className="emoji-lit">{em}</span>
               </button>

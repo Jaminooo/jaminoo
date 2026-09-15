@@ -32,9 +32,9 @@ export const POST = handle(async (req, { params }: Ctx) => {
   const media = await storeVoice(file, me.id);
   const msg = await prisma.jamMessage.create({
     data: { jamId: jam.id, userId: me.id, kind: 'VOICE', mediaId: media.id },
-    include: { user: { select: USER_SELECT }, media: true },
+    include: { user: { select: USER_SELECT }, media: true, reactions: true },
   });
-  const payload = msgPayload(msg);
+  const payload = msgPayload(msg, me.id);
   livePublish(`jam:${jam.id}`, 'chat:new', { jamId: jam.id, ...payload });
   return json({ ok: true, msg: payload }, 201);
 });

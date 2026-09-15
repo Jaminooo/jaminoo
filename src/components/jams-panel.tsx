@@ -1,22 +1,38 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
+import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { api } from '@/lib/client-api';
-import { connectLive, onLive } from '@/lib/live';
 import { toast } from '@/components/toast';
-import { Plus, Radio, Globe, Lock, Users as UsersIcon, Music2, Mail, Check, X, Ban } from 'lucide-react';
+import { loadUnread } from '@/lib/unread';
+import { Plus, Radio, Globe, Lock, Users as UsersIcon, Music2, Check, X, Hammer, Film, LogIn, Copy } from 'lucide-react';
+import { JAM_KINDS } from '@/lib/constants';
 
-interface JamCard {
+interface JamRow {
   id: string;
   name: string;
   desc: string;
   type: 'PUBLIC' | 'PRIVATE';
+  kind: string;
   ownerId: number;
   closed: boolean;
+  createdAt: string;
   members: number;
   lastActive: string;
+}
+
+interface BrowseJam {
+  id: string;
+  name: string;
+  desc: string;
+  kind: string;
+  ownerId: number;
+  owner: { id: number; username: string; avatarId: number; profilePhotoId?: string | null };
+  members: number;
+  mine: boolean;
+  inJam: boolean;
 }
 
 interface InviteItem {
@@ -25,150 +41,55 @@ interface InviteItem {
   jamName: string;
   members: number;
   createdAt: string;
-  from: { id: number; username: string; avatarId: number; avatarPhoto: string | null };
+  from: { id: number; username: string; avatarId: number; avatarPhoto?: string | null };
 }
 
-interface InviteUser {
-  id: number;
-  username: string;
-  avatarId: number;
-  uid: string;
-  avatarPhoto?: string | null;
-}
+const KIND_ICON: Record<string, React.ReactNode> = {
+  CHAT: <Hammer size={13} />,
+  MOVIE: <Film size={13} />,
+  MUSIC: <Music2 size={13} />,
+  HANGOUT: <UsersIcon size={13} />,
+};
 
 export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
   const t = useTranslations();
-  const [jams, setJams] = useState<JamCard[]>([]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [friends, setFriends] = useState<InviteUser[]>([]);
+  const me = useAppStore((s) => s.me);
+  const [jams, setJams] = useState<JamRow[]>([]);
+  const [browse, setBrowse] = useState<BrowseJam[]>([]);
   const [invites, setInvites] = useState<InviteItem[]>([]);
-
-  const load = () => api<{ jams: JamCard[] }>('/api/jams').then((d) => setJams(d.jams)).catch(() => {});
-  const loadInvites = () => api<{ invites: InviteItem[] }>('/api/invites').then((d) => setInvites(d.invites)).catch(() => {});
-
-  useEffect(() => {
-    load();
-    loadInvites();
-    connectLive();
-    const offJam = onLive('jam:update', () => load());
-    const offInvite = onLive('jam-invite', () => loadInvites());
-    return () => {
-      offJam();
-      offInvite();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const openCreate = async () => {
-    setShowCreate(true);
-    const f = await api<{ friends: { id: number; username: string; avatarId: number; uid: string }[] }>('/api/friends').catch(() => null);
-    setFriends(f?.friends ?? []);
-  };
-
-  const respondInvite = async (id: number, action: 'accept' | 'decline') => {
-    try {
-      await api(`/api/invites/${id}`, { method: 'POST', body: JSON.stringify({ action }) });
-      if (action === 'accept') toast(t('jams.joinedJam'));
-      loadInvites();
-      load();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
-    }
-  };
-
-  return (
-    <>
-      <header className="pane-head">
-        <div>
-          <h2 className="pane-title">{t('jams.allJams')}</h2>
-          <p className="pane-sub">{t('panel.jamsSub')}</p>
-        </div>
-        <button type="button" className="btn btn-violet" onClick={openCreate}>
-          <Plus size={16} /> {t('jams.createJam')}
-        </button>
-      </header>
-
-      {invites.length > 0 && (
-        <section className="card invites-card" style={{ padding: 20, marginBottom: 20 }}>
-          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Mail size={16} /> {t('jams.pendingInvites', { count: invites.length })}
-          </h3>
-          <div className="list">
-            {invites.map((inv) => (
-              <div key={inv.id} className="friend-row" style={{ gap: 10 }}>
-                <JaminoAvatar avatarId={inv.from.avatarId} size={36} photo={inv.from.avatarPhoto} name={inv.from.username} />
-                <div className="friend-meta">
-                  <div className="friend-name" style={{ fontSize: 13 }}>{inv.from.username}</div>
-                  <div className="friend-id" style={{ fontSize: 11 }}>{inv.jamName} · {t('jams.members', { count: inv.members })}</div>
-                </div>
-                <div className="friend-actions">
-                  <button type="button" className="btn-icon violet" onClick={() => respondInvite(inv.id, 'accept')} title={t('friends.accept')}>
-                    <Check size={16} />
-                  </button>
-                  <button type="button" className="btn-icon danger" onClick={() => respondInvite(inv.id, 'decline')} title={t('friends.decline')}>
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {showCreate && <CreateJam onDone={load} onClose={() => setShowCreate(false)} friends={friends} />}
-
-      {jams.length === 0 ? (
-        <div className="empty-state" style={{ padding: 48 }}>{t('jams.noJamsYet')}</div>
-      ) : (
-        <div className="jam-grid">
-          {jams.map((j) => (
-            <button key={j.id} type="button" className="jam-card" onClick={() => onEnter(j.id)}>
-              <div className="jam-card-top">
-                <span className="jam-icon">
-                  <Radio size={20} />
-                </span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {j.type === 'PRIVATE' ? <Lock size={14} style={{ color: 'var(--color-fog)' }} /> : <Globe size={14} style={{ color: 'var(--color-fog)' }} />}
-                  {j.closed && <Ban size={14} style={{ color: 'var(--color-fog)' }} />}
-                </div>
-              </div>
-              <div className="jam-name">{j.name}</div>
-              <div className="jam-desc">{j.desc || ' '}</div>
-              <div className="jam-meta">
-                <span>
-                  <UsersIcon size={13} /> {t('jams.members', { count: j.members })}
-                </span>
-                <span>
-                  <Music2 size={13} /> {t('jams.lastActive')} · {new Date(j.lastActive).toLocaleDateString()}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-function CreateJam({ onDone, onClose, friends }: { onDone: () => void; onClose: () => void; friends: InviteUser[] }) {
-  const t = useTranslations();
+  const [showCreate, setShowCreate] = useState(false);
+  const [view, setView] = useState<'mine' | 'browse'>('mine');
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [type, setType] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
-  const [inviteIds, setInviteIds] = useState<Set<number>>(new Set());
+  const [jtype, setJtype] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
+  const [jkind, setJkind] = useState<string>('CHAT');
   const [busy, setBusy] = useState(false);
 
-  const create = async () => {
-    if (name.trim().length < 2) return toast(t('jams.jamName'), 'error');
+  const loadAll = useCallback(async () => {
+    try {
+      const [my, br, inv] = await Promise.all([
+        api<{ jams: JamRow[] }>('/api/jams'),
+        api<{ jams: BrowseJam[] }>('/api/jams/browse'),
+        api<{ invites: InviteItem[] }>('/api/invites'),
+      ]);
+      setJams(my.jams);
+      setBrowse(br.jams);
+      setInvites(inv.invites);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+    loadUnread();
+  }, [loadAll]);
+
+  const join = async (id: string) => {
     setBusy(true);
     try {
-      const r = await api<{ jam: { id: string } }>('/api/jams', { method: 'POST', body: JSON.stringify({ name, desc, type }) });
-      for (const fid of inviteIds) {
-        await api(`/api/jams/${r.jam.id}/invite`, { method: 'POST', body: JSON.stringify({ userId: fid }) }).catch(() => {});
-      }
-      toast(t('toast.jamCreated'));
-      onDone();
-      onClose();
+      await api(`/api/jams/${id}/join`, { method: 'POST' });
+      toast(t('jams.joinedJam'), 'ok');
+      loadAll();
+      loadUnread();
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
     } finally {
@@ -176,67 +97,169 @@ function CreateJam({ onDone, onClose, friends }: { onDone: () => void; onClose: 
     }
   };
 
-  return (
-    <section className="card" style={{ padding: 24, marginBottom: 24 }}>
-      <div className="pane-head" style={{ marginBottom: 16 }}>
-        <h3 style={{ fontSize: 16, color: '#fff' }}>{t('jams.createJam')}</h3>
-        <button type="button" className="btn-icon" onClick={onClose}>×</button>
-      </div>
-      <div className="pair">
-        <div className="field">
-          <span className="field-label">{t('jams.jamName')}</span>
-          <input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="field">
-          <span className="field-label">
-            {t('jams.jamDesc')} <span className="opt">({t('jams.optional')})</span>
-          </span>
-          <input className="auth-input" value={desc} onChange={(e) => setDesc(e.target.value)} />
-        </div>
-      </div>
-      <div className="seg" style={{ marginTop: 14, maxWidth: 320 }}>
-        <button type="button" className={`seg-btn ${type === 'PUBLIC' ? 'active' : ''}`} onClick={() => setType('PUBLIC')}>
-          {t('jams.public')}
-        </button>
-        <button type="button" className={`seg-btn ${type === 'PRIVATE' ? 'active' : ''}`} onClick={() => setType('PRIVATE')}>
-          {t('jams.private')}
-        </button>
-      </div>
-      <p className="pane-sub" style={{ marginTop: 8 }}>
-        {type === 'PUBLIC' ? t('jams.publicHint') : t('jams.privateHint')}
-      </p>
+  const respond = async (inviteId: number, action: 'accept' | 'decline') => {
+    try {
+      await api(`/api/invites/${inviteId}`, { method: 'POST', body: JSON.stringify({ action }) });
+      if (action === 'accept') {
+        toast(t('jams.joinedJam'), 'ok');
+        loadAll();
+      }
+      setInvites((p) => p.filter((i) => i.id !== inviteId));
+      loadUnread();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
 
-      {friends.length > 0 && (
-        <>
-          <div className="pane-sub" style={{ marginTop: 16, marginBottom: 10 }}>{t('jams.inviteFriends')}</div>
-          <div className="friend-row" style={{ flexWrap: 'wrap' }}>
-            {friends.map((f) => {
-              const on = inviteIds.has(f.id);
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`friend-row ${on ? 'active' : ''}`}
-                  style={{ borderColor: on ? 'var(--color-violet)' : undefined, cursor: 'pointer' }}
-                  onClick={() => setInviteIds((p) => {
-                    const n = new Set(p);
-                    if (n.has(f.id)) n.delete(f.id);
-                    else n.add(f.id);
-                    return n;
-                  })}
-                >
-                  <JaminoAvatar avatarId={f.avatarId} size={32} photo={f.avatarPhoto} name={f.username} />
-                  <span className="friend-name" style={{ fontSize: 13 }}>{f.username}</span>
-                </button>
-              );
-            })}
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const d = await api<{ jam: { id: string } }>('/api/jams', {
+        method: 'POST',
+        body: JSON.stringify({ name, desc, type: jtype, kind: jkind }),
+      });
+      toast(t('toast.jamCreated'), 'ok');
+      setName('');
+      setDesc('');
+      setShowCreate(false);
+      onEnter(d.jam.id);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyLink = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${id}`);
+      toast(t('toast.copiedLink'), 'ok');
+    } catch {}
+  };
+
+  return (
+    <div className="friends-panel">
+      <div className="panel-head-row">
+        <h2 className="panel-title">{t('panel.jams')}</h2>
+        <div className="panel-head-actions">
+          <div className="view-toggle">
+            <button type="button" className={view === 'mine' ? 'active' : ''} onClick={() => setView('mine')}>{t('jams.allJams')}</button>
+            <button type="button" className={view === 'browse' ? 'active' : ''} onClick={() => setView('browse')}>{t('jams.browse')}</button>
           </div>
-        </>
+          <button type="button" className="btn btn-violet pill-sm" onClick={() => setShowCreate((v) => !v)}>
+            <Plus size={15} /> {t('jams.createJam')}
+          </button>
+        </div>
+      </div>
+
+      {invites.length > 0 && (
+        <div className="invites-box">
+          <div className="sub-label">{t('jams.pendingInvites', { count: invites.length })}</div>
+          {invites.map((i) => (
+            <div key={i.id} className="invite-row">
+              <JaminoAvatar avatarId={i.from.avatarId} size={32} photo={i.from.avatarPhoto} name={i.from.username} />
+              <div className="friend-info">
+                <span className="friend-name">{i.jamName}</span>
+                <span className="friend-sub">{i.from.username} · {t('jams.members', { count: i.members })}</span>
+              </div>
+              <button type="button" className="btn btn-violet pill-sm" onClick={() => respond(i.id, 'accept')}>
+                <Check size={14} /> {t('friends.accept')}
+              </button>
+              <button type="button" className="btn btn-ghost pill-sm" onClick={() => respond(i.id, 'decline')}>
+                <X size={14} /> {t('friends.decline')}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
 
-      <button type="button" className="btn btn-violet" style={{ marginTop: 18 }} onClick={create} disabled={busy}>
-        {busy ? '…' : t('jams.createJam')}
-      </button>
-    </section>
+      {showCreate && (
+        <form className="create-jam" onSubmit={create}>
+          <input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('jams.jamName')} maxLength={40} />
+          <input className="auth-input" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={`${t('jams.jamDesc')} (${t('jams.optional')})`} maxLength={120} />
+          <div className="type-toggle">
+            <button type="button" className={jtype === 'PUBLIC' ? 'active' : ''} onClick={() => setJtype('PUBLIC')}>
+              <Globe size={14} /> {t('jams.public')}
+            </button>
+            <button type="button" className={jtype === 'PRIVATE' ? 'active' : ''} onClick={() => setJtype('PRIVATE')}>
+              <Lock size={14} /> {t('jams.private')}
+            </button>
+          </div>
+          <div className="kind-row">
+            <span className="sub-label">{t('jams.kind')}</span>
+            <div className="kind-toggle">
+              {JAM_KINDS.map((k) => (
+                <button key={k} type="button" className={jkind === k ? 'active' : ''} onClick={() => setJkind(k)}>
+                  {KIND_ICON[k]} {t(`jams.kind${k}` as any)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button type="submit" className="btn btn-violet" disabled={busy || name.trim().length < 2}>
+            <Radio size={15} /> {t('jams.createJam')}
+          </button>
+        </form>
+      )}
+
+      {view === 'mine' ? (
+        <>
+          {jams.length === 0 && !showCreate && <div className="empty-state">{t('jams.noJamsYet')}</div>}
+          {jams.map((j) => (
+            <button key={j.id} type="button" className="friend-row" onClick={() => !j.closed && onEnter(j.id)}>
+              <div className="jam-icon" style={{ width: 40, height: 40 }}>
+                {j.type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />}
+              </div>
+              <div className="friend-info">
+                <span className="friend-name">
+                  {j.name}
+                  {j.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
+                </span>
+                <span className="friend-sub">
+                  {KIND_ICON[j.kind]} {t(`jams.kind${j.kind}` as any)} · {t('jams.members', { count: j.members })}
+                </span>
+              </div>
+              <span className="friend-sub" style={{ marginInlineStart: 'auto' }}>
+                {j.closed ? t('room.closed') : t('jams.openJam')}
+              </span>
+            </button>
+          ))}
+        </>
+      ) : (
+        <>
+          {browse.length === 0 && <div className="empty-state">{t('jams.browseEmpty')}</div>}
+          {browse.map((j) => (
+            <div key={j.id} className="friend-row">
+              <JaminoAvatar avatarId={j.owner.avatarId} size={40} photo={j.owner.profilePhotoId ? `/api/media/${j.owner.profilePhotoId}` : null} name={j.owner.username} />
+              <div className="friend-info">
+                <span className="friend-name">
+                  {j.name}
+                  {KIND_ICON[j.kind] && <span style={{ marginInlineStart: 6 }}>{KIND_ICON[j.kind]}</span>}
+                </span>
+                <span className="friend-sub">{j.owner.username} · {t('jams.members', { count: j.members })}</span>
+              </div>
+              <span className="friend-sub" style={{ marginInlineStart: 'auto' }}>
+                {j.mine ? (
+                  <button type="button" className="btn btn-violet pill-sm" onClick={() => onEnter(j.id)}>
+                    <LogIn size={14} /> {t('jams.openJam')}
+                  </button>
+                ) : j.inJam ? (
+                  <button type="button" className="btn btn-violet pill-sm" onClick={() => onEnter(j.id)}>
+                    <LogIn size={14} /> {t('jams.inJam')}
+                  </button>
+                ) : (
+                  <button type="button" className="btn btn-violet pill-sm" onClick={() => join(j.id)} disabled={busy}>
+                    {t('jams.joinJam')}
+                  </button>
+                )}
+                <button type="button" className="btn-icon" style={{ marginInlineStart: 6 }} onClick={() => copyLink(j.id)} title={t('jams.copyLink')}>
+                  <Copy size={14} />
+                </button>
+              </span>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
   );
 }

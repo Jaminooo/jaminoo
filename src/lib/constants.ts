@@ -17,6 +17,11 @@ export const ALLOWED_VOICE_TYPES = ['audio/webm', 'audio/ogg', 'audio/mp4', 'aud
 
 export const U_ID_PREFIX = 'JM';
 
+export const JAM_KINDS = ['CHAT', 'MOVIE', 'MUSIC', 'HANGOUT'] as const;
+export type JamKind = (typeof JAM_KINDS)[number];
+
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉'];
+
 export function uidDisplay(id: number) {
   return U_ID_PREFIX + '-' + String(id).padStart(4, '0');
 }
