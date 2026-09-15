@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { livePublish } from '@/lib/live-publish';
 
 // POST { friendId } — removes the friendship between me and friendId
 export const POST = handle(async (req) => {
@@ -13,5 +14,6 @@ export const POST = handle(async (req) => {
   if (!existing) return err('Not friends', 404);
 
   await prisma.friendRequest.delete({ where: { id: existing.id } });
+  livePublish([`user:${me.id}`, `user:${friendId}`], 'friends:update', { at: Date.now() });
   return json({ ok: true });
 });

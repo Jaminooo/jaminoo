@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { livePublish } from '@/lib/live-publish';
 
 type Ctx = { params: { id: string } };
 
@@ -14,5 +15,6 @@ export const POST = handle(async (_req, { params }: Ctx) => {
     update: {},
     create: { jamId: jam.id, userId: me.id },
   });
+  livePublish([`jam:${jam.id}`, `user:${me.id}`], 'jam:update', jam.id);
   return json({ ok: true });
 });

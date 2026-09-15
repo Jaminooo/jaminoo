@@ -1,6 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { pubUser } from '@/lib/users';
+import { livePublish } from '@/lib/live-publish';
 
 type Ctx = { params: { id: string } };
 
@@ -59,15 +60,24 @@ export const POST = handle(async (req, { params }: Ctx) => {
   const msg = await prisma.jamMessage.create({
     data: { jamId: jam.id, userId: me.id, text: textClean },
   });
+  const payload = {
+    jamId: jam.id,
+    id: msg.id,
+    userId: me.id,
+    text: msg.text,
+    createdAt: msg.createdAt.toISOString(),
+    user: pubUser(me),
+  };
+  livePublish(`jam:${jam.id}`, 'chat:new', payload);
   return json(
     {
       ok: true,
       msg: {
-        id: msg.id,
-        userId: me.id,
-        text: msg.text,
-        createdAt: msg.createdAt.toISOString(),
-        user: pubUser(me),
+        id: payload.id,
+        userId: payload.userId,
+        text: payload.text,
+        createdAt: payload.createdAt,
+        user: payload.user,
       },
     },
     201

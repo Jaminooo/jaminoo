@@ -24,7 +24,7 @@ export interface Me {
   avatarPhoto: string | null;
 }
 
-export type Tab = 'profile' | 'friends' | 'jams';
+export type Tab = 'profile' | 'security' | 'friends' | 'jams';
 export type AuthView = 'login' | 'signup' | 'forgot';
 
 interface AppState {
@@ -33,11 +33,13 @@ interface AppState {
   tab: Tab;
   authView: AuthView;
   roomId: string | null;
+  online: number[];
   setMe: (me: Me | null) => void;
   setBooted: (b: boolean) => void;
   setTab: (t: Tab) => void;
   setAuthView: (v: AuthView) => void;
   setRoomId: (id: string | null) => void;
+  setOnline: (ids: number[]) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -46,11 +48,13 @@ export const useAppStore = create<AppState>((set) => ({
   tab: 'profile',
   authView: 'login',
   roomId: null,
+  online: [],
   setMe: (me) => set({ me }),
   setBooted: (b) => set({ booted: b }),
   setTab: (tab) => set({ tab, roomId: null }),
   setAuthView: (authView) => set({ authView }),
   setRoomId: (roomId) => set({ roomId }),
+  setOnline: (online) => set({ online }),
 }));
 
 export function uidDisplay(id: number) {

@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
-import { JaminoAvatar } from '@/components/jamino-avatar';
+import { JaminoAvatar, AVATAR_PRESETS } from '@/components/jamino-avatar';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { uidDisplay } from '@/store/app-store';
 import { MAX_PROFILE_MEDIA } from '@/lib/constants';
 import { Copy, Check, Lock, Upload, X, Star } from 'lucide-react';
-
-const AVATAR_COUNT = 12;
 
 interface MediaItem {
   id: string;
@@ -159,7 +157,7 @@ export function ProfilePanel() {
           <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 4 }}>{t('profile.avatar')}</h3>
           <p className="pane-sub" style={{ marginTop: 0, marginBottom: 16 }}>{t('profile.avatarHint')}</p>
           <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-            <JaminoAvatar avatarId={me.avatarId} size={64} photo={me.avatarPhoto} />
+            <JaminoAvatar avatarId={me.avatarId} size={64} photo={me.avatarPhoto} name={me.username} />
             <div style={{ fontSize: 13, color: 'var(--color-fog)', display: 'grid', gap: 8 }}>
               <span>{me.avatarPhoto ? t('media.photoActive') : t('media.presetActive')}</span>
               {me.avatarPhoto && (
@@ -170,9 +168,16 @@ export function ProfilePanel() {
             </div>
           </div>
           <div className="avatar-picker">
-            {Array.from({ length: AVATAR_COUNT }, (_, i) => (
-              <button key={i} type="button" className={`avatar-opt ${!me.avatarPhoto && me.avatarId === i ? 'selected' : ''}`} onClick={() => pickAvatar(i)}>
-                <JaminoAvatar avatarId={i} size={64} />
+            {AVATAR_PRESETS.map((p, i) => (
+              <button
+                key={p.name}
+                type="button"
+                className={`avatar-opt ${!me.avatarPhoto && me.avatarId === i ? 'selected' : ''}`}
+                onClick={() => pickAvatar(i)}
+                title={p.name}
+              >
+                <JaminoAvatar avatarId={i} size={64} name={p.name} />
+                <span className="avatar-opt-label">{p.name}</span>
               </button>
             ))}
           </div>

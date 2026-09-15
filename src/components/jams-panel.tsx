@@ -162,7 +162,7 @@ function CreateJam({ onDone, onClose, friends }: { onDone: () => void; onClose: 
                     return n;
                   })}
                 >
-                  <JaminoAvatar avatarId={f.avatarId} size={32} photo={f.avatarPhoto} />
+                  <JaminoAvatar avatarId={f.avatarId} size={32} photo={f.avatarPhoto} name={f.username} />
                   <span className="friend-name" style={{ fontSize: 13 }}>{f.username}</span>
                 </button>
               );

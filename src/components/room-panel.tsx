@@ -5,6 +5,7 @@ import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { api } from '@/lib/client-api';
+import { connectLive, emitLive, onLive, liveConnected } from '@/lib/live';
 import { toast } from '@/components/toast';
 import { ArrowLeft, Radio, Globe, Lock, Users as UsersIcon, Music2, Send, UserPlus } from 'lucide-react';
 
@@ -24,6 +25,10 @@ interface ChatMsg {
   user: ChatUser;
 }
 
+interface LiveMsg extends ChatMsg {
+  jamId: string;
+}
+
 interface JamDetail {
   id: string;
   name: string;
@@ -41,29 +46,60 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const [text, setText] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [friends, setFriends] = useState<ChatUser[]>([]);
+  const [live, setLive] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const load = () => api<{ jam: JamDetail }>(`/api/jams/${jamId}`).then((d) => setJam(d.jam)).catch(() => {});
 
   useEffect(() => {
     load();
+    const socket = connectLive();
+    emitLive('jam:join', jamId);
+    const offChat = onLive('chat:new', (m: LiveMsg) => {
+      if (m.jamId !== jamId) return;
+      setJam((prev) => {
+        if (!prev) return prev;
+        if (prev.messages.some((x) => x.id === m.id)) return prev;
+        return { ...prev, messages: [...prev.messages, m] };
+      });
+    });
+    const offUpdate = onLive('jam:update', (id: string) => {
+      if (id === jamId) load();
+    });
+    const onConn = () => setLive(true);
+    const onDisc = () => setLive(false);
+    socket?.on('connect', onConn);
+    socket?.on('disconnect', onDisc);
+    setLive(liveConnected());
     const poll = setInterval(() => {
-      const lastId = jam?.messages.at(-1)?.id;
-      const q = lastId ? `?afterId=${lastId}` : '';
-      api<{ messages: ChatMsg[] }>(`/api/jams/${jamId}/messages${q}`)
-        .then((d) => {
-          if (d.messages.length) {
-            setJam((prev) => {
-              if (!prev) return prev;
-              const seen = new Set(prev.messages.map((m) => m.id));
-              const fresh = d.messages.filter((m) => !seen.has(m.id));
-              return fresh.length ? { ...prev, messages: [...prev.messages, ...fresh] } : prev;
-            });
-          }
-        })
-        .catch(() => {});
-    }, 2500);
-    return () => clearInterval(poll);
+      if (liveConnected()) return;
+      setJam((prev) => {
+        if (prev) {
+          const lastId = prev.messages.at(-1)?.id;
+          api<{ messages: ChatMsg[] }>(`/api/jams/${jamId}/messages${lastId ? `?afterId=${lastId}` : ''}`)
+            .then((d) => {
+              if (d.messages.length) {
+                setJam((p) => {
+                  if (!p) return p;
+                  const seen = new Set(p.messages.map((m) => m.id));
+                  const fresh = d.messages.filter((m) => !seen.has(m.id));
+                  return fresh.length ? { ...p, messages: [...p.messages, ...fresh] } : p;
+                });
+              }
+            })
+            .catch(() => {});
+        }
+        return prev;
+      });
+    }, 5000);
+    return () => {
+      offChat();
+      offUpdate();
+      socket?.off('connect', onConn);
+      socket?.off('disconnect', onDisc);
+      emitLive('jam:leave', jamId);
+      clearInterval(poll);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jamId]);
 
@@ -119,6 +155,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
             <div className="room-title">{jam.name}</div>
             <div className="room-members">
               <UsersIcon size={13} /> {jam.members.length} · {t('jams.lastActive')}
+              {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
             </div>
           </div>
         </div>
@@ -134,7 +171,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           ) : (
             friends.map((f) => (
               <button key={f.id} type="button" className="friend-row" style={{ cursor: 'pointer', padding: '8px 12px' }} onClick={() => invite(f.id)}>
-                <JaminoAvatar avatarId={f.avatarId} size={28} photo={f.avatarPhoto} />
+                <JaminoAvatar avatarId={f.avatarId} size={28} photo={f.avatarPhoto} name={f.username} />
                 <span className="friend-name" style={{ fontSize: 13 }}>{f.username}</span>
               </button>
             ))
@@ -150,7 +187,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
       <div className="room-body" ref={bodyRef}>
         {jam.messages.map((m) => (
           <div key={m.id} className={`msg ${m.userId === me?.id ? 'me' : ''}`}>
-            <JaminoAvatar avatarId={m.user.avatarId} size={32} photo={m.user.avatarPhoto} />
+            <JaminoAvatar avatarId={m.user.avatarId} size={32} photo={m.user.avatarPhoto} name={m.user.username} />
             <div>
               <div className="msg-bubble">
                 <div className="msg-name">{m.user.username}</div>

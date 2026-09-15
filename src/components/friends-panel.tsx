@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { JaminoAvatar } from '@/components/jamino-avatar';
+import { OnlineDot } from '@/components/online-dot';
+import { connectLive, onLive } from '@/lib/live';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { Search, UserPlus, Check, X, Trash2, UserMinus } from 'lucide-react';
@@ -34,7 +36,13 @@ export function FriendsPanel() {
     api<FriendsData>('/api/friends').then(setData).catch(() => {});
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    connectLive();
+    const off = onLive('friends:update', () => load());
+    return off;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (q.trim().length < 2) {
@@ -81,7 +89,10 @@ export function FriendsPanel() {
     const [view, setView] = useState(false);
     return (
       <div className="friend-row">
-        <JaminoAvatar avatarId={u.avatarId} size={40} photo={u.avatarPhoto} />
+        <div className="avatar-stack">
+          <JaminoAvatar avatarId={u.avatarId} size={40} photo={u.avatarPhoto} name={u.username} />
+          <OnlineDot userId={u.id} />
+        </div>
         <div className="friend-meta">
           <div className="friend-name">
             {u.username} {u.github && <span title="GitHub" style={{ fontSize: 12 }}>gh</span>}

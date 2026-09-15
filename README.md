@@ -45,7 +45,7 @@ Production:
 
 ```bash
 npm run build
-npm run start
+npm run start   # live server: Next.js + WebSocket (socket.io) + presence
 ```
 
 ## Git workflow
@@ -57,5 +57,6 @@ npm run start
 ## Roadmap
 
 - [x] Port prototype to Next.js
-- [ ] Real deployments: Postgres, object storage, realtime (WebSocket)
+- [x] Realtime chat & friends via WebSocket (socket.io)
+- [ ] Real deployments: Postgres, object storage
 - [ ] Music slot in rooms

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { createSession } from '@/lib/session';
+import { createSession, parseUserAgent } from '@/lib/session';
 import { uidDisplay } from '@/lib/constants';
 
 // GitHub OAuth callback — exchanges the code for an access token,
@@ -49,7 +49,7 @@ export const GET = async (req: Request) => {
       });
     }
 
-    await createSession(user.id);
+    await createSession(user.id, parseUserAgent(req.headers.get('user-agent')));
     return new Response(null, {
       status: 303,
       headers: { Location: '/' },

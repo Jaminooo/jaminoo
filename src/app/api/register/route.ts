@@ -1,5 +1,5 @@
 import { handle, json, err } from '@/lib/api';
-import { createSession } from '@/lib/session';
+import { createSession, parseUserAgent } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { SECURITY_QUESTIONS, uidDisplay } from '@/lib/constants';
 import bcrypt from 'bcryptjs';
@@ -39,6 +39,6 @@ export const POST = handle(async (req) => {
     },
   });
 
-  await createSession(user.id);
+  await createSession(user.id, parseUserAgent(req.headers.get('user-agent')));
   return json({ ok: true, id: user.id, uid: uidDisplay(user.id) }, 201);
 });

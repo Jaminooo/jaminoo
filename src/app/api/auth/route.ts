@@ -1,8 +1,12 @@
 import { handle, json, err } from '@/lib/api';
-import { getCurrentUser, createSession, destroySession } from '@/lib/session';
+import { getCurrentUser, createSession, destroySession, parseUserAgent } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { SECURITY_QUESTIONS } from '@/lib/constants';
 import bcrypt from 'bcryptjs';
+
+async function sessionMetaFrom(req: Request) {
+  return parseUserAgent(req.headers.get('user-agent'));
+}
 
 export const GET = handle(async () => {
   const user = await getCurrentUser();
@@ -36,7 +40,7 @@ export const POST = handle(async (req) => {
     if (!user || user.github) return err('Invalid username or password', 401);
     const match = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!match) return err('Invalid username or password', 401);
-    await createSession(user.id);
+    await createSession(user.id, await sessionMetaFrom(req));
     return json({ ok: true });
   }
 
@@ -63,7 +67,7 @@ export const POST = handle(async (req) => {
     if (!match) return err('Wrong answer', 401);
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
-    await createSession(user.id);
+    await createSession(user.id, await sessionMetaFrom(req));
     return json({ ok: true });
   }
 

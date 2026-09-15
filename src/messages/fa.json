@@ -30,7 +30,12 @@
     "continue": "ادامه",
     "setNewPassword": "رمز جدید بگذار",
     "remembered": "یادت آمد؟",
-    "securityQuestionPrefix": "سوال امنیتی:"
+    "securityQuestionPrefix": "سوال امنیتی:",
+    "pwWeak": "ضعیف",
+    "pwFair": "متوسط",
+    "pwGood": "خوب",
+    "pwStrong": "قوی",
+    "pwVeryStrong": "خیلی قوی"
   },
   "panel": {
     "profile": "پروفایل",
@@ -40,7 +45,16 @@
     "jams": "جیم‌ها",
     "jamsSub": "برو توی یک اتاق. موسیقی به‌زودی.",
     "newJam": "جیم جدید",
-    "logout": "خروج"
+    "logout": "خروج",
+    "security": "امنیت"
+  },
+  "security": {
+    "title": "نشست‌ها و دستگاه‌ها",
+    "subtitle": "ورودهای فعال در دستگاه‌های مختلف.",
+    "current": "فعلی",
+    "revoke": "خروج",
+    "noOtherSessions": "نشست فعال دیگری نیست.",
+    "lastSeen": "آخرین مشاهده {{time}}"
   },
   "profile": {
     "avatar": "آواتار",
@@ -119,7 +133,9 @@
     "jamCreated": "جیم شروع شد",
     "invalidUsername": "نام کاربری: ۳ تا ۲۰ حرف، فقط حروف/اعداد/خط زیرین.",
     "notInJam": "تو در این جیم نیستی.",
-    "unknownError": "مشکلی پیش آمد."
+    "unknownError": "مشکلی پیش آمد.",
+    "revoked": "نشست خارج شد.",
+    "loggedOut": "از این دستگاه خارج شدید."
   },
   "theme": {
     "themeSwitcher": "تم",

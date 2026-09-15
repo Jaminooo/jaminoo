@@ -2,6 +2,7 @@ import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { uidDisplay, parseUid } from '@/lib/constants';
 import { pubUser } from '@/lib/users';
+import { livePublish } from '@/lib/live-publish';
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -95,5 +96,6 @@ export const POST = handle(async (req) => {
   if (existing) return err('Request already exists', 409);
 
   await prisma.friendRequest.create({ data: { fromId: me.id, toId: targetId, status: 'PENDING' } });
+  livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
   return json({ ok: true, uid: uidDisplay(targetId) }, 201);
 });

@@ -35,6 +35,8 @@ model User {
 model Session {
   token     String   @id
   userId    Int
+  name      String   @default("")
+  device    String   @default("")
   createdAt DateTime @default(now())
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

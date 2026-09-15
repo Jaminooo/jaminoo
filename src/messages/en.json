@@ -30,7 +30,12 @@
     "continue": "Continue",
     "setNewPassword": "Set new password",
     "remembered": "Remembered it?",
-    "securityQuestionPrefix": "Security question:"
+    "securityQuestionPrefix": "Security question:",
+    "pwWeak": "Weak",
+    "pwFair": "Fair",
+    "pwGood": "Good",
+    "pwStrong": "Strong",
+    "pwVeryStrong": "Very strong"
   },
   "panel": {
     "profile": "Profile",
@@ -40,7 +45,16 @@
     "jams": "Jams",
     "jamsSub": "Drop into a room. Music coming soon.",
     "newJam": "New jam",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "security": "Security"
+  },
+  "security": {
+    "title": "Sessions & devices",
+    "subtitle": "Active sign-ins across devices.",
+    "current": "Current",
+    "revoke": "Sign out",
+    "noOtherSessions": "No other active sessions.",
+    "lastSeen": "Last seen {{time}}"
   },
   "profile": {
     "avatar": "Avatar",
@@ -119,7 +133,9 @@
     "jamCreated": "Jam started",
     "invalidUsername": "Username: 3–20 chars, letters/numbers/underscore only.",
     "notInJam": "You are not in that jam.",
-    "unknownError": "Something went wrong."
+    "unknownError": "Something went wrong.",
+    "revoked": "Session signed out.",
+    "loggedOut": "Signed out from this device."
   },
   "theme": {
     "themeSwitcher": "Theme",

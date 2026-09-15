@@ -18,6 +18,9 @@ prisma/dev.db-journal
 # uploads
 uploads
 
+# server log (local run)
+srv.log
+
 # misc
 *.tsbuildinfo
 .DS_Store

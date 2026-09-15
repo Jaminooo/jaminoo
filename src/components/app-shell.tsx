@@ -5,12 +5,9 @@ import { api } from '@/lib/client-api';
 import { useAppStore } from '@/store/app-store';
 import { AuthScreen } from '@/components/auth-screen';
 import { PanelShell } from '@/components/panel-shell';
-import { useI18n } from '@/providers/i18n-provider';
-import { useThemeCtx } from '@/providers/theme-provider';
+import { TopRightControls } from '@/components/top-controls';
 import { ToastHost } from '@/components/toast-host';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Languages, Moon, Sun, Monitor, Sparkles, LogOut } from 'lucide-react';
-import { useTranslations } from '@/providers/use-translations';
 
 export function AppShell() {
   const { me, booted, setMe, setBooted, tab, authView, setTab } = useAppStore();
@@ -46,7 +43,7 @@ export function AppShell() {
 
   return (
     <>
-      <TopRightControls />
+      {!me && <TopRightControls />}
       <ToastHost />
       <AnimatePresence mode="wait">
         {me ? (
@@ -64,55 +61,5 @@ export function AppShell() {
         )}
       </AnimatePresence>
     </>
-  );
-}
-
-function TopRightControls() {
-  const { locale, setLocale, t } = useI18n();
-  const { theme, setTheme, resolved } = useThemeCtx();
-  const user = useAppStore((s) => s.me);
-
-  return (
-    <div className="top-right-controls">
-      <div className="theme-switcher" style={{ position: 'static', display: 'flex', gap: 4 }}>
-        <button className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title={t('theme.dark')} aria-label={t('theme.dark')}>
-          <Moon size={15} />
-        </button>
-        <button className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} title={t('theme.light')} aria-label={t('theme.light')}>
-          <Sun size={15} />
-        </button>
-        <button className={`theme-btn ${theme === 'system' ? 'active' : ''}`} onClick={() => setTheme('system')} title={t('theme.system')} aria-label={t('theme.system')}>
-          <Monitor size={15} />
-        </button>
-        <button className={`theme-btn ${theme === 'anime' ? 'active' : ''}`} onClick={() => setTheme('anime')} title={t('theme.anime')} aria-label={t('theme.anime')}>
-          <Sparkles size={15} />
-        </button>
-      </div>
-
-      <button
-        className="btn btn-ghost pill-sm"
-        style={{ marginInlineStart: 8 }}
-        onClick={() => setLocale(locale === 'en' ? 'fa' : 'en')}
-        title={locale === 'en' ? 'فارسی' : 'English'}
-      >
-        <Languages size={15} />
-        <span style={{ fontSize: 12 }}>{locale === 'en' ? 'فا' : 'EN'}</span>
-      </button>
-
-      {user && (
-        <button
-          className="btn btn-ghost pill-sm"
-          style={{ marginInlineStart: 8 }}
-          onClick={async () => {
-            try {
-              await api('/api/auth', { method: 'POST', body: JSON.stringify({ action: 'logout' }) });
-            } catch {}
-            window.location.reload();
-          }}
-        >
-          <LogOut size={15} />
-        </button>
-      )}
-    </div>
   );
 }
