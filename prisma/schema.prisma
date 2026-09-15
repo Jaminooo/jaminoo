@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  email        String    @default("")
+  passwordHash String?
+  questionId   Int? // index into SECURITY_QUESTIONS
+  answerHash   String?
+  avatarId     Int       @default(0)
+  bio          String    @default("")
+  github       Boolean   @default(false)
+  githubLogin  String?   @unique
+  createdAt    DateTime  @default(now())
+
+  sessions        Session[]
+  friendRequestsA FriendRequest[] @relation("FriendRequestA")
+  friendRequestsB FriendRequest[] @relation("FriendRequestB")
+  ownedJams       Jam[]
+  jams            JamMember[]
+  messages        JamMessage[]
+  media           Media[]
+}
+
+model Session {
+  token     String   @id
+  userId    Int
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FriendRequest {
+  id        Int      @id @default(autoincrement())
+  fromId    Int
+  toId      Int
+  status    SRequest @default(PENDING) // PENDING | FRIENDS
+  createdAt DateTime @default(now())
+
+  from User @relation("FriendRequestA", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("FriendRequestB", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+}
+
+enum SRequest {
+  PENDING
+  FRIENDS
+}
+
+enum JType {
+  PUBLIC
+  PRIVATE
+}
+
+model Jam {
+  id        String   @id
+  name      String
+  desc      String   @default("")
+  type      JType    @default(PUBLIC)
+  ownerId   Int
+  createdAt DateTime @default(now())
+
+  owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members  JamMember[]
+  messages JamMessage[]
+}
+
+model JamMember {
+  jamId    String
+  userId   Int
+  joinedAt DateTime @default(now())
+
+  jam  Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([jamId, userId])
+}
+
+model JamMessage {
+  id        Int      @id @default(autoincrement())
+  jamId     String
+  userId    Int
+  text      String
+  createdAt DateTime @default(now())
+
+  jam  Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Media {
+  id        String @id
+  userId    Int
+  filename  String
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
