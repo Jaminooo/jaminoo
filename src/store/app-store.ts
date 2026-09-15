@@ -9,6 +9,8 @@ export interface PubUser {
   avatarId: number;
   bio: string;
   github: boolean;
+  status: string;
+  statusText: string;
   createdAt: string;
   avatarPhoto: string | null;
 }
@@ -20,6 +22,8 @@ export interface Me {
   avatarId: number;
   bio: string;
   github: boolean;
+  status: string;
+  statusText: string;
   createdAt: string;
   avatarPhoto: string | null;
 }
@@ -33,12 +37,14 @@ interface AppState {
   tab: Tab;
   authView: AuthView;
   roomId: string | null;
+  dmWith: number | null;
   online: number[];
   setMe: (me: Me | null) => void;
   setBooted: (b: boolean) => void;
   setTab: (t: Tab) => void;
   setAuthView: (v: AuthView) => void;
   setRoomId: (id: string | null) => void;
+  setDmWith: (id: number | null) => void;
   setOnline: (ids: number[]) => void;
 }
 
@@ -48,12 +54,14 @@ export const useAppStore = create<AppState>((set) => ({
   tab: 'profile',
   authView: 'login',
   roomId: null,
+  dmWith: null,
   online: [],
   setMe: (me) => set({ me }),
   setBooted: (b) => set({ booted: b }),
-  setTab: (tab) => set({ tab, roomId: null }),
+  setTab: (tab) => set({ tab, roomId: null, dmWith: null }),
   setAuthView: (authView) => set({ authView }),
-  setRoomId: (roomId) => set({ roomId }),
+  setRoomId: (roomId) => set({ roomId, dmWith: null }),
+  setDmWith: (dmWith) => set({ dmWith, roomId: null }),
   setOnline: (online) => set({ online }),
 }));
 

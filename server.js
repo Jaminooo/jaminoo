@@ -60,6 +60,12 @@ app.prepare().then(() => {
       if (typeof jamId === 'string' && jamId) socket.leave(`jam:${jamId}`);
     });
 
+    socket.on('typing', (d) => {
+      if (!d || typeof d !== 'object') return;
+      if (d.jam) io.to(`jam:${d.jam}`).emit('typing:update', { jam: d.jam, user: userId, from: socket.id });
+      if (d.dm) io.to(`user:${d.dm}`).emit('typing:update', { dm: d.dm, user: userId, from: socket.id });
+    });
+
     socket.on('disconnect', () => {
       const s = online.get(userId);
       if (s) {

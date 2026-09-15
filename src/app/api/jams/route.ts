@@ -23,6 +23,7 @@ export const GET = handle(async () => {
       desc: m.jam.desc,
       type: m.jam.type,
       ownerId: m.jam.ownerId,
+      closed: m.jam.closed,
       createdAt: m.jam.createdAt.toISOString(),
       members: m.jam.members.length,
       lastActive: m.jam.messages[0]?.createdAt.toISOString() ?? m.jam.createdAt.toISOString(),
@@ -30,12 +31,15 @@ export const GET = handle(async () => {
   });
 });
 
-// POST { name, desc?, type: 'PUBLIC'|'PRIVATE' }
+// POST { name, desc?, type: 'PUBLIC'|'PRIVATE' } — each user can own one jam
 export const POST = handle(async (req) => {
   const me = await requireUser();
   const { name, desc, type } = (await req.json()) as { name?: string; desc?: string; type?: string };
   if (!name || name.trim().length < 2 || name.trim().length > 40) return err('Name must be 2–40 characters');
   const jtype = type === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC';
+
+  const ownedCount = await prisma.jam.count({ where: { ownerId: me.id } });
+  if (ownedCount >= 1) return err('You can only own one jam', 403);
 
   const last = await prisma.jam.findMany({ orderBy: { id: 'desc' }, take: 1 });
   let seq = 1;

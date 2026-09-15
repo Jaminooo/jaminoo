@@ -68,7 +68,14 @@
     "changePassword": "تغییر رمز عبور",
     "currentPassword": "رمز فعلی",
     "newPassword": "رمز جدید",
-    "confirmPassword": "تکرار رمز"
+    "confirmPassword": "تکرار رمز",
+    "status": "وضعیت",
+    "statusOnline": "آنلاین",
+    "statusIdle": "دور از صفحه",
+    "statusBusy": "مشغول",
+    "statusOffline": "آفلاین",
+    "statusText": "متن وضعیت",
+    "statusPlaceholder": "چه خبر؟..."
   },
   "friends": {
     "search": "جستجوی آیدی یا نام کاربری...",
@@ -102,12 +109,28 @@
     "members": "{count} عضو",
     "inviteFriends": "دعوت دوستان",
     "noJamsYet": "هنوز جیمی نداری — یکی بساز و دوستانت را دعوت کن.",
-    "lastActive": "آخرین فعالیت"
+    "lastActive": "آخرین فعالیت",
+    "pendingInvites": "{count} درخواست دعوت در انتظار",
+    "joinedJam": "به جیم پیوستی!"
   },
   "room": {
     "messagePlaceholder": "به جیم پیام بده...",
     "musicComing": "موسیقی و چیزهای بیشتر به‌زودی به این جیم اضافه می‌شود — فعلاً فقط چت است.",
-    "send": "ارسال"
+    "send": "ارسال",
+    "noMessages": "هنوز پیامی نیست — چیزی بگو!",
+    "closed": "بسته",
+    "reopen": "باز کردن دوباره",
+    "close": "بستن جیم",
+    "leave": "خروج",
+    "inviteSent": "درخواست دعوت به {name} ارسال شد.",
+    "typing": "{name} در حال تایپ است…"
+  },
+  "dm": {
+    "title": "پیام",
+    "privateChat": "چت خصوصی",
+    "noMessages": "هنوز پیامی نیست — چیزی بگو!",
+    "placeholder": "پیام…",
+    "typing": "{name} در حال تایپ است…"
   },
   "modal": {
     "close": "بستن",

@@ -23,6 +23,10 @@ export function liveConnected() {
   return !!socket?.connected;
 }
 
+export function liveSocketId() {
+  return socket?.id ?? null;
+}
+
 export function emitLive(event: string, data?: any) {
   if (socket?.connected) socket.emit(event, data);
 }

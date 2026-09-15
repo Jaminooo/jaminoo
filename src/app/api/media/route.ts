@@ -10,7 +10,7 @@ const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 export const GET = handle(async () => {
   const me = await requireUser();
   const media = await prisma.media.findMany({
-    where: { userId: me.id },
+    where: { userId: me.id, kind: 'IMAGE' },
     orderBy: { createdAt: 'desc' },
   });
   return json({
@@ -32,7 +32,7 @@ export const POST = handle(async (req: Request) => {
   const file = form.get('file');
   if (!(file instanceof File)) return err('No file provided');
 
-  const count = await prisma.media.count({ where: { userId: me.id } });
+  const count = await prisma.media.count({ where: { userId: me.id, kind: 'IMAGE' } });
   if (count >= MAX_PROFILE_MEDIA) return err(`Maximum ${MAX_PROFILE_MEDIA} photos`);
 
   if (file.size > MAX_MEDIA_BYTES) return err('File too large (max 5 MB)');
@@ -47,7 +47,7 @@ export const POST = handle(async (req: Request) => {
   await writeFile(path.join(UPLOAD_DIR, filename), buf);
 
   const record = await prisma.media.create({
-    data: { id, userId: me.id, filename, mime: file.type, size: file.size },
+    data: { id, userId: me.id, kind: 'IMAGE', filename, mime: file.type, size: file.size },
   });
 
   return json(

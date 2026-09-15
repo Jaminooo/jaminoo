@@ -8,6 +8,8 @@ type PubUserRow = {
   github: boolean;
   createdAt?: Date;
   profilePhotoId?: string | null;
+  status?: string;
+  statusText?: string;
 };
 
 export function pubUser(u: PubUserRow) {
@@ -18,6 +20,8 @@ export function pubUser(u: PubUserRow) {
     avatarId: u.avatarId,
     bio: u.bio ?? '',
     github: u.github,
+    status: u.status ?? 'ONLINE',
+    statusText: u.statusText ?? '',
     ...(u.createdAt ? { createdAt: u.createdAt.toISOString() } : {}),
     avatarPhoto: u.profilePhotoId ? `/api/media/${u.profilePhotoId}` : null,
   };

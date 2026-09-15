@@ -2,8 +2,21 @@ import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { pubUser } from '@/lib/users';
 import { livePublish } from '@/lib/live-publish';
+import { msgPayload } from '@/lib/messages';
 
 type Ctx = { params: { id: string } };
+
+const USER_SELECT = {
+  id: true,
+  username: true,
+  avatarId: true,
+  bio: true,
+  github: true,
+  status: true,
+  statusText: true,
+  createdAt: true,
+  profilePhotoId: true,
+} as const;
 
 // GET /api/jams/[id]/messages — poll messages newer than `afterId`
 export const GET = handle(async (req, { params }: Ctx) => {
@@ -19,31 +32,14 @@ export const GET = handle(async (req, { params }: Ctx) => {
       ...(Number.isFinite(afterId) && afterId > 0 ? { id: { gt: afterId } } : {}),
     },
     include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          avatarId: true,
-          bio: true,
-          github: true,
-          createdAt: true,
-          profilePhotoId: true,
-        },
-      },
+      user: { select: USER_SELECT },
+      media: true,
     },
     orderBy: { id: 'asc' },
     take: 200,
   });
 
-  return json({
-    messages: messages.map((m) => ({
-      id: m.id,
-      userId: m.userId,
-      text: m.text,
-      createdAt: m.createdAt.toISOString(),
-      user: pubUser(m.user),
-    })),
-  });
+  return json({ messages: messages.map((m) => msgPayload(m)) });
 });
 
 // POST /api/jams/[id]/messages  { text }
@@ -58,28 +54,10 @@ export const POST = handle(async (req, { params }: Ctx) => {
   if (!jam.members.some((m) => m.userId === me.id)) return err('You are not in this jam', 403);
 
   const msg = await prisma.jamMessage.create({
-    data: { jamId: jam.id, userId: me.id, text: textClean },
+    data: { jamId: jam.id, userId: me.id, kind: 'TEXT', text: textClean },
+    include: { user: { select: USER_SELECT }, media: true },
   });
-  const payload = {
-    jamId: jam.id,
-    id: msg.id,
-    userId: me.id,
-    text: msg.text,
-    createdAt: msg.createdAt.toISOString(),
-    user: pubUser(me),
-  };
-  livePublish(`jam:${jam.id}`, 'chat:new', payload);
-  return json(
-    {
-      ok: true,
-      msg: {
-        id: payload.id,
-        userId: payload.userId,
-        text: payload.text,
-        createdAt: payload.createdAt,
-        user: payload.user,
-      },
-    },
-    201
-  );
+  const payload = msgPayload(msg);
+  livePublish(`jam:${jam.id}`, 'chat:new', { jamId: jam.id, ...payload });
+  return json({ ok: true, msg: payload }, 201);
 });

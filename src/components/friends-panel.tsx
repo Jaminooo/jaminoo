@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
+import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { OnlineDot } from '@/components/online-dot';
 import { connectLive, onLive } from '@/lib/live';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
-import { Search, UserPlus, Check, X, Trash2, UserMinus } from 'lucide-react';
+import { Search, UserPlus, Check, X, Trash2, UserMinus, MessageCircle } from 'lucide-react';
 
 interface PubUser {
   id: number;
@@ -16,6 +17,8 @@ interface PubUser {
   avatarId: number;
   bio: string;
   github: boolean;
+  status: string;
+  statusText: string;
   avatarPhoto: string | null;
   friend?: boolean;
 }
@@ -28,9 +31,11 @@ interface FriendsData {
 
 export function FriendsPanel() {
   const t = useTranslations();
+  const setDmWith = useAppStore((s) => s.setDmWith);
   const [data, setData] = useState<FriendsData | null>(null);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<PubUser[]>([]);
+  const [statuses, setStatuses] = useState<Record<number, string>>({});
 
   const load = () => {
     api<FriendsData>('/api/friends').then(setData).catch(() => {});
@@ -40,7 +45,13 @@ export function FriendsPanel() {
     load();
     connectLive();
     const off = onLive('friends:update', () => load());
-    return off;
+    const offStatus = onLive('status:update', (d: { userId: number; status: string }) => {
+      setStatuses((p) => ({ ...p, [d.userId]: d.status }));
+    });
+    return () => {
+      off();
+      offStatus();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -85,13 +96,14 @@ export function FriendsPanel() {
     }
   };
 
-  const FriendRow = ({ u, actions }: { u: PubUser; actions: React.ReactNode }) => {
+  const FriendRow = ({ u, actions, canDm = false }: { u: PubUser; actions?: React.ReactNode; canDm?: boolean }) => {
     const [view, setView] = useState(false);
+    const st = statuses[u.id] ?? u.status ?? 'ONLINE';
     return (
       <div className="friend-row">
         <div className="avatar-stack">
           <JaminoAvatar avatarId={u.avatarId} size={40} photo={u.avatarPhoto} name={u.username} />
-          <OnlineDot userId={u.id} />
+          <OnlineDot userId={u.id} status={st} />
         </div>
         <div className="friend-meta">
           <div className="friend-name">
@@ -101,8 +113,16 @@ export function FriendsPanel() {
             </button>
           </div>
           <div className="friend-id">{u.uid}</div>
+          {(u.statusText || u.bio) && <div className="friend-sub">{u.statusText || u.bio}</div>}
         </div>
-        <div className="friend-actions">{actions}</div>
+        <div className="friend-actions">
+          {canDm && (
+            <button type="button" className="btn-icon violet" onClick={() => setDmWith(u.id)} title={t('dm.title')}>
+              <MessageCircle size={16} />
+            </button>
+          )}
+          {actions}
+        </div>
         {view && (
           <div style={{ gridColumn: '1 / -1', paddingTop: 8, fontSize: 13, color: 'var(--color-fog)' }}>
             {u.bio || t('modal.noBio')}
@@ -159,7 +179,7 @@ export function FriendsPanel() {
               <div className="empty-state">{t('friends.noFriendsYet')}</div>
             ) : (
               data.friends.map((u) => (
-                <FriendRow key={u.id} u={u} actions={null} />
+                <FriendRow key={u.id} u={u} actions={null} canDm />
               ))
             )}
           </div>

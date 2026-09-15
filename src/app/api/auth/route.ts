@@ -19,6 +19,8 @@ export const GET = handle(async () => {
       avatarId: user.avatarId,
       bio: user.bio,
       github: user.github,
+      status: user.status,
+      statusText: user.statusText,
       avatarPhoto: user.profilePhotoId ? `/api/media/${user.profilePhotoId}` : null,
       createdAt: user.createdAt.toISOString(),
     },

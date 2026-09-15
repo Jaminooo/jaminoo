@@ -10,6 +10,7 @@ export const POST = handle(async (_req, { params }: Ctx) => {
   const jam = await prisma.jam.findUnique({ where: { id: params.id } });
   if (!jam) return err('Jam not found', 404);
   if (jam.type === 'PRIVATE') return err('This jam is private — you need an invite', 403);
+  if (jam.closed) return err('This jam is closed', 403);
   await prisma.jamMember.upsert({
     where: { jamId_userId: { jamId: jam.id, userId: me.id } },
     update: {},

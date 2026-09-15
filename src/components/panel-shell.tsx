@@ -10,6 +10,7 @@ import { SecurityPanel } from '@/components/security-panel';
 import { FriendsPanel } from '@/components/friends-panel';
 import { JamsPanel } from '@/components/jams-panel';
 import { RoomPanel } from '@/components/room-panel';
+import { DmPanel } from '@/components/dm-panel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/client-api';
 import { connectLive, onLive } from '@/lib/live';
@@ -17,7 +18,7 @@ import { User, Shield, Users, Radio, ArrowLeft, Music2 } from 'lucide-react';
 
 export function PanelShell() {
   const me = useAppStore((s) => s.me);
-  const { tab, setTab, roomId, setRoomId } = useAppStore();
+  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith } = useAppStore();
   const t = useTranslations();
   const [incomingCount, setIncomingCount] = useState(0);
 
@@ -45,6 +46,16 @@ export function PanelShell() {
       <div className="panel-body" style={{ minHeight: '100vh' }}>
         <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
           <RoomPanel jamId={roomId} onBack={exitRoom} />
+        </div>
+      </div>
+    );
+  }
+
+  if (dmWith != null) {
+    return (
+      <div className="panel-body" style={{ minHeight: '100vh' }}>
+        <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
+          <DmPanel otherId={dmWith} onBack={() => setDmWith(null)} />
         </div>
       </div>
     );

@@ -1,0 +1,181 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from '@/providers/use-translations';
+import { useAppStore } from '@/store/app-store';
+import { JaminoAvatar } from '@/components/jamino-avatar';
+import { EmojiText } from '@/components/emoji-text';
+import { VoicePlayer } from '@/components/voice-player';
+import { MessageComposer } from '@/components/message-composer';
+import { api } from '@/lib/client-api';
+import { connectLive, emitLive, onLive, liveSocketId, liveConnected } from '@/lib/live';
+import { toast } from '@/components/toast';
+import { ArrowLeft } from 'lucide-react';
+
+interface ChatUser {
+  id: number;
+  username: string;
+  uid?: string;
+  avatarId: number;
+  github: boolean;
+  status?: string;
+  statusText?: string;
+  avatarPhoto?: string | null;
+}
+
+interface ChatMsg {
+  id: number;
+  userId: number;
+  kind?: string;
+  text: string;
+  media: { id: string; url: string } | null;
+  createdAt: string;
+  user?: ChatUser;
+}
+
+interface ConvoData {
+  convo: { id: string; otherId: number; other: ChatUser };
+  messages: ChatMsg[];
+}
+
+export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => void }) {
+  const t = useTranslations();
+  const me = useAppStore((s) => s.me);
+  const [convo, setConvo] = useState<ConvoData | null>(null);
+  const [live, setLive] = useState(false);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
+  const typingTimer = useRef<number | null>(null);
+  const otherNameRef = useRef('');
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  const load = () => api<ConvoData>(`/api/dm/${otherId}`).then(setConvo).catch(() => {});
+
+  useEffect(() => {
+    load();
+    const socket = connectLive();
+    const offNew = onLive('dm:new', (d: { userA: number; userB: number; message: ChatMsg }) => {
+      const mine = me?.id ?? -1;
+      const match = (d.userA === mine && d.userB === otherId) || (d.userA === otherId && d.userB === mine);
+      if (!match) return;
+      setConvo((prev) => {
+        if (!prev) return prev;
+        if (prev.messages.some((x) => x.id === d.message.id)) return prev;
+        return { ...prev, messages: [...prev.messages, d.message] };
+      });
+    });
+    const offTyping = onLive('typing:update', (d: { dm?: number; user: number; from?: string }) => {
+      if (d.dm !== otherId) return;
+      if (d.from && d.from === liveSocketId()) return;
+      if (d.user === me?.id) return;
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+      setTypingUser(otherNameRef.current);
+      typingTimer.current = window.setTimeout(() => setTypingUser(null), 2000);
+    });
+    const onConn = () => setLive(true);
+    const onDisc = () => setLive(false);
+    socket?.on('connect', onConn);
+    socket?.on('disconnect', onDisc);
+    setLive(liveConnected());
+    const poll = setInterval(() => {
+      if (liveConnected()) return;
+      const lastId = convo?.messages.at(-1)?.id;
+      // fallback: full re-fetch when socket is down
+      load();
+      void lastId;
+    }, 6000);
+    return () => {
+      offNew();
+      offTyping();
+      socket?.off('connect', onConn);
+      socket?.off('disconnect', onDisc);
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+      clearInterval(poll);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otherId]);
+
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: 'smooth' });
+  }, [convo?.messages.length]);
+
+  useEffect(() => {
+    otherNameRef.current = convo?.convo.other.username ?? '';
+  }, [convo]);
+
+  const sendText = async (text: string) => {
+    try {
+      await api(`/api/dm/${otherId}/send`, { method: 'POST', body: JSON.stringify({ text }) });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
+
+  const sendVoice = async (blob: Blob) => {
+    const fd = new FormData();
+    fd.append('voice', blob, 'voice.webm');
+    try {
+      await api(`/api/dm/${otherId}/voice`, { method: 'POST', body: fd });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
+
+  const onTyping = () => emitLive('typing', { dm: otherId });
+
+  if (!convo) return <div className="empty-state" style={{ padding: 48 }}>…</div>;
+
+  return (
+    <div className="room" style={{ marginTop: 24 }}>
+      <div className="room-head">
+        <button type="button" className="btn-icon" onClick={onBack} title={t('modal.close')}>
+          <ArrowLeft size={16} />
+        </button>
+        <div className="room-title-wrap">
+          <div className="jam-icon" style={{ width: 36, height: 36, marginInlineEnd: 4 }}>
+            <JaminoAvatar avatarId={convo.convo.other.avatarId} size={34} photo={convo.convo.other.avatarPhoto} name={convo.convo.other.username} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="room-title">{convo.convo.other.username}</div>
+            <div className="room-members">
+              {convo.convo.other.statusText || t('dm.privateChat')}
+              {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="room-body" ref={bodyRef}>
+        {convo.messages.length === 0 && <div className="empty-state" style={{ padding: 40 }}>{t('dm.noMessages')}</div>}
+        {convo.messages.map((m) => (
+          <div key={m.id} className={`msg ${m.userId === me?.id ? 'me' : ''}`}>
+            <JaminoAvatar avatarId={m.user?.avatarId ?? 0} size={32} photo={m.user?.avatarPhoto} name={m.user?.username} />
+            <div>
+              <div className="msg-bubble">
+                <div className="msg-name">{m.user?.username}</div>
+                {m.kind === 'VOICE' && m.media ? (
+                  <VoicePlayer src={m.media.url} />
+                ) : (
+                  <div className="msg-text">
+                    <EmojiText text={m.text} />
+                  </div>
+                )}
+              </div>
+              <div className="msg-time">
+                {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {typingUser && <div className="typing-hint">{t('dm.typing', { name: typingUser })}</div>}
+
+      <MessageComposer
+        placeholder={t('dm.placeholder')}
+        onSendText={sendText}
+        onSendVoice={sendVoice}
+        onTyping={onTyping}
+      />
+    </div>
+  );
+}

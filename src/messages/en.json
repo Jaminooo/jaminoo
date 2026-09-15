@@ -68,7 +68,14 @@
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
-    "confirmPassword": "Confirm"
+    "confirmPassword": "Confirm",
+    "status": "Status",
+    "statusOnline": "Online",
+    "statusIdle": "Idle",
+    "statusBusy": "Busy",
+    "statusOffline": "Offline",
+    "statusText": "Status text",
+    "statusPlaceholder": "What's on your mind…"
   },
   "friends": {
     "search": "Search ID or username...",
@@ -102,12 +109,28 @@
     "members": "{count} members",
     "inviteFriends": "Invite friends",
     "noJamsYet": "No jams yet — create one and invite your friends.",
-    "lastActive": "last active"
+    "lastActive": "last active",
+    "pendingInvites": "{count} pending invite requests",
+    "joinedJam": "You joined the jam!"
   },
   "room": {
     "messagePlaceholder": "Message the jam...",
     "musicComing": "Music & more are coming to this jam — right now it's just the chat.",
-    "send": "Send"
+    "send": "Send",
+    "noMessages": "No messages yet — say something!",
+    "closed": "Closed",
+    "reopen": "Reopen",
+    "close": "Close jam",
+    "leave": "Leave",
+    "inviteSent": "Invite request sent to {name}.",
+    "typing": "{name} is typing…"
+  },
+  "dm": {
+    "title": "Message",
+    "privateChat": "Private chat",
+    "noMessages": "No messages yet — say something!",
+    "placeholder": "Message…",
+    "typing": "{name} is typing…"
   },
   "modal": {
     "close": "Close",

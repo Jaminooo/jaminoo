@@ -18,6 +18,8 @@ model User {
   bio          String    @default("")
   github       Boolean   @default(false)
   githubLogin  String?   @unique
+  status       String    @default("ONLINE") // ONLINE | IDLE | BUSY | OFFLINE
+  statusText   String    @default("")
   createdAt    DateTime  @default(now())
 
   profilePhotoId String?  @unique
@@ -30,6 +32,11 @@ model User {
   jams            JamMember[]
   messages        JamMessage[]
   media           Media[]
+  convA           Conversation[] @relation("ConvA")
+  convB           Conversation[] @relation("ConvB")
+  dmMessages      DmMessage[]
+  jamInvitesSent     JamInvite[] @relation("JamInviteFrom")
+  jamInvitesReceived JamInvite[] @relation("JamInviteTo")
 }
 
 model Session {
@@ -71,11 +78,13 @@ model Jam {
   desc      String   @default("")
   type      JType    @default(PUBLIC)
   ownerId   Int
+  closed    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   owner    User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members  JamMember[]
   messages JamMessage[]
+  invites  JamInvite[]
 }
 
 model JamMember {
@@ -93,16 +102,20 @@ model JamMessage {
   id        Int      @id @default(autoincrement())
   jamId     String
   userId    Int
-  text      String
+  kind      String   @default("TEXT") // TEXT | VOICE
+  text      String   @default("")
+  mediaId   String?
   createdAt DateTime @default(now())
 
-  jam  Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jam   Jam   @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media Media? @relation("MessageMedia", fields: [mediaId], references: [id], onDelete: SetNull)
 }
 
 model Media {
   id        String @id
   userId    Int
+  kind      String @default("IMAGE") // IMAGE | VOICE
   filename  String
   mime      String
   size      Int
@@ -110,4 +123,52 @@ model Media {
 
   user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   profileUser User? @relation("ProfilePhoto")
+  messages     JamMessage[] @relation("MessageMedia")
+  dmMessages   DmMessage[] @relation("DmMedia")
+}
+
+model Conversation {
+  id        String   @id
+  userA     Int
+  userB     Int
+  createdAt DateTime @default(now())
+
+  userA_ref User @relation("ConvA", fields: [userA], references: [id], onDelete: Cascade)
+  userB_ref User @relation("ConvB", fields: [userB], references: [id], onDelete: Cascade)
+  messages  DmMessage[]
+
+  @@unique([userA, userB])
+}
+
+model DmMessage {
+  id        Int      @id @default(autoincrement())
+  convId    String
+  senderId  Int
+  kind      String   @default("TEXT") // TEXT | VOICE
+  text      String   @default("")
+  mediaId   String?
+  createdAt DateTime @default(now())
+
+  conv   Conversation @relation(fields: [convId], references: [id], onDelete: Cascade)
+  sender User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  media  Media?       @relation("DmMedia", fields: [mediaId], references: [id], onDelete: SetNull)
+}
+
+model JamInvite {
+  id        Int      @id @default(autoincrement())
+  jamId     String
+  fromId    Int
+  toId      Int
+  status    SInvite  @default(PENDING) // PENDING | ACCEPTED | DECLINED
+  createdAt DateTime @default(now())
+
+  jam  Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  from User @relation("JamInviteFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("JamInviteTo", fields: [toId], references: [id], onDelete: Cascade)
+}
+
+enum SInvite {
+  PENDING
+  ACCEPTED
+  DECLINED
 }

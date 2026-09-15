@@ -1,8 +1,21 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { pubUser } from '@/lib/users';
+import { msgPayload } from '@/lib/messages';
 
 type Ctx = { params: { id: string } };
+
+const USER_SELECT = {
+  id: true,
+  username: true,
+  avatarId: true,
+  bio: true,
+  github: true,
+  status: true,
+  statusText: true,
+  createdAt: true,
+  profilePhotoId: true,
+} as const;
 
 export const GET = handle(async (_req, { params }: Ctx) => {
   const me = await requireUser();
@@ -11,32 +24,13 @@ export const GET = handle(async (_req, { params }: Ctx) => {
     include: {
       members: {
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              avatarId: true,
-              bio: true,
-              github: true,
-              createdAt: true,
-              profilePhotoId: true,
-            },
-          },
+          user: { select: USER_SELECT },
         },
       },
       messages: {
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              avatarId: true,
-              bio: true,
-              github: true,
-              createdAt: true,
-              profilePhotoId: true,
-            },
-          },
+          user: { select: USER_SELECT },
+          media: true,
         },
         orderBy: { createdAt: 'asc' },
         take: 100,
@@ -54,15 +48,10 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       desc: jam.desc,
       type: jam.type,
       ownerId: jam.ownerId,
+      closed: jam.closed,
       createdAt: jam.createdAt.toISOString(),
       members: jam.members.map((m) => pubUser(m.user)),
-      messages: jam.messages.map((m) => ({
-        id: m.id,
-        userId: m.userId,
-        text: m.text,
-        createdAt: m.createdAt.toISOString(),
-        user: pubUser(m.user),
-      })),
+      messages: jam.messages.map((m) => msgPayload(m)),
     },
   });
 });
