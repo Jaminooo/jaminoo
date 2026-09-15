@@ -47,10 +47,18 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   useEffect(() => {
     load();
     const poll = setInterval(() => {
-      const after = jam?.messages.at(-1)?.createdAt;
-      api<{ messages: ChatMsg[] }>(`/api/jams/${jamId}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`)
+      const lastId = jam?.messages.at(-1)?.id;
+      const q = lastId ? `?afterId=${lastId}` : '';
+      api<{ messages: ChatMsg[] }>(`/api/jams/${jamId}/messages${q}`)
         .then((d) => {
-          if (d.messages.length) setJam((prev) => (prev ? { ...prev, messages: [...prev.messages, ...d.messages] } : prev));
+          if (d.messages.length) {
+            setJam((prev) => {
+              if (!prev) return prev;
+              const seen = new Set(prev.messages.map((m) => m.id));
+              const fresh = d.messages.filter((m) => !seen.has(m.id));
+              return fresh.length ? { ...prev, messages: [...prev.messages, ...fresh] } : prev;
+            });
+          }
         })
         .catch(() => {});
     }, 2500);

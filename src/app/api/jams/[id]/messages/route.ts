@@ -3,21 +3,21 @@ import { prisma } from '@/lib/prisma';
 
 type Ctx = { params: { id: string } };
 
-// GET /api/jams/[id]/messages — poll messages (newer than `after` ts)
+// GET /api/jams/[id]/messages — poll messages newer than `afterId`
 export const GET = handle(async (req, { params }: Ctx) => {
   const me = await requireUser();
   const jam = await prisma.jam.findUnique({ where: { id: params.id }, include: { members: true } });
   if (!jam) return err('Jam not found', 404);
   if (!jam.members.some((m) => m.userId === me.id)) return err('You are not in this jam', 403);
 
-  const after = new URL(req.url).searchParams.get('after');
+  const afterId = Number(new URL(req.url).searchParams.get('afterId'));
   const messages = await prisma.jamMessage.findMany({
     where: {
       jamId: jam.id,
-      ...(after ? { createdAt: { gt: new Date(after) } } : {}),
+      ...(Number.isFinite(afterId) && afterId > 0 ? { id: { gt: afterId } } : {}),
     },
     include: { user: { select: { id: true, username: true, avatarId: true, github: true } } },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { id: 'asc' },
     take: 200,
   });
 
