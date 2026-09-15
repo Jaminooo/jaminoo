@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { pubUser } from '@/lib/users';
 
 type Ctx = { params: { id: string } };
 
@@ -16,7 +17,19 @@ export const GET = handle(async (req, { params }: Ctx) => {
       jamId: jam.id,
       ...(Number.isFinite(afterId) && afterId > 0 ? { id: { gt: afterId } } : {}),
     },
-    include: { user: { select: { id: true, username: true, avatarId: true, github: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          avatarId: true,
+          bio: true,
+          github: true,
+          createdAt: true,
+          profilePhotoId: true,
+        },
+      },
+    },
     orderBy: { id: 'asc' },
     take: 200,
   });
@@ -27,7 +40,7 @@ export const GET = handle(async (req, { params }: Ctx) => {
       userId: m.userId,
       text: m.text,
       createdAt: m.createdAt.toISOString(),
-      user: { id: m.user.id, username: m.user.username, avatarId: m.user.avatarId, github: m.user.github },
+      user: pubUser(m.user),
     })),
   });
 });
@@ -54,7 +67,7 @@ export const POST = handle(async (req, { params }: Ctx) => {
         userId: me.id,
         text: msg.text,
         createdAt: msg.createdAt.toISOString(),
-        user: { id: me.id, username: me.username, avatarId: me.avatarId, github: me.github },
+        user: pubUser(me),
       },
     },
     201

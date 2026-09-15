@@ -8,7 +8,10 @@ export const GET = async () => {
   url.searchParams.set('client_id', clientId);
   url.searchParams.set('scope', 'read:user');
   url.searchParams.set('state', state);
-  url.searchParams.set('redirect_uri', process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/github/callback` : '/api/auth/github/callback');
+  const redirect =
+    process.env.GITHUB_REDIRECT_URI?.trim() ||
+    (process.env.NEXT_PUBLIC_BASE_URL ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/github/callback` : '/api/auth/github/callback');
+  url.searchParams.set('redirect_uri', redirect);
   return new Response(null, {
     status: 303,
     headers: { Location: url.toString() },

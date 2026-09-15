@@ -20,6 +20,7 @@ export const GET = handle(async () => {
       size: m.size,
       createdAt: m.createdAt.toISOString(),
       url: `/api/media/${m.id}`,
+      isProfile: me.profilePhotoId === m.id,
     })),
   });
 });
@@ -58,6 +59,7 @@ export const POST = handle(async (req: Request) => {
         size: record.size,
         createdAt: record.createdAt.toISOString(),
         url: `/api/media/${record.id}`,
+        isProfile: false,
       },
     },
     201

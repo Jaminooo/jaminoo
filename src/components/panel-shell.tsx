@@ -50,7 +50,7 @@ export function PanelShell() {
         </button>
         <div className="tb-right">
           <div className="user-chip">
-            {me && <JaminoAvatar avatarId={me.avatarId} size={32} />}
+            {me && <JaminoAvatar avatarId={me.avatarId} size={32} photo={me.avatarPhoto} />}
             {me && <span className="friend-name" style={{ fontSize: 14 }}>{me.username}</span>}
           </div>
         </div>

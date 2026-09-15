@@ -1,25 +1,70 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { uidDisplay, parseUid } from '@/lib/constants';
+import { pubUser } from '@/lib/users';
 
 export const GET = handle(async () => {
   const me = await requireUser();
   const [incoming, outgoing, friends] = await Promise.all([
     prisma.friendRequest.findMany({
       where: { toId: me.id, status: 'PENDING' },
-      include: { from: { select: { id: true, username: true, avatarId: true, bio: true, github: true, createdAt: true } } },
+      include: {
+        from: {
+          select: {
+            id: true,
+            username: true,
+            avatarId: true,
+            bio: true,
+            github: true,
+            createdAt: true,
+            profilePhotoId: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.friendRequest.findMany({
       where: { fromId: me.id, status: 'PENDING' },
-      include: { to: { select: { id: true, username: true, avatarId: true, bio: true, github: true, createdAt: true } } },
+      include: {
+        to: {
+          select: {
+            id: true,
+            username: true,
+            avatarId: true,
+            bio: true,
+            github: true,
+            createdAt: true,
+            profilePhotoId: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.friendRequest.findMany({
       where: { status: 'FRIENDS', OR: [{ fromId: me.id }, { toId: me.id }] },
       include: {
-        from: { select: { id: true, username: true, avatarId: true, bio: true, github: true, createdAt: true } },
-        to: { select: { id: true, username: true, avatarId: true, bio: true, github: true, createdAt: true } },
+        from: {
+          select: {
+            id: true,
+            username: true,
+            avatarId: true,
+            bio: true,
+            github: true,
+            createdAt: true,
+            profilePhotoId: true,
+          },
+        },
+        to: {
+          select: {
+            id: true,
+            username: true,
+            avatarId: true,
+            bio: true,
+            github: true,
+            createdAt: true,
+            profilePhotoId: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -27,20 +72,10 @@ export const GET = handle(async () => {
 
   const friendUsers = friends.map((f) => (f.fromId === me.id ? f.to : f.from));
 
-  const pub = (u: { id: number; username: string; avatarId: number; bio: string; github: boolean; createdAt: Date }) => ({
-    id: u.id,
-    username: u.username,
-    uid: uidDisplay(u.id),
-    avatarId: u.avatarId,
-    bio: u.bio,
-    github: u.github,
-    createdAt: u.createdAt.toISOString(),
-  });
-
   return json({
-    friends: friendUsers.map(pub),
-    incoming: incoming.map((r) => ({ id: r.id, user: pub(r.from) })),
-    outgoing: outgoing.map((r) => ({ id: r.id, user: pub(r.to) })),
+    friends: friendUsers.map(pubUser),
+    incoming: incoming.map((r) => ({ id: r.id, user: pubUser(r.from) })),
+    outgoing: outgoing.map((r) => ({ id: r.id, user: pubUser(r.to) })),
   });
 });
 

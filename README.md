@@ -1,37 +1,52 @@
-# Jamino 🎧
+# Jamino
 
-> User panel with friends, rooms ("Jams") and realtime chat. Designed with an AuthKit-inspired dark, frosted-glass identity.
+> User panel with friends, rooms ("Jams") and realtime chat. Next.js 15 App Router with a dark frosted-glass identity.
 
-## Status
-
-**Phase 1 — HTML prototype (functional).** Pure HTML/CSS/JS with a `localStorage` backend, built to validate flows before the real stack:
-- Auth: signup (username/password + security question), login, forgot-password via security question, mock GitHub OAuth
-- Profile: 12 preset SVG avatars, edit details, change password, copy user ID (`JM-xxxx`)
-- Friends: search by ID/username, send/accept/decline/remove requests, view friend profiles
-- Jams: create public/private rooms, realtime chat, invite friends, planned music slot
-- Live sync across browser tabs via the `storage` event
-
-## Try it
-
-Open `jam/index.html` directly in a browser — no server needed.
-
-Seed users: `sara` (1001) `kaveh` (1002) `nila` (1003) `rumi` (1004). New users auto-join public jams and get a pending friend request from `sara`.
-
-## Next steps (planned real stack)
+## Stack
 
 | Layer | Choice |
 |---|---|
-| Frontend | Next.js 15 (App Router), Tailwind CSS v4 |
+| Frontend | Next.js 15 (App Router) + Tailwind CSS v4 |
 | Motion | Framer Motion |
 | Icons | Lucide React |
-| Auth | Auth.js v5 (GitHub OAuth + credentials) |
-| DB | Prisma + PostgreSQL (Supabase) |
-| Uploads | Cloudflare R2 (≤5 profile files per user, deleteable) |
+| Auth | Credentials (bcrypt) + GitHub OAuth (optional) |
+| DB | Prisma + SQLite |
+| Uploads | Local `./uploads` (≤5 profile photos per user, deleteable) |
 | State | Zustand |
-| i18n | next-intl (FA / EN, RTL + LTR) |
-| Themes | next-themes (dark / light + custom) |
-| Realtime | Socket.IO or Ably |
-| Forms | React Hook Form + Zod |
+| i18n | Custom (FA / EN, RTL + LTR) |
+| Themes | Custom (dark / light / system / anime) |
+
+## Features
+
+- Auth: signup (username/password + security question), login, forgot-password via security question, GitHub OAuth
+- Profile: preset `JaminoAvatar`s + uploaded photos as profile picture, edit details, change password, copy user ID (`JM-xxxx`)
+- Friends: search by ID/username, send/accept/decline/remove requests
+- Jams: create public/private rooms, realtime-feel chat (polling), invite friends
+
+## Getting started
+
+```bash
+npm install
+npx prisma db push          # create + sync the SQLite schema
+npm run dev                 # http://localhost:3000
+```
+
+`.env`:
+
+```env
+DATABASE_URL="file:./dev.db"
+COOKIE_SECURE="0"           # set to "1" behind HTTPS
+GITHUB_CLIENT_ID=""         # optional OAuth
+GITHUB_CLIENT_SECRET=""
+GITHUB_REDIRECT_URI="http://localhost:3000/api/auth/github/callback"
+```
+
+Production:
+
+```bash
+npm run build
+npm run start
+```
 
 ## Git workflow
 
@@ -41,15 +56,6 @@ Seed users: `sara` (1001) `kaveh` (1002) `nila` (1003) `rumi` (1004). New users 
 
 ## Roadmap
 
-- [ ] Port prototype to Next.js
-- [ ] GitHub OAuth + credentials auth (real)
-- [ ] Friends system persisted
-- [ ] Jams + realtime chat
-- [ ] Profile picture uploads (≤5, server-deleted when removed)
-- [ ] FA/EN i18n + RTL/LTR
-- [ ] Multi-theme system
-- [ ] Music sharing in jams
-
-## License
-
-Private until further notice.
+- [x] Port prototype to Next.js
+- [ ] Real deployments: Postgres, object storage, realtime (WebSocket)
+- [ ] Music slot in rooms

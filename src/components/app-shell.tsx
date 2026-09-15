@@ -5,7 +5,6 @@ import { api } from '@/lib/client-api';
 import { useAppStore } from '@/store/app-store';
 import { AuthScreen } from '@/components/auth-screen';
 import { PanelShell } from '@/components/panel-shell';
-import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useI18n } from '@/providers/i18n-provider';
 import { useThemeCtx } from '@/providers/theme-provider';
 import { ToastHost } from '@/components/toast-host';

@@ -20,6 +20,9 @@ model User {
   githubLogin  String?   @unique
   createdAt    DateTime  @default(now())
 
+  profilePhotoId String?  @unique
+  profilePhoto   Media?  @relation("ProfilePhoto", fields: [profilePhotoId], references: [id], onDelete: SetNull)
+
   sessions        Session[]
   friendRequestsA FriendRequest[] @relation("FriendRequestA")
   friendRequestsB FriendRequest[] @relation("FriendRequestB")
@@ -103,5 +106,6 @@ model Media {
   size      Int
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profileUser User? @relation("ProfilePhoto")
 }

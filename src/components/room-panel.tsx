@@ -13,6 +13,7 @@ interface ChatUser {
   username: string;
   avatarId: number;
   github: boolean;
+  avatarPhoto?: string | null;
 }
 
 interface ChatMsg {
@@ -133,7 +134,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           ) : (
             friends.map((f) => (
               <button key={f.id} type="button" className="friend-row" style={{ cursor: 'pointer', padding: '8px 12px' }} onClick={() => invite(f.id)}>
-                <JaminoAvatar avatarId={f.avatarId} size={28} />
+                <JaminoAvatar avatarId={f.avatarId} size={28} photo={f.avatarPhoto} />
                 <span className="friend-name" style={{ fontSize: 13 }}>{f.username}</span>
               </button>
             ))
@@ -149,7 +150,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
       <div className="room-body" ref={bodyRef}>
         {jam.messages.map((m) => (
           <div key={m.id} className={`msg ${m.userId === me?.id ? 'me' : ''}`}>
-            <JaminoAvatar avatarId={m.user.avatarId} size={32} />
+            <JaminoAvatar avatarId={m.user.avatarId} size={32} photo={m.user.avatarPhoto} />
             <div>
               <div className="msg-bubble">
                 <div className="msg-name">{m.user.username}</div>

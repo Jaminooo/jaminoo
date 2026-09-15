@@ -22,6 +22,7 @@ interface InviteUser {
   username: string;
   avatarId: number;
   uid: string;
+  avatarPhoto?: string | null;
 }
 
 export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
@@ -161,7 +162,7 @@ function CreateJam({ onDone, onClose, friends }: { onDone: () => void; onClose: 
                     return n;
                   })}
                 >
-                  <JaminoAvatar avatarId={f.avatarId} size={32} />
+                  <JaminoAvatar avatarId={f.avatarId} size={32} photo={f.avatarPhoto} />
                   <span className="friend-name" style={{ fontSize: 13 }}>{f.username}</span>
                 </button>
               );

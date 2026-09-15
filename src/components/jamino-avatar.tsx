@@ -51,7 +51,15 @@ function face(avatarId: number): React.ReactNode {
   );
 }
 
-export function JaminoAvatar({ avatarId, size = 32 }: { avatarId: number; size?: number }) {
+export function JaminoAvatar({
+  avatarId,
+  size = 32,
+  photo,
+}: {
+  avatarId: number;
+  size?: number;
+  photo?: string | null;
+}) {
   const i = Math.max(0, avatarId % AVATAR_PAL.length);
   const [c1, c2] = AVATAR_PAL[i];
   return (
@@ -59,18 +67,23 @@ export function JaminoAvatar({ avatarId, size = 32 }: { avatarId: number; size?:
       className={`avatar avatar-${size}`}
       style={{ display: 'inline-block', width: size, height: size, borderRadius: 8, overflow: 'hidden', lineHeight: 0 }}
     >
-      <svg viewBox="0 0 64 64" width={size} height={size} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
-        <defs>
-          <linearGradient id={`ag-${i}-${size}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={c1} />
-            <stop offset="1" stopColor={c2} />
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" fill={`url(#ag-${i}-${size})`} />
-        <circle cx="32" cy="26" r="11" fill="rgba(255,255,255,0.22)" />
-        <circle cx="32" cy="54" r="16" fill="rgba(255,255,255,0.14)" />
-        {face(avatarId)}
-      </svg>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" width={size} height={size} style={{ display: 'block', objectFit: 'cover' }} />
+      ) : (
+        <svg viewBox="0 0 64 64" width={size} height={size} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+          <defs>
+            <linearGradient id={`ag-${i}-${size}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor={c1} />
+              <stop offset="1" stopColor={c2} />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" fill={`url(#ag-${i}-${size})`} />
+          <circle cx="32" cy="26" r="11" fill="rgba(255,255,255,0.22)" />
+          <circle cx="32" cy="54" r="16" fill="rgba(255,255,255,0.14)" />
+          {face(avatarId)}
+        </svg>
+      )}
     </span>
   );
 }

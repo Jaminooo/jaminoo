@@ -10,6 +10,7 @@ export interface PubUser {
   bio: string;
   github: boolean;
   createdAt: string;
+  avatarPhoto: string | null;
 }
 
 export interface Me {
@@ -20,6 +21,7 @@ export interface Me {
   bio: string;
   github: boolean;
   createdAt: string;
+  avatarPhoto: string | null;
 }
 
 export type Tab = 'profile' | 'friends' | 'jams';

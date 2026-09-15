@@ -132,6 +132,10 @@
     "profilePhotos": "عکس‌های پروفایل",
     "dropHint": "تا ۵ عکس بگذار یا برای انتخاب کلیک کن.",
     "removePhoto": "حذف عکس",
-    "photosCount": "{current} از {max} عکس"
+    "photosCount": "{current} از {max} عکس",
+    "setAsPhoto": "استفاده به‌عنوان عکس پروفایل",
+    "photoActive": "از عکس آپلودشده به‌عنوان عکس پروفایل استفاده می‌شود.",
+    "presetActive": "آواتار آماده در حال استفاده است.",
+    "clearPhoto": "حذف عکس پروفایل"
   }
 }

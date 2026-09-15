@@ -1,6 +1,7 @@
 import { handle, json, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { uidDisplay, parseUid } from '@/lib/constants';
+import { parseUid } from '@/lib/constants';
+import { pubUser } from '@/lib/users';
 
 // GET /api/users/search?q= — search by username or JM-ID
 export const GET = handle(async (req) => {
@@ -18,7 +19,15 @@ export const GET = handle(async (req) => {
         ...(byUid ? [{ id: byUid }] : []),
       ],
     },
-    select: { id: true, username: true, avatarId: true, bio: true, github: true, createdAt: true },
+    select: {
+      id: true,
+      username: true,
+      avatarId: true,
+      bio: true,
+      github: true,
+      createdAt: true,
+      profilePhotoId: true,
+    },
     take: 12,
   });
 
@@ -32,15 +41,6 @@ export const GET = handle(async (req) => {
   }
 
   return json({
-    users: results.map((u) => ({
-      id: u.id,
-      username: u.username,
-      uid: uidDisplay(u.id),
-      avatarId: u.avatarId,
-      bio: u.bio,
-      github: u.github,
-      createdAt: u.createdAt.toISOString(),
-      friend: friendIds.has(u.id),
-    })),
+    users: results.map((u) => ({ ...pubUser(u), friend: friendIds.has(u.id) })),
   });
 });
