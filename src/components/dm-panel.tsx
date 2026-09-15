@@ -43,6 +43,7 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
   const me = useAppStore((s) => s.me);
   const [convo, setConvo] = useState<ConvoData | null>(null);
   const [live, setLive] = useState(false);
+  const [sendingVoice, setSendingVoice] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const typingTimer = useRef<number | null>(null);
   const otherNameRef = useRef('');
@@ -113,10 +114,13 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
   const sendVoice = async (blob: Blob) => {
     const fd = new FormData();
     fd.append('voice', blob, 'voice.webm');
+    setSendingVoice(true);
     try {
       await api(`/api/dm/${otherId}/voice`, { method: 'POST', body: fd });
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    } finally {
+      setSendingVoice(false);
     }
   };
 
@@ -175,6 +179,7 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
         onSendText={sendText}
         onSendVoice={sendVoice}
         onTyping={onTyping}
+        busy={sendingVoice}
       />
     </div>
   );

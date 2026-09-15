@@ -132,6 +132,11 @@
     "placeholder": "پیام…",
     "typing": "{name} در حال تایپ است…"
   },
+  "voice": {
+    "send": "ارسال صدا",
+    "cancel": "حذف ضبط",
+    "sending": "در حال ارسال صدا…"
+  },
   "modal": {
     "close": "بستن",
     "profile": "پروفایل",

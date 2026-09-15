@@ -54,6 +54,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const [showInvite, setShowInvite] = useState(false);
   const [friends, setFriends] = useState<ChatUser[]>([]);
   const [live, setLive] = useState(false);
+  const [sendingVoice, setSendingVoice] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
@@ -141,10 +142,13 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const sendVoice = async (blob: Blob) => {
     const fd = new FormData();
     fd.append('voice', blob, 'voice.webm');
+    setSendingVoice(true);
     try {
       await api(`/api/jams/${jamId}/voice`, { method: 'POST', body: fd });
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    } finally {
+      setSendingVoice(false);
     }
   };
 
@@ -278,11 +282,12 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
 
       {typingUser && <div className="typing-hint">{t('room.typing', { name: typingUser })}</div>}
 
-      <MessageComposer
-        placeholder={t('room.messagePlaceholder')}
+<MessageComposer
+        placeholder={t('room.placeholder')}
         onSendText={sendText}
         onSendVoice={sendVoice}
         onTyping={onTyping}
+        busy={sendingVoice}
       />
     </div>
   );

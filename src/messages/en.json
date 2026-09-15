@@ -132,6 +132,11 @@
     "placeholder": "Message…",
     "typing": "{name} is typing…"
   },
+  "voice": {
+    "send": "Send voice",
+    "cancel": "Discard recording",
+    "sending": "Sending voice…"
+  },
   "modal": {
     "close": "Close",
     "profile": "Profile",

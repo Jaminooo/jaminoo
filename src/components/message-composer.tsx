@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { EMOJI_LIST } from '@/lib/emoji';
 import { MAX_VOICE_SECONDS } from '@/lib/constants';
-import { Send, Mic, X, Square, Smile } from 'lucide-react';
+import { Send, Mic, X, Square, Check, Smile } from 'lucide-react';
 
 interface Props {
   placeholder: string;
@@ -150,11 +150,16 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
       )}
 
       {rec === 'rec' ? (
-        <button type="button" className="btn btn-danger send-btn" onClick={cancelRec} title={t('modal.close')}>
-          <X size={15} />
-        </button>
-      ) : rec === 'busy' ? (
-        <button type="button" className="btn btn-violet send-btn" onClick={() => {}} title="Send voice">
+        <>
+          <button type="button" className="btn btn-danger send-btn" onClick={cancelRec} title={t('voice.cancel')}>
+            <X size={15} />
+          </button>
+          <button type="button" className="btn btn-violet send-btn" onClick={finishRec} title={t('voice.send')}>
+            <Check size={15} />
+          </button>
+        </>
+      ) : busy ? (
+        <button type="button" disabled className="btn btn-violet send-btn" title={t('voice.sending')}>
           <Square size={13} fill="currentColor" />
         </button>
       ) : (
