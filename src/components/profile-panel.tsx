@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
-import { JaminoAvatar } from '@/components/jamino-avatar';
+import { JaminoAvatar, AVATAR_PRESETS } from '@/components/jamino-avatar';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { uidDisplay } from '@/store/app-store';
 import { MAX_PROFILE_MEDIA } from '@/lib/constants';
-import { Copy, Check, Lock, Upload, X, Star } from 'lucide-react';
-
-const AVATAR_COUNT = 12;
+import { Copy, Check, Lock, Upload, X, Star, CircleDot } from 'lucide-react';
 
 interface MediaItem {
   id: string;
@@ -33,6 +31,9 @@ export function ProfilePanel() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const [status, setStatus] = useState(me?.status ?? 'ONLINE');
+  const [statusText, setStatusText] = useState(me?.statusText ?? '');
 
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
 
@@ -87,6 +88,19 @@ export function ProfilePanel() {
       setMe({ ...me, avatarPhoto: null });
       setMedia((p) => p.map((m) => ({ ...m, isProfile: false })));
       toast(t('toast.avatarUpdated'));
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+    }
+  };
+
+  const saveStatus = async () => {
+    try {
+      const res = await api<{ user: { status: string; statusText: string } }>('/api/profile/status', {
+        method: 'PATCH',
+        body: JSON.stringify({ status, statusText }),
+      });
+      setMe({ ...me!, status: res.user.status, statusText: res.user.statusText });
+      toast(t('toast.saved'));
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
     }
@@ -159,7 +173,7 @@ export function ProfilePanel() {
           <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 4 }}>{t('profile.avatar')}</h3>
           <p className="pane-sub" style={{ marginTop: 0, marginBottom: 16 }}>{t('profile.avatarHint')}</p>
           <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-            <JaminoAvatar avatarId={me.avatarId} size={64} photo={me.avatarPhoto} />
+            <JaminoAvatar avatarId={me.avatarId} size={64} photo={me.avatarPhoto} name={me.username} />
             <div style={{ fontSize: 13, color: 'var(--color-fog)', display: 'grid', gap: 8 }}>
               <span>{me.avatarPhoto ? t('media.photoActive') : t('media.presetActive')}</span>
               {me.avatarPhoto && (
@@ -170,9 +184,16 @@ export function ProfilePanel() {
             </div>
           </div>
           <div className="avatar-picker">
-            {Array.from({ length: AVATAR_COUNT }, (_, i) => (
-              <button key={i} type="button" className={`avatar-opt ${!me.avatarPhoto && me.avatarId === i ? 'selected' : ''}`} onClick={() => pickAvatar(i)}>
-                <JaminoAvatar avatarId={i} size={64} />
+            {AVATAR_PRESETS.map((p, i) => (
+              <button
+                key={p.name}
+                type="button"
+                className={`avatar-opt ${!me.avatarPhoto && me.avatarId === i ? 'selected' : ''}`}
+                onClick={() => pickAvatar(i)}
+                title={p.name}
+              >
+                <JaminoAvatar avatarId={i} size={64} name={p.name} />
+                <span className="avatar-opt-label">{p.name}</span>
               </button>
             ))}
           </div>
@@ -209,6 +230,29 @@ export function ProfilePanel() {
           </button>
         </section>
       </div>
+
+      {/* Status card */}
+      <section className="card" style={{ padding: 24, marginBottom: 0 }}>
+        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CircleDot size={16} /> {t('profile.status')}
+        </h3>
+        <div className="seg" style={{ maxWidth: 400 }}>
+          {(['ONLINE', 'IDLE', 'BUSY', 'OFFLINE'] as const).map((s) => (
+            <button key={s} type="button" className={`seg-btn ${status === s ? 'active' : ''}`} onClick={() => setStatus(s)}>
+              {t(`profile.status${s.toLowerCase()}`)}
+            </button>
+          ))}
+        </div>
+        <div className="field" style={{ marginTop: 12, maxWidth: 400 }}>
+          <span className="field-label">
+            {t('profile.statusText')} <span className="opt">({t('jams.optional')})</span>
+          </span>
+          <input className="auth-input" value={statusText} onChange={(e) => setStatusText(e.target.value)} placeholder={t('profile.statusPlaceholder')} maxLength={80} />
+        </div>
+        <button type="button" className="btn btn-violet" style={{ marginTop: 14 }} onClick={saveStatus}>
+          {t('profile.saveChanges')}
+        </button>
+      </section>
 
       <div className="grid-2" style={{ marginTop: 0 }}>
         {/* Password */}

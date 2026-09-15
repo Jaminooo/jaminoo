@@ -6,6 +6,7 @@ import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
+import { PasswordMeter } from '@/components/password-meter';
 import { SECURITY_QUESTIONS } from '@/lib/constants';
 
 export function AuthScreen() {
@@ -205,6 +206,7 @@ function SignupForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot')
         <label className="field">
           <span className="field-label">{t('auth.password')}</span>
           <input className="auth-input" type="password" value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" />
+          <PasswordMeter value={form.password} />
         </label>
         <label className="field">
           <span className="field-label">{t('profile.confirmPassword')}</span>
@@ -315,6 +317,7 @@ function ForgotForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot')
           <label className="field">
             <span className="field-label">{t('profile.newPassword')}</span>
             <input className="auth-input" type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} />
+            <PasswordMeter value={newPass} />
           </label>
           <label className="field">
             <span className="field-label">{t('profile.confirmPassword')}</span>

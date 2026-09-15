@@ -26,6 +26,13 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class BadRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BadRequestError';
+  }
+}
+
 export function handle<P extends Record<string, string>>(
   fn: (req: Request, ctx: { params: P }) => Promise<Response>
 ) {
@@ -35,6 +42,9 @@ export function handle<P extends Record<string, string>>(
     } catch (e) {
       if (e instanceof UnauthorizedError) {
         return err('Not signed in', 401);
+      }
+      if (e instanceof BadRequestError) {
+        return err(e.message, 400);
       }
       console.error(e);
       return err(e instanceof Error ? e.message : 'Something went wrong', 500);

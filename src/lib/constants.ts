@@ -11,7 +11,16 @@ export const MAX_PROFILE_MEDIA = 5;
 export const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+export const MAX_VOICE_SECONDS = 60;
+export const MAX_VOICE_BYTES = 3 * 1024 * 1024;
+export const ALLOWED_VOICE_TYPES = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/x-m4a'];
+
 export const U_ID_PREFIX = 'JM';
+
+export const JAM_KINDS = ['CHAT', 'MOVIE', 'MUSIC', 'HANGOUT'] as const;
+export type JamKind = (typeof JAM_KINDS)[number];
+
+export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉'];
 
 export function uidDisplay(id: number) {
   return U_ID_PREFIX + '-' + String(id).padStart(4, '0');

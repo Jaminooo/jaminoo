@@ -2,6 +2,7 @@ import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { uidDisplay, parseUid } from '@/lib/constants';
 import { pubUser } from '@/lib/users';
+import { livePublish } from '@/lib/live-publish';
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -16,6 +17,8 @@ export const GET = handle(async () => {
             avatarId: true,
             bio: true,
             github: true,
+            status: true,
+            statusText: true,
             createdAt: true,
             profilePhotoId: true,
           },
@@ -33,6 +36,8 @@ export const GET = handle(async () => {
             avatarId: true,
             bio: true,
             github: true,
+            status: true,
+            statusText: true,
             createdAt: true,
             profilePhotoId: true,
           },
@@ -50,6 +55,8 @@ export const GET = handle(async () => {
             avatarId: true,
             bio: true,
             github: true,
+            status: true,
+            statusText: true,
             createdAt: true,
             profilePhotoId: true,
           },
@@ -61,6 +68,8 @@ export const GET = handle(async () => {
             avatarId: true,
             bio: true,
             github: true,
+            status: true,
+            statusText: true,
             createdAt: true,
             profilePhotoId: true,
           },
@@ -95,5 +104,25 @@ export const POST = handle(async (req) => {
   if (existing) return err('Request already exists', 409);
 
   await prisma.friendRequest.create({ data: { fromId: me.id, toId: targetId, status: 'PENDING' } });
+  livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
   return json({ ok: true, uid: uidDisplay(targetId) }, 201);
+});
+
+// DELETE { target } — remove a friend / cancel my outgoing request
+export const DELETE = handle(async (req) => {
+  const me = await requireUser();
+  const { target } = (await req.json()) as { target?: string };
+  const targetId = target ? parseUid(target) : null;
+  if (!targetId || targetId === me.id) return err('Invalid ID');
+
+  await prisma.friendRequest.deleteMany({
+    where: {
+      OR: [
+        { fromId: me.id, toId: targetId },
+        { fromId: targetId, toId: me.id },
+      ],
+    },
+  });
+  livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
+  return json({ ok: true });
 });

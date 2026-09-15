@@ -10,6 +10,7 @@ export const POST = handle(async (req) => {
   const media = await prisma.media.findUnique({ where: { id: mediaId } });
   if (!media) return err('Not found', 404);
   if (media.userId !== me.id) return err('Forbidden', 403);
+  if (media.kind !== 'IMAGE') return err('Only photos can be profile pictures');
 
   await prisma.user.update({ where: { id: me.id }, data: { profilePhotoId: media.id } });
   return json({ ok: true, avatarPhoto: `/api/media/${media.id}` });

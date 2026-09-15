@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { JAM_KINDS } from '@/lib/constants';
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -22,7 +23,9 @@ export const GET = handle(async () => {
       name: m.jam.name,
       desc: m.jam.desc,
       type: m.jam.type,
+      kind: m.jam.kind,
       ownerId: m.jam.ownerId,
+      closed: m.jam.closed,
       createdAt: m.jam.createdAt.toISOString(),
       members: m.jam.members.length,
       lastActive: m.jam.messages[0]?.createdAt.toISOString() ?? m.jam.createdAt.toISOString(),
@@ -30,12 +33,16 @@ export const GET = handle(async () => {
   });
 });
 
-// POST { name, desc?, type: 'PUBLIC'|'PRIVATE' }
+// POST { name, desc?, type: 'PUBLIC'|'PRIVATE', kind?: 'CHAT'|'MOVIE'|'MUSIC'|'HANGOUT' }
 export const POST = handle(async (req) => {
   const me = await requireUser();
-  const { name, desc, type } = (await req.json()) as { name?: string; desc?: string; type?: string };
+  const { name, desc, type, kind } = (await req.json()) as { name?: string; desc?: string; type?: string; kind?: string };
   if (!name || name.trim().length < 2 || name.trim().length > 40) return err('Name must be 2–40 characters');
   const jtype = type === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC';
+  const jkind = JAM_KINDS.includes((kind ?? '').toUpperCase() as any) ? (kind ?? 'CHAT').toUpperCase() : 'CHAT';
+
+  const ownedCount = await prisma.jam.count({ where: { ownerId: me.id } });
+  if (ownedCount >= 1) return err('You can only own one jam', 403);
 
   const last = await prisma.jam.findMany({ orderBy: { id: 'desc' }, take: 1 });
   let seq = 1;
@@ -48,9 +55,10 @@ export const POST = handle(async (req) => {
       name: name.trim(),
       desc: (desc ?? '').trim().slice(0, 120),
       type: jtype,
+      kind: jkind,
       ownerId: me.id,
       members: { create: { userId: me.id } },
     },
   });
-  return json({ ok: true, jam: { id: jam.id, name: jam.name, desc: jam.desc, type: jam.type } }, 201);
+  return json({ ok: true, jam: { id: jam.id, name: jam.name, desc: jam.desc, type: jam.type, kind: jam.kind } }, 201);
 });

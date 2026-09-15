@@ -30,7 +30,12 @@
     "continue": "Continue",
     "setNewPassword": "Set new password",
     "remembered": "Remembered it?",
-    "securityQuestionPrefix": "Security question:"
+    "securityQuestionPrefix": "Security question:",
+    "pwWeak": "Weak",
+    "pwFair": "Fair",
+    "pwGood": "Good",
+    "pwStrong": "Strong",
+    "pwVeryStrong": "Very strong"
   },
   "panel": {
     "profile": "Profile",
@@ -40,7 +45,23 @@
     "jams": "Jams",
     "jamsSub": "Drop into a room. Music coming soon.",
     "newJam": "New jam",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "security": "Security",
+    "messages": "Messages"
+  },
+  "status": {
+    "online": "Online",
+    "idle": "Idle",
+    "busy": "Busy",
+    "offline": "Offline"
+  },
+  "security": {
+    "title": "Sessions & devices",
+    "subtitle": "Active sign-ins across devices.",
+    "current": "Current",
+    "revoke": "Sign out",
+    "noOtherSessions": "No other active sessions.",
+    "lastSeen": "Last seen {{time}}"
   },
   "profile": {
     "avatar": "Avatar",
@@ -54,7 +75,15 @@
     "changePassword": "Change password",
     "currentPassword": "Current password",
     "newPassword": "New password",
-    "confirmPassword": "Confirm"
+    "confirmPassword": "Confirm",
+    "status": "Status",
+    "statusOnline": "Online",
+    "statusIdle": "Idle",
+    "statusBusy": "Busy",
+    "statusOffline": "Offline",
+    "statusText": "Status text",
+    "statusPlaceholder": "What's on your mind…",
+    "title": "View profile"
   },
   "friends": {
     "search": "Search ID or username...",
@@ -85,15 +114,86 @@
     "private": "Private",
     "privateHint": "Private jam — only invited members can join.",
     "publicHint": "Public jam — anyone can join.",
+    "kind": "Jam type",
+    "kindChat": "Chat",
+    "kindMovie": "Movie",
+    "kindMusic": "Music",
+    "kindHangout": "Hangout",
+    "browse": "Browse jams",
+    "browseEmpty": "No public jams are open right now.",
+    "joinJam": "Join",
+    "inJam": "In jam",
+    "joined": "You joined",
+    "openJam": "Open",
+    "copyLink": "Copy link",
     "members": "{count} members",
     "inviteFriends": "Invite friends",
     "noJamsYet": "No jams yet — create one and invite your friends.",
-    "lastActive": "last active"
+    "lastActive": "last active",
+    "pendingInvites": "{count} pending invite requests",
+    "joinedJam": "You joined the jam!"
   },
   "room": {
     "messagePlaceholder": "Message the jam...",
     "musicComing": "Music & more are coming to this jam — right now it's just the chat.",
-    "send": "Send"
+    "send": "Send",
+    "noMessages": "No messages yet — say something!",
+    "closed": "Closed",
+    "reopen": "Reopen",
+    "close": "Close jam",
+    "leave": "Leave",
+    "left": "You left the jam.",
+    "inviteSent": "Invite request sent to {name}.",
+    "typing": "{name} is typing…",
+    "copy": "Copy",
+    "profile": "Profile"
+  },
+  "dm": {
+    "title": "Message",
+    "privateChat": "Private chat",
+    "noMessages": "No messages yet — say something!",
+    "placeholder": "Message…",
+    "typing": "{name} is typing…",
+    "inbox": "Inbox",
+    "noChats": "No chats yet.",
+    "voiceMessage": "voice message",
+    "you": "You",
+    "seen": "Seen",
+    "copy": "Copy",
+    "profile": "Profile"
+  },
+  "voice": {
+    "send": "Send voice",
+    "cancel": "Discard recording",
+    "sending": "Sending voice…"
+  },
+  "react": {
+    "add": "React"
+  },
+  "fp": {
+    "joined": "Joined",
+    "statFriends": "Friends",
+    "statJams": "Jams",
+    "statMessages": "Messages",
+    "chat": "Chat",
+    "removeFriend": "Remove friend",
+    "addFriend": "Add friend",
+    "cancelRequest": "Cancel request",
+    "acceptRequest": "Accept request",
+    "decline": "Decline",
+    "removed": "Friend removed.",
+    "requestSent": "Request sent.",
+    "nowFriends": "You are now friends!",
+    "thisIsYou": "This is you."
+  },
+  "join": {
+    "loading": "Opening the jam…",
+    "joined": "You joined the jam!",
+    "opening": "Taking you inside…",
+    "signIn": "Sign in to join",
+    "signInHint": "Create an account or log in, then open this link again.",
+    "goHome": "Back to Jamino",
+    "failed": "Could not join this jam"
   },
   "modal": {
     "close": "Close",
@@ -103,6 +203,7 @@
   },
   "toast": {
     "copy": "Copied {id} — share it to add friends.",
+    "copiedLink": "Link copied — anyone can join the jam.",
     "saved": "Profile saved.",
     "avatarUpdated": "Avatar updated.",
     "passwordChanged": "Password changed.",
@@ -119,7 +220,9 @@
     "jamCreated": "Jam started",
     "invalidUsername": "Username: 3–20 chars, letters/numbers/underscore only.",
     "notInJam": "You are not in that jam.",
-    "unknownError": "Something went wrong."
+    "unknownError": "Something went wrong.",
+    "revoked": "Session signed out.",
+    "loggedOut": "Signed out from this device."
   },
   "theme": {
     "themeSwitcher": "Theme",

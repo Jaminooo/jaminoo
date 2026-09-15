@@ -1,9 +1,10 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { livePublish } from '@/lib/live-publish';
 
 type Ctx = { params: { id: string } };
 
-// POST /api/jams/[id]/invite  { userId } — invite a friend into a private jam
+// POST /api/jams/[id]/invite  { userId } — send a join request to a friend (they must accept)
 export const POST = handle(async (req, { params }: Ctx) => {
   const me = await requireUser();
   const { userId } = (await req.json()) as { userId?: number };
@@ -14,9 +15,9 @@ export const POST = handle(async (req, { params }: Ctx) => {
     include: { members: true },
   });
   if (!jam) return err('Jam not found', 404);
-
-  const isMember = jam.members.some((m) => m.userId === me.id);
-  if (!isMember) return err('You are not in this jam', 403);
+  if (!jam.members.some((m) => m.userId === me.id)) return err('You are not in this jam', 403);
+  if (jam.closed) return err('This jam is closed', 403);
+  if (jam.members.some((m) => m.userId === userId)) return err('Already a member');
 
   // friendship required to invite
   const friends = await prisma.friendRequest.findFirst({
@@ -24,10 +25,12 @@ export const POST = handle(async (req, { params }: Ctx) => {
   });
   if (!friends) return err('You can only invite friends', 403);
 
-  await prisma.jamMember.upsert({
-    where: { jamId_userId: { jamId: jam.id, userId } },
-    update: {},
-    create: { jamId: jam.id, userId },
+  const existing = await prisma.jamInvite.findFirst({
+    where: { jamId: jam.id, toId: userId, status: 'PENDING' },
   });
+  if (existing) return err('Invite already pending', 409);
+
+  await prisma.jamInvite.create({ data: { jamId: jam.id, fromId: me.id, toId: userId } });
+  livePublish([`user:${userId}`, `user:${me.id}`], 'jam-invite', { at: Date.now() });
   return json({ ok: true });
 });

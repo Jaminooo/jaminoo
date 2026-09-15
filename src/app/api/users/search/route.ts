@@ -25,6 +25,8 @@ export const GET = handle(async (req) => {
       avatarId: true,
       bio: true,
       github: true,
+      status: true,
+      statusText: true,
       createdAt: true,
       profilePhotoId: true,
     },
