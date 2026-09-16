@@ -1,14 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from '@/providers/use-translations';
-import { useAppStore } from '@/store/app-store';
-import { JaminoAvatar } from '@/components/jamino-avatar';
-import { EmojiText } from '@/components/emoji-text';
-import { api } from '@/lib/client-api';
-import { toast } from '@/components/toast';
-import { loadUnread } from '@/lib/unread';
-import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck } from 'lucide-react';
+  import { useTranslations } from '@/providers/use-translations';
+  import { useAppStore } from '@/store/app-store';
+  import { JaminoAvatar } from '@/components/jamino-avatar';
+  import { EmojiText } from '@/components/emoji-text';
+  import { api } from '@/lib/client-api';
+  import { toast } from '@/components/toast';
+  import { loadUnread } from '@/lib/unread';
+  import { onLive } from '@/lib/live';
+  import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck } from 'lucide-react';
 
 interface ProfileData {
   user: {
@@ -35,6 +36,7 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
   const t = useTranslations();
   const setDmWith = useAppStore((s) => s.setDmWith);
   const online = useAppStore((s) => s.online);
+  const presenceMap = useAppStore((s) => s.presenceMap);
   const [data, setData] = useState<ProfileData | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,6 +46,8 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
 
   useEffect(() => {
     load();
+    const offFriends = onLive('friends:update', () => load());
+    return () => { offFriends(); };
   }, [load]);
 
   const act = async (fn: () => Promise<unknown>, okMsg?: string) => {
@@ -63,8 +67,10 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
   if (!data) return <div className="empty-state" style={{ padding: 64 }}>…</div>;
   const u = data.user;
   const isOnline = online.includes(u.id);
-
-  const statusTextMain = u.statusText || ({ ONLINE: t('status.online'), BUSY: t('status.busy'), IDLE: t('status.idle'), OFFLINE: t('status.offline') } as Record<string, string>)[u.status] || u.status;
+  const livePresence = presenceMap[u.id];
+  const status = (isOnline && livePresence?.status) || u.status;
+  const statusTextRaw = livePresence?.statusText || u.statusText;
+  const statusTextMain = statusTextRaw || ({ ONLINE: t('status.online'), BUSY: t('status.busy'), IDLE: t('status.idle'), OFFLINE: t('status.offline') } as Record<string, string>)[status] || status;
 
   return (
     <div className="friend-profile">
@@ -82,12 +88,12 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
         <div className="fp-banner" aria-hidden="true" />
         <div className="fp-avatar">
           <JaminoAvatar avatarId={u.avatarId} size={104} photo={u.avatarPhoto} name={u.username} />
-          <span className={`online-dot fp-presence ${isOnline ? `on st-${u.status ? u.status.toLowerCase() : 'offline'}` : ''}`} />
+          <span className={`online-dot fp-presence ${isOnline ? `on st-${status ? status.toLowerCase() : 'offline'}` : ''}`} />
         </div>
         <h2 className="fp-name">{u.username}</h2>
         <div className="fp-uid">{u.uid}</div>
         <div className="fp-status">
-          <span className={`online-dot ${isOnline ? `on st-${u.status ? u.status.toLowerCase() : 'offline'}` : ''}`} />
+          <span className={`online-dot ${isOnline ? `on st-${status ? status.toLowerCase() : 'offline'}` : ''}`} />
           {statusTextMain}
         </div>
         <div className="fp-bio">

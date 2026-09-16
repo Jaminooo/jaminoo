@@ -41,6 +41,6 @@ export const POST = handle(async (req) => {
     },
   });
 
-  await createSession(user.id, parseUserAgent(req.headers.get('user-agent')));
+  await createSession(user.id, { ...parseUserAgent(req.headers.get('user-agent')), country: (req.headers.get('cf-ipcountry') ?? '').toUpperCase().slice(0, 2) });
   return json({ ok: true, id: user.id, uid: uidDisplay(user.id) }, 201);
 });

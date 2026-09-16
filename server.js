@@ -58,14 +58,18 @@ async function pushPresence() {
     const sockets = online.get(userId);
     if (!sockets || sockets.size === 0) continue;
     let list;
+    let statusMap = {};
     try {
       const friends = await friendsOf(userId);
-      list = all.filter((id) => friends.has(id));
+      const filtered = all.filter((id) => friends.has(id));
+      list = filtered;
+      const users = await prisma.user.findMany({ where: { id: { in: filtered } }, select: { id: true, status: true, statusText: true } });
+      for (const u of users) statusMap[u.id] = { status: u.status, statusText: u.statusText };
     } catch (e) {
       console.error('presence friends error:', e && e.message);
       list = [userId];
     }
-    io.to(`user:${userId}`).emit('presence:update', { online: list });
+    io.to(`user:${userId}`).emit('presence:update', { online: list, presence: statusMap });
   }
 }
 
@@ -155,8 +159,9 @@ app.prepare().then(() => {
           song: { include: { artist: true, album: true } },
           addedByRef: { select: { id: true, username: true } },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ pos: 'asc' }, { createdAt: 'asc' }],
       },
+      members: true,
     });
 
     const refreshJam = async (jamId) => {
@@ -179,11 +184,22 @@ app.prepare().then(() => {
         jamId: jam.id,
         queue: jam.queueItems.map((qi) => ({
           id: qi.id,
+          pos: qi.pos ?? 0,
           song: songPayloadJS(qi.song),
           addedBy: { id: qi.addedBy, username: qi.addedByRef ? qi.addedByRef.username : '' },
           createdAt: qi.createdAt.toISOString(),
         })),
       });
+    };
+
+    const renumberQueue = async (jamId) => {
+      const all = await prisma.jamQueueItem.findMany({ where: { jamId }, orderBy: [{ pos: 'asc' }, { createdAt: 'asc' }] });
+      const tx = [];
+      for (let i = 0; i < all.length; i++) {
+        if (all[i].pos === i + 1) continue;
+        tx.push(prisma.jamQueueItem.update({ where: { id: all[i].id }, data: { pos: i + 1 } }));
+      }
+      if (tx.length) await prisma.$transaction(tx);
     };
 
     const advanceQueue = async (jamId) => {
@@ -237,8 +253,9 @@ app.prepare().then(() => {
         if (!jam || jam.kind !== 'MUSIC') return;
         const isMember = jam.members.some((m) => m.userId === userId);
         if (!isMember) return;
-        const canControl = jam.ownerId === userId || !!socket.data.isAdmin;
-        const controlActions = ['play', 'pause', 'resume', 'seek', 'skip', 'queue-add', 'queue-remove'];
+        const meMember = jam.members.find((m) => m.userId === userId);
+        const canControl = jam.ownerId === userId || !!socket.data.isAdmin || meMember?.role === 'MINI_HOST';
+        const controlActions = ['play', 'pause', 'resume', 'seek', 'skip', 'queue-add', 'queue-remove', 'queue-move'];
         if (controlActions.includes(action) && !canControl) return;
 
         if (action === 'queue-add') {
@@ -246,7 +263,8 @@ app.prepare().then(() => {
           if (!Number.isInteger(songId) || songId <= 0) return;
           const song = await prisma.song.findUnique({ where: { id: songId }, select: { id: true } });
           if (!song) return;
-          await prisma.jamQueueItem.create({ data: { jamId, songId, addedBy: userId } });
+          const maxPos = await prisma.jamQueueItem.aggregate({ where: { jamId }, _max: { pos: true } });
+          await prisma.jamQueueItem.create({ data: { jamId, songId, addedBy: userId, pos: (maxPos._max.pos ?? 0) + 1 } });
           const fresh = await refreshJam(jamId);
           if (fresh) {
             broadcastQueue(fresh);
@@ -258,7 +276,35 @@ app.prepare().then(() => {
         if (action === 'queue-remove') {
           const qi = Number(d.qi);
           if (!Number.isInteger(qi) || qi <= 0) return;
-          await prisma.jamQueueItem.deleteMany({ where: { id: qi, jamId } });
+          const removed = await prisma.jamQueueItem.deleteMany({ where: { id: qi, jamId } });
+          if (removed.count > 0) {
+            await renumberQueue(jamId);
+          }
+          const fresh = await refreshJam(jamId);
+          if (fresh) broadcastQueue(fresh);
+          return;
+        }
+
+        if (action === 'queue-move') {
+          const qi = Number(d.qi);
+          const dir = String(d.dir || '');
+          const toIndex = Number.isFinite(Number(d.toIndex)) ? Number(d.toIndex) : null;
+          if (!Number.isInteger(qi) || qi <= 0) return;
+          const items = await prisma.jamQueueItem.findMany({ where: { jamId }, orderBy: [{ pos: 'asc' }, { createdAt: 'asc' }] });
+          const idx = items.findIndex((x) => x.id === qi);
+          if (idx === -1) return;
+          let newIdx = idx;
+          if (toIndex !== null) newIdx = Math.max(0, Math.min(items.length - 1, toIndex));
+          else if (dir === 'up') newIdx = Math.max(0, idx - 1);
+          else if (dir === 'down') newIdx = Math.min(items.length - 1, idx + 1);
+          if (newIdx === idx) return;
+          const [moved] = items.splice(idx, 1);
+          items.splice(newIdx, 0, moved);
+          const tx = [];
+          items.forEach((x, i) => {
+            if (x.pos !== i + 1) tx.push(prisma.jamQueueItem.update({ where: { id: x.id }, data: { pos: i + 1 } }));
+          });
+          if (tx.length) await prisma.$transaction(tx);
           const fresh = await refreshJam(jamId);
           if (fresh) broadcastQueue(fresh);
           return;
@@ -340,6 +386,24 @@ app.prepare().then(() => {
       }
     });
 
+    socket.on('jam:role', async (d) => {
+      if (!d || typeof d !== 'object' || typeof d.jamId !== 'string' || !Number.isInteger(d.userId)) return;
+      const jamId = d.jamId;
+      const targetUserId = d.userId;
+      const role = String(d.role || '');
+      if (role !== 'MINI_HOST' && role !== 'MEMBER') return;
+      try {
+        const jam = await prisma.jam.findUnique({ where: { id: jamId }, select: { id: true, ownerId: true, members: true } });
+        if (!jam || jam.ownerId !== userId) return;
+        const target = jam.members.find((m) => m.userId === targetUserId);
+        if (!target || targetUserId === userId) return;
+        await prisma.jamMember.update({ where: { jamId_userId: { jamId, userId: targetUserId } }, data: { role } });
+        io.to(`jam:${jamId}`).emit('jam:update', jamId);
+      } catch (e) {
+        console.error('jam:role error:', e && e.message);
+      }
+    });
+
     socket.on('jam:join', async (jamId) => {
       if (typeof jamId !== 'string' || !jamId) return;
       try {
@@ -391,7 +455,7 @@ app.prepare().then(() => {
     });
   });
 
-  globalThis.__jaminoLive = { io, prisma, online };
+  globalThis.__jaminoLive = { io, prisma, online, pushPresence, invalidateFriendCache: (a, b) => { friendCache.delete(a); friendCache.delete(b); } };
 
   server.listen(port, () => {
     console.log(`> Jamino live server ready on http://localhost:${port}`);

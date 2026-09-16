@@ -1,6 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { livePublish } from '@/lib/live-publish';
+import { livePublish, liveRefreshPresence, invalidateFriendCache } from '@/lib/live-publish';
 
 // POST { requestId, action: 'accept' | 'decline' | 'cancel' }
 export const POST = handle(async (req) => {
@@ -18,6 +18,8 @@ export const POST = handle(async (req) => {
     if (fr.toId !== me.id) return err('Forbidden', 403);
     await prisma.friendRequest.update({ where: { id: fr.id }, data: { status: 'FRIENDS' } });
     notify();
+    invalidateFriendCache(fr.fromId, fr.toId);
+    liveRefreshPresence();
     return json({ ok: true });
   }
   if (action === 'decline') {

@@ -41,6 +41,8 @@ export interface AdminStats {
   pendingInvites: number;
   banned: number;
   online: number;
+  countryStats: { country: string; count: number }[];
+  signupTrend: { date: string; count: number }[];
 }
 
 export interface AdminEvent {

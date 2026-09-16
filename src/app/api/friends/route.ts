@@ -2,7 +2,7 @@ import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { uidDisplay, parseUid } from '@/lib/constants';
 import { pubUser } from '@/lib/users';
-import { livePublish } from '@/lib/live-publish';
+import { livePublish, liveRefreshPresence, invalidateFriendCache } from '@/lib/live-publish';
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -124,5 +124,7 @@ export const DELETE = handle(async (req) => {
     },
   });
   livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
+  invalidateFriendCache(me.id, targetId);
+  liveRefreshPresence();
   return json({ ok: true });
 });

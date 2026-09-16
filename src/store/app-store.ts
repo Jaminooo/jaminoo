@@ -46,6 +46,7 @@ interface AppState {
   dmWith: number | null;
   profileUserId: number | null;
   online: number[];
+  presenceMap: Record<number, { status: string; statusText: string }>;
   unread: Unread;
   setMe: (me: Me | null) => void;
   setBooted: (b: boolean) => void;
@@ -56,6 +57,7 @@ interface AppState {
   setProfileUserId: (id: number | null) => void;
   setUnread: (u: Partial<Unread>) => void;
   setOnline: (ids: number[]) => void;
+  setPresenceMap: (map: Record<number, { status: string; statusText: string }>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -66,10 +68,11 @@ export const useAppStore = create<AppState>((set) => ({
   roomId: null,
   dmWith: null,
   profileUserId: null,
-  online: [],
+online: [],
+  presenceMap: {},
   unread: { friends: 0, invites: 0, dms: 0 },
   setMe: (me) => set({ me }),
-  setBooted: (b) => set({ booted: b }),
+  setBooted: (booted) => set({ booted }),
   setTab: (tab) => set({ tab, roomId: null, dmWith: null, profileUserId: null }),
   setAuthView: (authView) => set({ authView }),
   setRoomId: (roomId) => set({ roomId, dmWith: null, profileUserId: null }),
@@ -77,6 +80,7 @@ export const useAppStore = create<AppState>((set) => ({
   setProfileUserId: (profileUserId) => set({ profileUserId, roomId: null, dmWith: null }),
   setUnread: (u) => set((s) => ({ unread: { ...s.unread, ...u } })),
   setOnline: (online) => set({ online }),
+  setPresenceMap: (presenceMap) => set({ presenceMap }),
 }));
 
 export function uidDisplay(id: number) {

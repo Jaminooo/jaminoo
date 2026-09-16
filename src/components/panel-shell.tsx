@@ -29,7 +29,16 @@ export function PanelShell() {
     connectLive();
     loadUnread();
     const offBadge = onLive('friends:update', loadUnread);
-    const offPresence = onLive('presence:update', (d: { online: number[] }) => useAppStore.getState().setOnline(d.online ?? []));
+    const offPresence = onLive('presence:update', (d: { online: number[]; presence?: Record<number, { status: string; statusText: string }> }) => {
+      useAppStore.getState().setOnline(d.online ?? []);
+      if (d.presence) useAppStore.getState().setPresenceMap(d.presence);
+    });
+    const offStatus = onLive('status:update', (d: { userId: number; status: string; statusText: string }) => {
+      if (!d || typeof d.userId !== 'number') return;
+      const map = { ...useAppStore.getState().presenceMap };
+      if (map[d.userId]) map[d.userId] = { status: d.status, statusText: d.statusText };
+      useAppStore.getState().setPresenceMap(map);
+    });
     const offDm = onLive('dm:new', loadUnread);
     const offInvite = onLive('jam-invite', loadUnread);
     const offSeen = onLive('dm:seen', loadUnread);
@@ -37,6 +46,7 @@ export function PanelShell() {
     return () => {
       offBadge();
       offPresence();
+      offStatus();
       offDm();
       offInvite();
       offSeen();
@@ -90,7 +100,7 @@ export function PanelShell() {
       <div className="screen-panel">
         {topbar}
         <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
-          <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
+          <div className="content room-content" style={{ maxWidth: 1440, marginInline: 'auto' }}>
             <RoomPanel jamId={roomId} onBack={exitRoom} />
           </div>
         </div>

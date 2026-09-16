@@ -28,14 +28,16 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
           },
           addedByRef: { select: { id: true, username: true } },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ pos: 'asc' }, { createdAt: 'asc' }],
       },
+      members: { select: { userId: true, role: true } },
     },
   });
   if (!jam) return null;
 
   const now = jam.currentSong ? songPayload(jam.currentSong) : null;
-  const canControl = jam.ownerId === viewerId || viewerIsAdmin;
+  const meMember = jam.members.find((m) => m.userId === viewerId);
+  const canControl = jam.ownerId === viewerId || viewerIsAdmin || meMember?.role === 'MINI_HOST';
 
   return {
     state: {
@@ -48,6 +50,7 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
     },
     queue: jam.queueItems.map((qi) => ({
       id: qi.id,
+      pos: qi.pos ?? 0,
       song: songPayload(qi.song),
       addedBy: { id: qi.addedBy, username: qi.addedByRef?.username ?? '' },
       createdAt: qi.createdAt.toISOString(),

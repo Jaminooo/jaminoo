@@ -49,6 +49,7 @@ model Session {
   userId    Int
   name      String   @default("")
   device    String   @default("")
+  country   String   @default("")
   createdAt DateTime @default(now())
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -103,6 +104,7 @@ model Jam {
 model JamMember {
   jamId    String
   userId   Int
+  role     String   @default("MEMBER") // HOST | MINI_HOST | MEMBER
   joinedAt DateTime @default(now())
 
   jam  Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
@@ -294,6 +296,7 @@ model JamQueueItem {
   jamId     String
   songId    Int
   addedBy   Int
+  pos       Int      @default(0)
   createdAt DateTime @default(now())
 
   jam        Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)

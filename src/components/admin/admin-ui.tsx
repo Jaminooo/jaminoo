@@ -53,6 +53,75 @@ export function StatCard({ icon, label, value, tone = 'steel' }: { icon: ReactNo
   );
 }
 
+export function flagEmoji(code: string) {
+  if (!code || code.length !== 2) return '🌐';
+  const base = 0x1f1e6;
+  return String.fromCodePoint(base + (code.charCodeAt(0) - 65), base + (code.charCodeAt(1) - 65));
+}
+
+export function HBarChart({
+  rows,
+  valueLabel,
+  emptyText,
+}: {
+  rows: { label: string; value: number }[];
+  valueLabel: string;
+  emptyText: string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  if (rows.length === 0) return <div className="admin-empty-pad">{emptyText}</div>;
+  return (
+    <div className="admin-hbars">
+      {rows.map((r, i) => (
+        <div key={i} className="admin-hbar-row">
+          <div className="admin-hbar-flag">{flagEmoji(r.label)}</div>
+          <div className="admin-hbar-meta">
+            <div className="admin-hbar-top">
+              <span className="admin-hbar-label">{r.label}</span>
+              <span className="admin-hbar-value">
+                {r.value} {valueLabel}
+              </span>
+            </div>
+            <div className="admin-hbar-track">
+              <div className="admin-hbar-fill" style={{ width: `${Math.round((r.value / max) * 100)}%` }} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function BarSeriesChart({
+  rows,
+  emptyText,
+}: {
+  rows: { label: string; value: number }[];
+  emptyText: string;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.value));
+  if (rows.length === 0) return <div className="admin-empty-pad">{emptyText}</div>;
+  return (
+    <div className="admin-barseries">
+      {rows.map((r, i) => (
+        <div key={i} className="admin-barseries-col">
+          <div className="admin-barseries-val">{r.value}</div>
+          <div className="admin-barseries-track">
+            <div className="admin-barseries-fill" style={{ height: `${Math.max(4, Math.round((r.value / max) * 100))}%` }} />
+          </div>
+          <div className="admin-barseries-label">{r.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function dayLabel(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString([], { weekday: 'short' });
+}
+
 export function SearchBar({
   value,
   onChange,

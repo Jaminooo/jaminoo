@@ -10,7 +10,9 @@ const LOGIN_IP_LIMIT = { count: 30, window: 15 * 60 * 1000 };
 const LOGIN_USER_LIMIT = { count: 10, window: 15 * 60 * 1000 };
 
 async function sessionMetaFrom(req: Request) {
-  return parseUserAgent(req.headers.get('user-agent'));
+  const meta = parseUserAgent(req.headers.get('user-agent'));
+  const country = (req.headers.get('cf-ipcountry') ?? '').toUpperCase().slice(0, 2);
+  return { ...meta, country };
 }
 
 export const GET = handle(async () => {

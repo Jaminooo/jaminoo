@@ -23,7 +23,7 @@ export function parseUserAgent(ua: string | null | undefined): { name: string; d
   return { name: `${browser} · ${device}`, device };
 }
 
-export async function createSession(userId: number, meta?: { name?: string; device?: string }) {
+export async function createSession(userId: number, meta?: { name?: string; device?: string; country?: string }) {
   const token = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
   const count = await prisma.session.count({ where: { userId } });
@@ -31,7 +31,7 @@ export async function createSession(userId: number, meta?: { name?: string; devi
     const oldest = await prisma.session.findFirst({ where: { userId }, orderBy: { createdAt: 'asc' } });
     if (oldest && oldest.token !== token) await prisma.session.delete({ where: { token: oldest.token } });
   }
-  await prisma.session.create({ data: { token, userId, name: meta?.name ?? '', device: meta?.device ?? '', expiresAt } });
+  await prisma.session.create({ data: { token, userId, name: meta?.name ?? '', device: meta?.device ?? '', country: meta?.country ?? '', expiresAt } });
   const c = await cookies();
   c.set(SESSION_COOKIE, token, {
     httpOnly: true,

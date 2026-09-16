@@ -14,3 +14,19 @@ export function liveBroadcast(event: string, data: unknown) {
   io.emit(event, data);
   return true;
 }
+
+export function liveRefreshPresence() {
+  const g = globalThis as any;
+  if (typeof g.__jaminoLive?.pushPresence === 'function') {
+    g.__jaminoLive.pushPresence();
+    return true;
+  }
+  return false;
+}
+
+export function invalidateFriendCache(userA: number, userB: number) {
+  const g = globalThis as any;
+  if (typeof g.__jaminoLive?.invalidateFriendCache === 'function') {
+    g.__jaminoLive.invalidateFriendCache(userA, userB);
+  }
+}

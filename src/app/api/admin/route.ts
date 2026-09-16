@@ -5,6 +5,8 @@ import { recentAdminEvents } from '@/lib/admin';
 export const GET = handle(async () => {
   await requireAdmin();
   const dayAgo = new Date(Date.now() - 86400000);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
   const now = new Date();
   const [
     users,
@@ -35,6 +37,23 @@ export const GET = handle(async () => {
     prisma.jamMessage.count({ where: { createdAt: { gte: dayAgo } } }),
     prisma.dmMessage.count({ where: { createdAt: { gte: dayAgo } } }),
   ]);
+
+  const countryRows = await prisma.session.groupBy({
+    by: ['country'],
+    _count: true,
+    where: { createdAt: { gte: thirtyDaysAgo }, country: { not: '' } },
+    orderBy: { _count: { country: 'desc' } },
+    take: 20,
+  });
+  const countryStats = countryRows.map((r) => ({ country: r.country, count: r._count }));
+
+  const signupRows: { day: string; count: number }[] = await prisma.$queryRaw`
+    SELECT date(createdAt / 1000, 'unixepoch') as day, COUNT(*) as count FROM User
+    WHERE createdAt >= ${sevenDaysAgo.getTime()}
+    GROUP BY day ORDER BY day ASC
+  `;
+  const signupTrend = signupRows.map((r) => ({ date: r.day, count: Number(r.count) }));
+
   const online = (globalThis as any).__jaminoLive?.online?.size ?? 0;
   const events = recentAdminEvents(50);
   return json({
@@ -53,6 +72,8 @@ export const GET = handle(async () => {
       pendingInvites,
       banned,
       online,
+      countryStats,
+      signupTrend,
     },
     events,
   });

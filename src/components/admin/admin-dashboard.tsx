@@ -16,7 +16,7 @@ import {
   Ban,
   Wifi,
 } from 'lucide-react';
-import { StatCard, timeAgo } from './admin-ui';
+import { StatCard, timeAgo, HBarChart, BarSeriesChart, dayLabel } from './admin-ui';
 import type { AdminStats, AdminEvent } from './admin-panel';
 import type { Tone } from './admin-ui';
 
@@ -53,6 +53,21 @@ export function AdminDashboard({ stats, events }: { stats: AdminStats | null; ev
         {cards.map((c, i) => (
           <StatCard key={i} {...c} />
         ))}
+      </section>
+
+      <section className="admin-charts">
+        <div className="admin-card admin-chart-card">
+          <header className="admin-card-head">
+            <h2>{t('admin.topCountries')}</h2>
+          </header>
+          <HBarChart rows={(stats.countryStats ?? []).map((c) => ({ label: c.country, value: c.count }))} valueLabel={t('admin.sessionsLabel')} emptyText={t('admin.countriesEmpty')} />
+        </div>
+        <div className="admin-card admin-chart-card">
+          <header className="admin-card-head">
+            <h2>{t('admin.signups7d')}</h2>
+          </header>
+          <BarSeriesChart rows={(stats.signupTrend ?? []).map((r) => ({ label: dayLabel(r.date), value: r.count }))} emptyText={t('admin.signupsEmpty')} />
+        </div>
       </section>
 
       <section className="admin-card admin-feed-card">

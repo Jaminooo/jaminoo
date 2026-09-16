@@ -55,7 +55,7 @@ export const POST = handle(async (req) => {
       type: jtype,
       kind: jkind,
       ownerId: me.id,
-      members: { create: { userId: me.id } },
+      members: { create: { userId: me.id, role: 'HOST' } },
     },
   });
   return json({ ok: true, jam: { id: jam.id, name: jam.name, desc: jam.desc, type: jam.type, kind: jam.kind } }, 201);
