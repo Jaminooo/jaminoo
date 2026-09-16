@@ -40,11 +40,22 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   else if (friend?.status === 'FRIENDS') relationship = 'friends';
   else if (friend) relationship = friend.fromId === me.id ? 'sent' : 'received';
 
-  const [ownedJams, friendsCount, jamMsgCount] = await Promise.all([
+  const [ownedJams, friendsCount, jamMsgCount, myFriends, theirFriends] = await Promise.all([
     prisma.jam.count({ where: { ownerId: id } }),
     prisma.friendRequest.count({ where: { status: 'FRIENDS', OR: [{ fromId: id }, { toId: id }] } }),
     prisma.jamMessage.count({ where: { userId: id } }),
+    prisma.friendRequest.findMany({ where: { status: 'FRIENDS', OR: [{ fromId: me.id }, { toId: me.id }] }, select: { fromId: true, toId: true } }),
+    prisma.friendRequest.findMany({ where: { status: 'FRIENDS', OR: [{ fromId: id }, { toId: id }] }, select: { fromId: true, toId: true } }),
   ]);
+
+  const mySet = new Set<number>();
+  myFriends.forEach((f) => { mySet.add(f.fromId); mySet.add(f.toId); });
+  mySet.delete(me.id);
+  const theirSet = new Set<number>();
+  theirFriends.forEach((f) => { theirSet.add(f.fromId); theirSet.add(f.toId); });
+  theirSet.delete(id);
+  let mutual = 0;
+  for (const uid of mySet) if (theirSet.has(uid)) mutual++;
 
   return json({
     user: pubUser(user),
@@ -53,5 +64,6 @@ export const GET = handle(async (_req, { params }: Ctx) => {
     ownedJams,
     friendsCount,
     jamMsgCount,
+    mutual,
   });
 });

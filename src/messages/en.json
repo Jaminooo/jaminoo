@@ -173,6 +173,7 @@
   "fp": {
     "joined": "Joined",
     "statFriends": "Friends",
+    "statMutual": "Mutual",
     "statJams": "Jams",
     "statMessages": "Messages",
     "chat": "Chat",

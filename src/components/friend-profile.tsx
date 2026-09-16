@@ -8,7 +8,7 @@ import { EmojiText } from '@/components/emoji-text';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { loadUnread } from '@/lib/unread';
-import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Clock, Users, Radio, MessageSquare, Github } from 'lucide-react';
+import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck } from 'lucide-react';
 
 interface ProfileData {
   user: {
@@ -28,11 +28,13 @@ interface ProfileData {
   ownedJams: number;
   friendsCount: number;
   jamMsgCount: number;
+  mutual: number;
 }
 
 export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack: () => void }) {
   const t = useTranslations();
   const setDmWith = useAppStore((s) => s.setDmWith);
+  const online = useAppStore((s) => s.online);
   const [data, setData] = useState<ProfileData | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -60,6 +62,7 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
 
   if (!data) return <div className="empty-state" style={{ padding: 64 }}>…</div>;
   const u = data.user;
+  const isOnline = online.includes(u.id);
 
   const statusTextMain = u.statusText || ({ ONLINE: t('status.online'), BUSY: t('status.busy'), IDLE: t('status.idle'), OFFLINE: t('status.offline') } as Record<string, string>)[u.status] || u.status;
 
@@ -75,26 +78,30 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
         </div>
       </div>
 
-      <div className="fp-hero">
+      <div className="fp-hero" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div className="fp-banner" aria-hidden="true" />
         <div className="fp-avatar">
-          <JaminoAvatar avatarId={u.avatarId} size={96} photo={u.avatarPhoto} name={u.username} />
+          <JaminoAvatar avatarId={u.avatarId} size={104} photo={u.avatarPhoto} name={u.username} />
+          <span className={`online-dot fp-presence ${isOnline ? `on st-${u.status ? u.status.toLowerCase() : 'offline'}` : ''}`} />
         </div>
         <h2 className="fp-name">{u.username}</h2>
+        <div className="fp-uid">{u.uid}</div>
         <div className="fp-status">
-          <span className={`online-dot st-${u.status ? u.status.toLowerCase() : 'offline'}`} />
+          <span className={`online-dot ${isOnline ? `on st-${u.status ? u.status.toLowerCase() : 'offline'}` : ''}`} />
           {statusTextMain}
         </div>
         <div className="fp-bio">
           {u.bio ? <EmojiText text={u.bio} /> : <span className="fp-nobio">{t('modal.noBio')}</span>}
         </div>
         <div className="fp-meta">
-          <span><Clock size={13} /> {t('fp.joined')} {new Date(u.createdAt).toLocaleDateString([], { year: 'numeric', month: 'short' })}</span>
-          {u.github && <span><Github size={13} /> GitHub</span>}
+          <span><CalendarDays size={13} /> {t('fp.joined')} {new Date(u.createdAt).toLocaleDateString([], { year: 'numeric', month: 'long' })}</span>
+          {u.github && <span className="fp-gh"><Github size={13} /> GitHub</span>}
         </div>
       </div>
 
       <div className="fp-stats">
         <div className="fp-stat"><Users size={15} /><b>{data.friendsCount}</b><span>{t('fp.statFriends')}</span></div>
+        <div className="fp-stat"><UserCheck size={15} /><b>{data.mutual}</b><span>{t('fp.statMutual')}</span></div>
         <div className="fp-stat"><Radio size={15} /><b>{data.ownedJams}</b><span>{t('fp.statJams')}</span></div>
         <div className="fp-stat"><MessageSquare size={15} /><b>{data.jamMsgCount}</b><span>{t('fp.statMessages')}</span></div>
       </div>
