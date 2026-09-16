@@ -1,11 +1,24 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { MAX_PROFILE_MEDIA, MAX_MEDIA_BYTES, ALLOWED_MEDIA_TYPES, uidDisplay } from '@/lib/constants';
+import { MAX_PROFILE_MEDIA, MAX_MEDIA_BYTES, uidDisplay } from '@/lib/constants';
 import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+
+function sniffImage(buf: Buffer): string | null {
+  if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 && buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a) {
+    return 'image/png';
+  }
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return 'image/jpeg';
+  }
+  if (buf.length >= 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+    return 'image/webp';
+  }
+  return null;
+}
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -36,18 +49,21 @@ export const POST = handle(async (req: Request) => {
   if (count >= MAX_PROFILE_MEDIA) return err(`Maximum ${MAX_PROFILE_MEDIA} photos`);
 
   if (file.size > MAX_MEDIA_BYTES) return err('File too large (max 5 MB)');
-  if (!ALLOWED_MEDIA_TYPES.includes(file.type)) return err('Only jpg, png, webp allowed');
 
-  const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+  const hash = Buffer.from(await file.arrayBuffer());
+  const mime = sniffImage(hash);
+  if (!mime) return err('Only jpg, png, webp images allowed');
+
+  const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
   const id = `${me.id}-${Date.now()}-${randomBytes(3).toString('hex')}`;
   const filename = `${id}.${ext}`;
-  const buf = Buffer.from(await file.arrayBuffer());
+  const buf = hash;
 
   await mkdir(UPLOAD_DIR, { recursive: true });
   await writeFile(path.join(UPLOAD_DIR, filename), buf);
 
   const record = await prisma.media.create({
-    data: { id, userId: me.id, kind: 'IMAGE', filename, mime: file.type, size: file.size },
+    data: { id, userId: me.id, kind: 'IMAGE', filename, mime, size: file.size },
   });
 
   return json(

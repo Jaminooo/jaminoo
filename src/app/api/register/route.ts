@@ -2,11 +2,13 @@ import { handle, json, err } from '@/lib/api';
 import { createSession, parseUserAgent } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { SECURITY_QUESTIONS, uidDisplay } from '@/lib/constants';
+import { rateLimitByIp } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 export const POST = handle(async (req) => {
+  rateLimitByIp(req, 30, 60 * 60 * 1000);
   const { username, email, password, questionId, answer } = (await req.json()) as {
     username?: string;
     email?: string;
@@ -16,7 +18,7 @@ export const POST = handle(async (req) => {
   };
 
   if (!username || !USERNAME_RE.test(username)) return err('Invalid username');
-  if (!password || password.length < 6) return err('Password too short');
+  if (!password || password.length < 8) return err('Password must be at least 8 characters');
   if (questionId == null || !SECURITY_QUESTIONS[questionId]) return err('Pick a security question');
   if (!answer || !answer.trim()) return err('Provide an answer');
 

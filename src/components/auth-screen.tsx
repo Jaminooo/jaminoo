@@ -157,7 +157,7 @@ function SignupForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.password.length < 6) return toast(t('toast.shortPassword'), 'error');
+    if (form.password.length < 8) return toast(t('toast.shortPassword'), 'error');
     if (form.password !== form.password2) return toast(t('toast.noMatch'), 'error');
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(form.username)) return toast(t('toast.invalidUsername'), 'error');
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return toast(t('toast.invalidEmail'), 'error');
@@ -263,7 +263,7 @@ function ForgotForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot')
   };
 
   const reset = async () => {
-    if (newPass.length < 6) return toast(t('toast.shortPassword'), 'error');
+    if (newPass.length < 8) return toast(t('toast.shortPassword'), 'error');
     if (newPass !== newPass2) return toast(t('toast.noMatch'), 'error');
     setLoading(true);
     try {

@@ -209,7 +209,7 @@
     "passwordChanged": "رمز عبور تغییر کرد.",
     "passwordChangedGitHub": "حساب‌های گیت‌هاب رمز ندارند.",
     "wrongPassword": "رمز فعلی اشتباه است.",
-    "shortPassword": "رمز جدید: حداقل ۶ کاراکتر.",
+    "shortPassword": "رمز جدید: حداقل ۸ کاراکتر.",
     "noMatch": "رمزها یکی نیستند.",
     "usernameTaken": "این نام کاربری گرفته شده.",
     "invalidEmail": "ایمیل نامعتبر.",

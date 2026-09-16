@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createSession, parseUserAgent } from '@/lib/session';
 import { uidDisplay } from '@/lib/constants';
+import { cookies } from 'next/headers';
 
 // GitHub OAuth callback — exchanges the code for an access token,
 // then signs in (or creates) the matching Jamino account.
@@ -9,9 +10,17 @@ export const GET = async (req: Request) => {
   const clientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
+
+  const c = await cookies();
+  const storedState = c.get('jam_oauth_state')?.value;
+  c.delete('jam_oauth_state');
 
   if (!clientId || !clientSecret || !code) {
     return Response.json({ ok: false, error: 'GitHub OAuth is not configured or the callback is missing a code.' }, { status: 400 });
+  }
+  if (!state || !storedState || state !== storedState) {
+    return Response.json({ ok: false, error: 'Invalid OAuth state.' }, { status: 400 });
   }
 
   try {

@@ -8,9 +8,59 @@ const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 
 type Ctx = { params: { id: string } };
 
+async function canAccessMedia(meId: number, mediaId: string) {
+  const media = await prisma.media.findUnique({
+    where: { id: mediaId },
+    select: {
+      id: true,
+      userId: true,
+      profileUser: { select: { id: true } },
+      messages: { select: { jamId: true } },
+      dmMessages: { select: { convId: true } },
+    },
+  });
+  if (!media) return false;
+  if (media.userId === meId) return true;
+
+  if (media.profileUser) {
+    const otherId = media.profileUser.id;
+    if (otherId === meId) return true;
+    const friend = await prisma.friendRequest.findFirst({
+      where: { status: 'FRIENDS', OR: [{ fromId: meId, toId: otherId }, { fromId: otherId, toId: meId }] },
+      select: { id: true },
+    });
+    if (friend) return true;
+    const shared = await prisma.jamMember.count({
+      where: { userId: meId, jam: { members: { some: { userId: otherId } } } },
+    });
+    if (shared > 0) return true;
+    const publicJam = await prisma.jam.count({
+      where: { ownerId: otherId, type: 'PUBLIC', closed: false },
+    });
+    if (publicJam > 0) return true;
+    return false;
+  }
+
+  if (media.messages.length > 0) {
+    const member = await prisma.jamMember.findUnique({
+      where: { jamId_userId: { jamId: media.messages[0].jamId, userId: meId } },
+    });
+    return !!member;
+  }
+
+  if (media.dmMessages.length > 0) {
+    const conv = await prisma.conversation.findUnique({ where: { id: media.dmMessages[0].convId } });
+    return !!conv && (conv.userA === meId || conv.userB === meId);
+  }
+
+  return false;
+}
+
 export const GET = handle(async (_req, { params }: Ctx) => {
+  const me = await requireUser();
   const media = await prisma.media.findUnique({ where: { id: params.id } });
   if (!media) return err('Not found', 404);
+  if (!(await canAccessMedia(me.id, media.id))) return err('Forbidden', 403);
   const fpath = path.join(UPLOAD_DIR, media.filename);
   try {
     const fs = await import('fs/promises');
@@ -18,7 +68,8 @@ export const GET = handle(async (_req, { params }: Ctx) => {
     return new NextResponse(new Uint8Array(buf), {
       headers: {
         'Content-Type': media.mime,
-        'Cache-Control': 'public, max-age=3600',
+        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'private, max-age=3600',
       },
     });
   } catch {

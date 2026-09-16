@@ -13,6 +13,10 @@ export const POST = handle(async (req, { params }: Ctx) => {
   const msgId = Number(params.msgId);
   if (!Number.isFinite(msgId)) return err('Invalid message');
 
+  const jam = await prisma.jam.findUnique({ where: { id: params.id }, include: { members: true } });
+  if (!jam) return err('Jam not found', 404);
+  if (!jam.members.some((m) => m.userId === me.id)) return err('You are not in this jam', 403);
+
   const msg = await prisma.jamMessage.findUnique({ where: { id: msgId } });
   if (!msg || msg.jamId !== params.id) return err('Message not found', 404);
 

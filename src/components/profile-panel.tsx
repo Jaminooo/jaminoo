@@ -119,7 +119,7 @@ export function ProfilePanel() {
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pw.next.length < 6) return toast(t('toast.shortPassword'), 'error');
+    if (pw.next.length < 8) return toast(t('toast.shortPassword'), 'error');
     if (pw.next !== pw.confirm) return toast(t('toast.noMatch'), 'error');
     try {
       await api('/api/profile/password', { method: 'PATCH', body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }) });

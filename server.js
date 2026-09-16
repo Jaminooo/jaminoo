@@ -10,6 +10,23 @@ function getCookie(raw, name) {
   return m ? m.slice(name.length + 1) : null;
 }
 
+function originAllowed(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const selfOrigin = `${proto}://${req.headers.host}`;
+  if (origin === selfOrigin) return true;
+  const pub = process.env.NEXT_PUBLIC_BASE_URL;
+  if (pub) {
+    try {
+      return origin === new URL(pub).origin;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 const dev = process.env.NODE_ENV === 'development';
 const port = parseInt(process.env.PORT || '3000', 10);
 const app = next({ dev });
@@ -19,13 +36,52 @@ const prisma = new PrismaClient();
 // Map of userId -> Set<socketId> for online presence.
 const online = new Map();
 
+// Cache of userId -> { at, set } of friend ids (used to scope presence broadcasts).
+const friendCache = new Map();
+
+async function friendsOf(userId) {
+  const cached = friendCache.get(userId);
+  if (cached && Date.now() - cached.at < 30000) return cached.set;
+  const rows = await prisma.friendRequest.findMany({
+    where: { status: 'FRIENDS', OR: [{ fromId: userId }, { toId: userId }] },
+    select: { fromId: true, toId: true },
+  });
+  const set = new Set();
+  for (const r of rows) set.add(r.fromId === userId ? r.toId : r.fromId);
+  friendCache.set(userId, { at: Date.now(), set });
+  return set;
+}
+
+async function pushPresence() {
+  const all = [...online.keys()];
+  for (const userId of all) {
+    const sockets = online.get(userId);
+    if (!sockets || sockets.size === 0) continue;
+    let list;
+    try {
+      const friends = await friendsOf(userId);
+      list = all.filter((id) => friends.has(id));
+    } catch (e) {
+      console.error('presence friends error:', e && e.message);
+      list = [userId];
+    }
+    io.to(`user:${userId}`).emit('presence:update', { online: list });
+  }
+}
+
+let io;
+
 app.prepare().then(() => {
   const server = createServer((req, res) => handle(req, res));
 
-  const io = new Server(server, {
+  io = new Server(server, {
     path: '/socket.io',
     serveClient: false,
-    cors: { origin: true, credentials: true },
+    cors: { origin: false, credentials: false },
+    allowRequest(req, callback) {
+      if (!originAllowed(req)) return callback(null, false);
+      callback(null, true);
+    },
   });
 
   io.use(async (socket, nextcb) => {
@@ -50,20 +106,47 @@ app.prepare().then(() => {
     const set = online.get(userId) || new Set();
     set.add(socket.id);
     online.set(userId, set);
-    io.emit('presence:update', { online: [...online.keys()] });
+    pushPresence();
 
-    socket.on('jam:join', (jamId) => {
-      if (typeof jamId === 'string' && jamId) socket.join(`jam:${jamId}`);
+    socket.on('jam:join', async (jamId) => {
+      if (typeof jamId !== 'string' || !jamId) return;
+      try {
+        const member = await prisma.jamMember.findUnique({ where: { jamId_userId: { jamId, userId } } });
+        if (member) socket.join(`jam:${jamId}`);
+        else socket.leave(`jam:${jamId}`);
+      } catch (e) {
+        console.error('jam:join error:', e && e.message);
+      }
     });
 
     socket.on('jam:leave', (jamId) => {
       if (typeof jamId === 'string' && jamId) socket.leave(`jam:${jamId}`);
     });
 
-    socket.on('typing', (d) => {
+    socket.on('typing', async (d) => {
       if (!d || typeof d !== 'object') return;
-      if (d.jam) io.to(`jam:${d.jam}`).emit('typing:update', { jam: d.jam, user: userId, from: socket.id });
-      if (d.dm) io.to(`user:${d.dm}`).emit('typing:update', { dm: d.dm, user: userId, from: socket.id });
+      if (d.jam && typeof d.jam === 'string') {
+        try {
+          const member = await prisma.jamMember.findUnique({ where: { jamId_userId: { jamId: d.jam, userId } } });
+          if (!member) return;
+          io.to(`jam:${d.jam}`).emit('typing:update', { jam: d.jam, user: userId, from: socket.id });
+        } catch (e) {
+          console.error('typing jam error:', e && e.message);
+        }
+      }
+      if (d.dm && typeof d.dm !== 'object' && Number.isFinite(Number(d.dm))) {
+        const otherId = Number(d.dm);
+        if (!Number.isInteger(otherId) || otherId === userId) return;
+        try {
+          const rel = await prisma.friendRequest.findFirst({
+            where: { status: 'FRIENDS', OR: [{ fromId: userId, toId: otherId }, { fromId: otherId, toId: userId }] },
+          });
+          if (!rel) return;
+          io.to(`user:${otherId}`).emit('typing:update', { dm: otherId, user: userId, from: socket.id });
+        } catch (e) {
+          console.error('typing dm error:', e && e.message);
+        }
+      }
     });
 
     socket.on('disconnect', () => {
@@ -72,7 +155,7 @@ app.prepare().then(() => {
         s.delete(socket.id);
         if (s.size === 0) online.delete(userId);
       }
-      io.emit('presence:update', { online: [...online.keys()] });
+      pushPresence();
     });
   });
 

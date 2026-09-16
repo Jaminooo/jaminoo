@@ -209,7 +209,7 @@
     "passwordChanged": "Password changed.",
     "passwordChangedGitHub": "GitHub accounts don't use passwords.",
     "wrongPassword": "Current password is wrong.",
-    "shortPassword": "New password: min 6 characters.",
+    "shortPassword": "New password: min 8 characters.",
     "noMatch": "New passwords do not match.",
     "usernameTaken": "That username is taken.",
     "invalidEmail": "Invalid email.",
