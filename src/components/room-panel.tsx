@@ -9,6 +9,7 @@ import { VoicePlayer } from '@/components/voice-player';
 import { MessageComposer } from '@/components/message-composer';
 import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/message-reactions';
 import { useContextMenu, ContextMenu, type CmItem } from '@/components/context-menu';
+import { MusicPlayer } from '@/components/music-player';
 import { api } from '@/lib/client-api';
 import { connectLive, emitLive, onLive, liveConnected, liveSocketId } from '@/lib/live';
 import { toast } from '@/components/toast';
@@ -339,6 +340,8 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           </button>
         ))}
       </div>
+
+      {jam.kind === 'MUSIC' && <MusicPlayer jamId={jam.id} canOwner={isOwner} />}
 
       <div className="room-body" ref={bodyRef}>
         {jam.messages.length === 0 && <div className="empty-state" style={{ padding: 40 }}>{t('room.noMessages')}</div>}

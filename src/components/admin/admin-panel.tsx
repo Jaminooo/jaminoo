@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Image,
   KeyRound,
+  Music2,
   ArrowLeft,
   RefreshCw,
   Loader2,
@@ -23,6 +24,7 @@ import { AdminJams } from './admin-jams';
 import { AdminMessages } from './admin-messages';
 import { AdminMedia } from './admin-media';
 import { AdminSessions } from './admin-sessions';
+import { AdminMusic } from './music/admin-music';
 
 export interface AdminStats {
   users: number;
@@ -48,7 +50,7 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-type Tab = 'dashboard' | 'users' | 'jams' | 'messages' | 'media' | 'sessions';
+type Tab = 'dashboard' | 'users' | 'jams' | 'messages' | 'media' | 'sessions' | 'music';
 
 const TABS: { id: Tab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
@@ -56,6 +58,7 @@ const TABS: { id: Tab; icon: typeof Users; key: string }[] = [
   { id: 'jams', icon: RadioTower, key: 'admin.jams' },
   { id: 'messages', icon: MessageSquare, key: 'admin.messages' },
   { id: 'media', icon: Image, key: 'admin.media' },
+  { id: 'music', icon: Music2, key: 'admin.music' },
   { id: 'sessions', icon: KeyRound, key: 'admin.sessions' },
 ];
 
@@ -164,6 +167,7 @@ export function AdminPanel() {
           {tab === 'jams' && <AdminJams />}
           {tab === 'messages' && <AdminMessages />}
           {tab === 'media' && <AdminMedia />}
+          {tab === 'music' && <AdminMusic />}
           {tab === 'sessions' && <AdminSessions />}
         </div>
       </main>
