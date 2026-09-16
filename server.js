@@ -90,7 +90,11 @@ app.prepare().then(() => {
       if (!token) return nextcb(new Error('unauthorized'));
       const session = await prisma.session.findUnique({ where: { token } });
       if (!session || session.expiresAt < new Date()) return nextcb(new Error('unauthorized'));
+      const user = await prisma.user.findUnique({ where: { id: session.userId } });
+      if (!user) return nextcb(new Error('unauthorized'));
+      if (user.bannedUntil && user.bannedUntil > new Date()) return nextcb(new Error('banned'));
       socket.data.userId = session.userId;
+      socket.data.isAdmin = !!user.isAdmin;
       socket.data.token = token;
       nextcb();
     } catch (e) {
@@ -102,6 +106,7 @@ app.prepare().then(() => {
   io.on('connection', (socket) => {
     const userId = socket.data.userId;
     socket.join(`user:${userId}`);
+    if (socket.data.isAdmin) socket.join('admin');
 
     const set = online.get(userId) || new Set();
     set.add(socket.id);

@@ -64,7 +64,14 @@ export async function getCurrentUser() {
     return null;
   }
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return null;
+  if (user.bannedUntil && user.bannedUntil > new Date()) return null;
   return user;
+}
+
+export function isBanned(user: { bannedUntil: Date | null | undefined }): Date | false {
+  if (user.bannedUntil && user.bannedUntil > new Date()) return user.bannedUntil;
+  return false;
 }
 
 export async function getCurrentSessionToken() {

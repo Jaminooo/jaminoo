@@ -57,6 +57,9 @@ export const GET = async (req: Request) => {
         },
       });
     }
+    if (user.bannedUntil && user.bannedUntil > new Date()) {
+      return Response.json({ ok: false, error: 'This account is banned.' }, { status: 403 });
+    }
 
     await createSession(user.id, parseUserAgent(req.headers.get('user-agent')));
     return new Response(null, {

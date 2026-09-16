@@ -1,12 +1,13 @@
 import { handle, json, err } from '@/lib/api';
-import { getCurrentUser, createSession, destroySession, parseUserAgent } from '@/lib/session';
+import { getCurrentUser, createSession, destroySession, parseUserAgent, isBanned } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { SECURITY_QUESTIONS } from '@/lib/constants';
 import { rateLimit, rateLimitByIp } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 const MIN_PASSWORD = 8;
-const LOGIN_LIMIT = { count: 10, window: 15 * 60 * 1000 };
+const LOGIN_IP_LIMIT = { count: 30, window: 15 * 60 * 1000 };
+const LOGIN_USER_LIMIT = { count: 10, window: 15 * 60 * 1000 };
 
 async function sessionMetaFrom(req: Request) {
   return parseUserAgent(req.headers.get('user-agent'));
@@ -41,11 +42,12 @@ export const POST = handle(async (req) => {
 
   if (action === 'login') {
     const { username, password } = body as { username?: string; password?: string };
-    rateLimitByIp(req, LOGIN_LIMIT.count, LOGIN_LIMIT.window);
-    if (username) rateLimit(`login:${username.toLowerCase()}`, LOGIN_LIMIT.count, LOGIN_LIMIT.window);
+    rateLimitByIp(req, LOGIN_IP_LIMIT.count, LOGIN_IP_LIMIT.window);
+    if (username) rateLimit(`login:${username.toLowerCase()}`, LOGIN_USER_LIMIT.count, LOGIN_USER_LIMIT.window);
     if (!username || !password) return err('Missing username or password');
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user || user.github) return err('Invalid username or password', 401);
+    if (isBanned(user)) return err('This account is banned', 403);
     const match = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!match) return err('Invalid username or password', 401);
     await createSession(user.id, await sessionMetaFrom(req));
@@ -73,6 +75,7 @@ export const POST = handle(async (req) => {
     if (newPassword.length < MIN_PASSWORD) return err(`Password must be at least ${MIN_PASSWORD} characters`);
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user || user.github) return err('No such account', 404);
+    if (isBanned(user)) return err('This account is banned', 403);
     if (!user.answerHash) return err('No security question set', 400);
     const match = await bcrypt.compare(answer.toLowerCase(), user.answerHash);
     if (!match) return err('Wrong answer', 401);

@@ -1,0 +1,249 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { api } from '@/lib/client-api';
+import { useTranslations } from '@/providers/use-translations';
+import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+
+export function formatBytes(n: number) {
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  const u = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < u.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${u[i]}`;
+}
+
+export function timeAgo(iso: string | number | Date) {
+  const d = typeof iso === 'number' ? iso : new Date(iso).getTime();
+  const s = Math.max(0, Math.floor((Date.now() - d) / 1000));
+  if (s < 5) return 'now';
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
+export function fmtDateTime(iso: string | Date) {
+  const d = new Date(iso);
+  return d.toLocaleString();
+}
+
+export type Tone = 'violet' | 'green' | 'red' | 'amber' | 'steel';
+
+export function Badge({ tone = 'steel', children }: { tone?: Tone; children: ReactNode }) {
+  return <span className={`admin-badge ${tone}`}>{children}</span>;
+}
+
+export function StatCard({ icon, label, value, tone = 'steel' }: { icon: ReactNode; label: string; value: string | number; tone?: Tone }) {
+  return (
+    <div className="admin-stat">
+      <div className={`admin-stat-icon ${tone}`}>{icon}</div>
+      <div className="admin-stat-meta">
+        <div className="admin-stat-value">{value}</div>
+        <div className="admin-stat-label">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+export function SearchBar({
+  value,
+  onChange,
+  onSearch,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSearch: () => void;
+  placeholder: string;
+}) {
+  return (
+    <form
+      className="admin-search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSearch();
+      }}
+    >
+      <Search size={16} className="admin-search-icon" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      {value ? (
+        <button
+          type="button"
+          className="admin-search-clear"
+          onClick={() => {
+            onChange('');
+            onSearch();
+          }}
+          aria-label="clear"
+        >
+          <X size={14} />
+        </button>
+      ) : null}
+    </form>
+  );
+}
+
+export function Pager({ page, pages, setPage }: { page: number; pages: number; setPage: (p: number) => void }) {
+  if (pages <= 1) return null;
+  return (
+    <div className="admin-pager">
+      <button disabled={page <= 1} onClick={() => setPage(page - 1)} aria-label="prev">
+        <ChevronLeft size={16} />
+      </button>
+      <span>
+        {page} / {pages}
+      </span>
+      <button disabled={page >= pages} onClick={() => setPage(page + 1)} aria-label="next">
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  );
+}
+
+export function LoadingRow({ text }: { text: string }) {
+  return (
+    <tr className="admin-empty-row">
+      <td colSpan={99} className="admin-empty">
+        <span className="admin-loader" />
+        {text}
+      </td>
+    </tr>
+  );
+}
+
+export function EmptyRow({ text }: { text: string }) {
+  return (
+    <tr className="admin-empty-row">
+      <td colSpan={99} className="admin-empty">
+        {text}
+      </td>
+    </tr>
+  );
+}
+
+interface ConfirmState {
+  title: string;
+  body: string;
+  danger?: boolean;
+  onOk: () => void;
+}
+const emptyConfirm: ConfirmState | null = null;
+
+export function useConfirm() {
+  const [c, setC] = useState<ConfirmState | null>(emptyConfirm);
+  const ask = useCallback((title: string, body: string, onOk: () => void, danger = true) => {
+    setC({ title, body, onOk, danger });
+  }, []);
+  const close = useCallback(() => setC(emptyConfirm), []);
+  return { confirm: c, ask, close };
+}
+
+export function ConfirmModal({ confirm, close }: { confirm: ConfirmState; close: () => void }) {
+  const t = useTranslations();
+  return (
+    <div className="admin-modal-backdrop" onMouseDown={close}>
+      <div className="admin-modal admin-confirm" onMouseDown={(e) => e.stopPropagation()}>
+        <h3>{confirm.title}</h3>
+        <p>{confirm.body}</p>
+        <div className="admin-modal-actions">
+          <button className="btn btn-ghost" onClick={close}>
+            {t('admin.cancel')}
+          </button>
+          <button
+            className={`btn ${confirm.danger ? 'btn-danger' : 'btn-violet'}`}
+            onClick={() => {
+              close();
+              confirm.onOk();
+            }}
+          >
+            {t('admin.confirm')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AdminModal({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  wide,
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  wide?: boolean;
+}) {
+  if (!open) return null;
+  return (
+    <div className="admin-modal-backdrop" onMouseDown={onClose}>
+      <div className={`admin-modal ${wide ? 'admin-modal-wide' : ''}`} onMouseDown={(e) => e.stopPropagation()}>
+        <div className="admin-modal-head">
+          <h3>{title}</h3>
+          <button className="btn-icon" onClick={onClose} aria-label="close">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="admin-modal-body">{children}</div>
+        {footer ? <div className="admin-modal-actions">{footer}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+export interface ListOptions<R> {
+  path: string;
+  extra?: Record<string, string>;
+  per?: number;
+}
+
+export function useAdminList<R>({ path, extra = {}, per = 25 }: ListOptions<R>) {
+  const [rows, setRows] = useState<R[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [q, setQ] = useState('');
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [nonce, setNonce] = useState(0);
+
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
+  const extraKey = JSON.stringify(extra);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), per: String(per) });
+    if (query) params.set('q', query);
+    for (const [k, v] of Object.entries(extra)) if (v) params.set(k, v);
+    api<{ rows: R[]; total: number }>(`${path}?${params}`)
+      .then((d) => {
+        if (!alive) return;
+        setRows(d.rows);
+        setTotal(d.total);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path, page, query, per, extraKey, nonce]);
+
+  const pages = Math.max(1, Math.ceil(total / per));
+  return { rows, total, page, pages, setPage, q, setQ, query, setQuery, loading, reload };
+}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
 import { RateLimitError } from '@/lib/rate-limit';
+import { ensureAdmins } from '@/lib/admin';
 
 export function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status });
@@ -17,6 +18,18 @@ export function err(message: string, status = 400) {
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) throw new UnauthorizedError();
+  return user;
+}
+
+export async function requireAdmin() {
+  await ensureAdmins();
+  const user = await getCurrentUser();
+  if (!user) throw new UnauthorizedError();
+  if (!user.isAdmin) {
+    const e = new Error('Admin only');
+    (e as any).adminOnly = true;
+    throw e;
+  }
   return user;
 }
 
@@ -67,6 +80,9 @@ export function handle<P extends Record<string, string>>(
       }
       if (e instanceof RateLimitError) {
         return err(e.message, 429);
+      }
+      if ((e as any)?.adminOnly) {
+        return err('Forbidden', 403);
       }
       console.error(e);
       return err('Something went wrong', 500);

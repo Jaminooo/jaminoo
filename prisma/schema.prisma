@@ -21,6 +21,9 @@ model User {
   status       String    @default("ONLINE") // ONLINE | IDLE | BUSY | OFFLINE
   statusText   String    @default("")
   createdAt    DateTime  @default(now())
+  isAdmin      Boolean   @default(false)
+  bannedUntil  DateTime?
+  bannedReason String    @default("")
 
   profilePhotoId String?  @unique
   profilePhoto   Media?  @relation("ProfilePhoto", fields: [profilePhotoId], references: [id], onDelete: SetNull)
