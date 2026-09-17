@@ -1,11 +1,12 @@
 import path from "path";
 import fs from "fs";
 import { createHash, randomBytes } from "crypto";
+import { UPLOAD_DIR as APP_UPLOAD_DIR } from '@/lib/upload-storage';
 
 export const MUSIC_COVER_MAX = 5 * 1024 * 1024;
 export const MUSIC_AUDIO_MAX = 40 * 1024 * 1024;
 const MAX_COVER_FILENAME_LEN = 120;
-const UPLOAD_DIR = path.join(process.cwd(), "uploads", "music");
+const UPLOAD_DIR = path.join(APP_UPLOAD_DIR, "music");
 const COVER_DIR = path.join(UPLOAD_DIR, "covers");
 const AUDIO_DIR = path.join(UPLOAD_DIR, "audio");
 
@@ -61,6 +62,7 @@ export function saveAudioBuf(buf: Buffer, origName: string) {
 }
 
 export function deleteMusicFile(name: string) {
+  if (!name || /^https?:\/\//i.test(name)) return false;
   for (const dir of [COVER_DIR, AUDIO_DIR]) {
     const p = path.join(dir, name);
     if (fs.existsSync(p)) { fs.unlinkSync(p); return true; }

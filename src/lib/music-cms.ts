@@ -6,6 +6,21 @@ export function streamUrl(songId: number) {
   return `/api/music/stream/${songId}`;
 }
 
+const FALLBACK_COVERS = [
+  'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=900&q=82',
+  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=82',
+];
+
+export function fallbackMusicCover(seed: number) {
+  return FALLBACK_COVERS[Math.abs(seed) % FALLBACK_COVERS.length];
+}
+
+function externalCover(value: string | null | undefined) {
+  return !!value && /^https?:\/\//i.test(value);
+}
+
 export function safeJsonArr(raw: string | null | undefined): unknown[] {
   if (!raw) return [];
   try {
@@ -42,11 +57,16 @@ export interface SongArgs {
 export function songPayload(s: SongArgs) {
   const feat = safeJsonArr(s.featArtistIds);
   const genres = safeJsonArr(s.genres);
-  const albumCover = s.album?.coverFile ? coverUrl('album', s.album.id) : null;
+  const albumCover = s.album?.coverFile
+    ? externalCover(s.album.coverFile) ? s.album.coverFile : coverUrl('album', s.album.id)
+    : fallbackMusicCover(s.album?.id ?? s.id);
+  const artistCover = s.artist?.coverFile
+    ? externalCover(s.artist.coverFile) ? s.artist.coverFile : coverUrl('artist', s.artist.id)
+    : fallbackMusicCover(s.artist?.id ?? s.id);
   return {
     id: s.id,
     title: s.title,
-    artist: s.artist ? { id: s.artist.id, name: s.artist.name, coverFile: s.artist.coverFile ?? '' } : null,
+    artist: s.artist ? { id: s.artist.id, name: s.artist.name, coverFile: s.artist.coverFile ?? '', coverUrl: artistCover } : null,
     feat,
     album: s.album ? { id: s.album.id, title: s.album.title, coverUrl: albumCover } : null,
     trackNo: s.trackNo ?? 0,
@@ -62,8 +82,8 @@ export function songPayload(s: SongArgs) {
     hasAudio: !!s.audioFile,
     audioUrl: s.audioFile ? streamUrl(s.id) : null,
     audioLink: s.audioLink || null,
-    hasCover: !!s.coverFile,
-    coverUrl: s.coverFile ? coverUrl('song', s.id) : albumCover,
+    hasCover: !!s.coverFile || !!albumCover,
+    coverUrl: s.coverFile ? (externalCover(s.coverFile) ? s.coverFile : coverUrl('song', s.id)) : albumCover,
     plays: s.plays ?? 0,
     createdAt: s.createdAt?.toISOString() ?? null,
   };

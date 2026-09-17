@@ -3,8 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+import { UPLOAD_DIR } from '@/lib/upload-storage';
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);

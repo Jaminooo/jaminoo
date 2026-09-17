@@ -3,8 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { livePublish } from '@/lib/live-publish';
 import { unlink } from 'fs/promises';
 import path from 'path';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+import { UPLOAD_DIR } from '@/lib/upload-storage';
 
 type Ctx = { params: { id: string } };
 

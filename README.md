@@ -40,6 +40,7 @@ COOKIE_SECURE="0"           # set to "1" behind HTTPS
 GITHUB_CLIENT_ID=""         # optional OAuth
 GITHUB_CLIENT_SECRET=""
 GITHUB_REDIRECT_URI="http://localhost:3000/api/auth/github/callback"
+UPLOAD_DIR="uploads"   # use the Render Persistent Disk mount path in production
 ```
 
 Production:
@@ -48,6 +49,8 @@ Production:
 npm run build
 npm run start   # applies migrations, then starts Next.js + Socket.IO
 ```
+
+For Render uploads, attach a Persistent Disk to the Web Service and set `UPLOAD_DIR` to its mount path (for example `/opt/render/project/src/uploads`). Profile photos, voice messages, video assets, and music files all use this path; without a persistent disk, Render's ephemeral filesystem is cleared on deploy/restart.
 
 ## Git workflow
 
@@ -59,5 +62,5 @@ npm run start   # applies migrations, then starts Next.js + Socket.IO
 
 - [x] Port prototype to Next.js
 - [x] Realtime chat & friends via WebSocket (socket.io)
-- [ ] Real deployments: Postgres, object storage
+- [ ] Scalable object storage for multi-instance deployments
 - [ ] Music slot in rooms

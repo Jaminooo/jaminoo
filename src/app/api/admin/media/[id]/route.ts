@@ -3,10 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { pushAdminEvent } from '@/lib/admin';
 import { unlink } from 'fs/promises';
 import path from 'path';
+import { UPLOAD_DIR } from '@/lib/upload-storage';
 
 type Ctx = { params: { id: string } };
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 
 export const DELETE = handle(async (_req, { params }: Ctx) => {
   await requireAdmin();

@@ -1,6 +1,7 @@
 import { handle, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { musicFilePath, streamFile } from '@/lib/music';
+import { NextResponse } from 'next/server';
 
 const MIME_BY_EXT: Record<string, string> = {
   png: 'image/png',
@@ -26,6 +27,7 @@ export const GET = handle(async (req, { params }: Ctx) => {
   };
   const rec = await pick();
   if (!rec || !rec.coverFile) return err('Not found', 404);
+  if (/^https?:\/\//i.test(rec.coverFile)) return NextResponse.redirect(rec.coverFile);
 
   const filePath = musicFilePath(rec.coverFile);
   if (!filePath) return err('File missing', 404);

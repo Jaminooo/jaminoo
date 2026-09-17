@@ -394,7 +394,9 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         <span className="room-desc">{jam.desc || ' '}</span>
       </div>
 
-      <JamWorldPanel jamId={jam.id} jamName={jam.name} kind={jam.kind} description={jam.desc} members={jam.members} messages={jam.messages} isOwner={isOwner} />
+      <div className={`room-world-wrap ${mobilePane !== 'chat' ? 'mobile-collapsed' : ''}`}>
+        <JamWorldPanel jamId={jam.id} jamName={jam.name} kind={jam.kind} description={jam.desc} members={jam.members} messages={jam.messages} isOwner={isOwner} />
+      </div>
 
       <div className="room-mobile-tabs" role="tablist" aria-label="Room views">
         <button type="button" className={mobilePane === 'chat' ? 'active' : ''} onClick={() => setMobilePane('chat')}>

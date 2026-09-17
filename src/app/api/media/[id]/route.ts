@@ -3,8 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { unlink } from 'fs/promises';
 import path from 'path';
 import { NextResponse } from 'next/server';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+import { UPLOAD_DIR } from '@/lib/upload-storage';
 
 type Ctx = { params: { id: string } };
 

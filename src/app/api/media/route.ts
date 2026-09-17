@@ -4,8 +4,7 @@ import { MAX_PROFILE_MEDIA, MAX_MEDIA_BYTES, uidDisplay } from '@/lib/constants'
 import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+import { UPLOAD_DIR } from '@/lib/upload-storage';
 
 function sniffImage(buf: Buffer): string | null {
   if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 && buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a) {

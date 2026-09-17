@@ -1,6 +1,7 @@
 import { handle, json, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { songPayload } from '@/lib/music-cms';
+import { entityCover } from '@/lib/music-catalog';
 
 export const GET = handle(async (req) => {
   const me = await requireUser();
@@ -30,7 +31,7 @@ export const GET = handle(async (req) => {
     artists: artists.map((a) => ({
       id: a.id,
       name: a.name,
-      coverUrl: a.coverFile ? `/api/music/cover/artist/${a.id}` : null,
+      coverUrl: entityCover('artist', a.id, a.coverFile),
       bio: a.bio,
       genres: JSON.parse(a.genres || '[]'),
     })),
@@ -40,7 +41,7 @@ export const GET = handle(async (req) => {
       artist: a.artist?.name ?? '',
       year: a.year,
       type: a.type,
-      coverUrl: a.coverFile ? `/api/music/cover/album/${a.id}` : null,
+      coverUrl: entityCover('album', a.id, a.coverFile),
     })),
   });
 });

@@ -16,9 +16,10 @@ export const POST = handle(async (req) => {
   const body = await req.json().catch(() => ({}));
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 80) : '';
   const desc = typeof body.desc === 'string' ? body.desc.trim().slice(0, 240) : '';
+  const isPublic = body.isPublic === true;
   if (!name) return err('Playlist name is required');
   const exists = await prisma.userMusicPlaylist.findUnique({ where: { userId_name: { userId: me.id, name } }, select: { id: true } });
   if (exists) return err('Playlist already exists', 409);
-  const playlist = await prisma.userMusicPlaylist.create({ data: { userId: me.id, name, desc } });
+  const playlist = await prisma.userMusicPlaylist.create({ data: { userId: me.id, name, desc, isPublic } });
   return json({ playlist }, 201);
 });

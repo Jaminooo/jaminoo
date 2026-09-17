@@ -5,8 +5,7 @@ import { BadRequestError } from '@/lib/api';
 import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
-
-const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+import { UPLOAD_DIR } from '@/lib/upload-storage';
 
 type MsgRow = {
   id: number;
