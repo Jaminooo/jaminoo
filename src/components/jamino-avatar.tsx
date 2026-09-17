@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 export const AVATAR_PRESETS: { name: string; colors: [string, string] }[] = [
   { name: 'Red', colors: ['#ef4444', '#b91c1c'] },
   { name: 'Orange', colors: ['#f97316', '#c2410c'] },
@@ -36,8 +38,7 @@ export function JaminoAvatar({
       style={{ display: 'inline-block', width: size, height: size, borderRadius: size * 0.25, overflow: 'hidden', lineHeight: 0 }}
     >
       {photo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="" width={size} height={size} style={{ display: 'block', objectFit: 'cover' }} />
+        <Image src={photo} alt="" width={size} height={size} unoptimized style={{ display: 'block', objectFit: 'cover' }} />
       ) : (
         <svg viewBox="0 0 64 64" width={size} height={size} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
           <defs>

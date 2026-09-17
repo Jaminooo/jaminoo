@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Clapperboard, Film, Trash2 } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
@@ -82,7 +83,7 @@ export function AdminCinema() {
               {!loading && items.length === 0 && <EmptyRow text={t('admin.noCinemaTitles')} />}
               {items.map((item) => (
                 <tr key={item.id}>
-                  <td><div className="admin-cinema-thumb">{item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" loading="lazy" /> : <Film size={16} />}</div></td>
+                  <td><div className="admin-cinema-thumb">{item.thumbnailUrl ? <Image src={item.thumbnailUrl} alt="" fill unoptimized loading="lazy" /> : <Film size={16} />}</div></td>
                   <td><b>{item.title}</b><div className="admin-dim">{item.kind === 'MOVIE' ? t('admin.movie') : t('admin.series')}</div></td>
                   <td className="admin-ellipsis">{item.externalUrl}</td>
                   <td><button className="btn-icon danger" onClick={() => void remove(item.id)} title={t('admin.remove')}><Trash2 size={14} /></button></td>

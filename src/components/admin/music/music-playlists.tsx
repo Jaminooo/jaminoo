@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Trash2, Pencil, Star, ChevronUp, ChevronDown, Search, Plus, X, ListMusic } from 'lucide-react';
@@ -143,7 +144,7 @@ export function AdminMusicPlaylists() {
                   <td>
                     <div className="admin-artist-cell">
                       <div className="admin-upload-thumb small">
-                        {p.coverUrl ? <img src={p.coverUrl} alt="" loading="lazy" /> : <ListMusic size={14} />}
+                        {p.coverUrl ? <Image src={p.coverUrl} alt="" fill unoptimized loading="lazy" /> : <ListMusic size={14} />}
                       </div>
                       <div>
                         <b>{p.name}</b>
@@ -220,7 +221,7 @@ export function AdminMusicPlaylists() {
             <div className="admin-playlist-results">
               {results.map((s) => (
                 <button key={s.id} type="button" className={`admin-playlist-result ${songIds.includes(s.id) ? 'in' : ''}`} onClick={() => toggleSong(s)}>
-                  <span className="admin-playlist-art">{s.coverUrl ? <img src={s.coverUrl} alt="" /> : <ListMusic size={12} />}</span>
+                  <span className="admin-playlist-art">{s.coverUrl ? <Image src={s.coverUrl} alt="" fill unoptimized /> : <ListMusic size={12} />}</span>
                   <span className="admin-playlist-meta">
                     <b>{s.title}</b>
                     <em>{s.artist?.name ?? ''}</em>
@@ -234,7 +235,7 @@ export function AdminMusicPlaylists() {
             {songs.map((s, i) => (
               <div key={s.id} className="admin-playlist-row">
                 <span className="admin-playlist-order">{i + 1}</span>
-                <span className="admin-playlist-art">{s.coverUrl ? <img src={s.coverUrl} alt="" /> : <ListMusic size={12} />}</span>
+                <span className="admin-playlist-art">{s.coverUrl ? <Image src={s.coverUrl} alt="" fill unoptimized /> : <ListMusic size={12} />}</span>
                 <span className="admin-playlist-meta">
                   <b>{s.title}</b>
                   <em>{s.artist?.name ?? ''}</em>

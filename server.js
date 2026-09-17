@@ -39,6 +39,9 @@ const online = new Map();
 // Cache of userId -> { at, set } of friend ids (used to scope presence broadcasts).
 const friendCache = new Map();
 
+// Map of jamId -> Map<socketId, { userId, muted }> for WebRTC voice signaling roster.
+const voicePeers = new Map();
+
 async function friendsOf(userId) {
   const cached = friendCache.get(userId);
   if (cached && Date.now() - cached.at < 30000) return cached.set;
@@ -520,6 +523,64 @@ app.prepare().then(() => {
       if (typeof jamId === 'string' && jamId) socket.leave(`jam:${jamId}`);
     });
 
+    const voiceRoster = (jamId) => {
+      const peers = voicePeers.get(jamId);
+      if (!peers) return [];
+      return [...peers.entries()].map(([sid, m]) => ({ socketId: sid, userId: m.userId, muted: m.muted }));
+    };
+
+    const leaveVoice = (jamId) => {
+      const peers = voicePeers.get(jamId);
+      if (!peers || !peers.has(socket.id)) return;
+      peers.delete(socket.id);
+      if (peers.size === 0) voicePeers.delete(jamId);
+      if (socket.data.voiceJams) socket.data.voiceJams.delete(jamId);
+      socket.to(`jam:${jamId}`).emit('voice:update', { jamId, members: voiceRoster(jamId) });
+    };
+
+    socket.on('voice:join', async (jamId) => {
+      if (typeof jamId !== 'string' || !jamId) return;
+      try {
+        const member = await prisma.jamMember.findUnique({ where: { jamId_userId: { jamId, userId } } });
+        if (!member) return;
+        let peers = voicePeers.get(jamId);
+        if (!peers) {
+          peers = new Map();
+          voicePeers.set(jamId, peers);
+        }
+        peers.set(socket.id, { userId, muted: socket.data.voiceMuted === true });
+        if (!socket.data.voiceJams) socket.data.voiceJams = new Set();
+        socket.data.voiceJams.add(jamId);
+        const roster = voiceRoster(jamId);
+        socket.emit('voice:members', { jamId, members: roster });
+        socket.to(`jam:${jamId}`).emit('voice:update', { jamId, members: roster });
+      } catch (e) {
+        console.error('voice:join error:', e && e.message);
+      }
+    });
+
+    socket.on('voice:signal', (d) => {
+      if (!d || typeof d.jamId !== 'string' || typeof d.to !== 'string' || !d.payload || typeof d.payload !== 'object') return;
+      const peers = voicePeers.get(d.jamId);
+      if (!peers || !peers.has(socket.id) || !peers.has(d.to)) return;
+      io.to(d.to).emit('voice:signal', { jamId: d.jamId, from: socket.id, payload: d.payload });
+    });
+
+    socket.on('voice:mute', (d) => {
+      if (!d || typeof d.jamId !== 'string' || typeof d.muted !== 'boolean') return;
+      const peers = voicePeers.get(d.jamId);
+      if (!peers || !peers.has(socket.id)) return;
+      const m = peers.get(socket.id);
+      m.muted = d.muted;
+      socket.data.voiceMuted = d.muted;
+      const roster = voiceRoster(d.jamId);
+      socket.to(`jam:${d.jamId}`).emit('voice:update', { jamId: d.jamId, members: roster });
+    });
+
+    socket.on('voice:leave', (jamId) => {
+      if (typeof jamId === 'string' && jamId) leaveVoice(jamId);
+    });
+
     socket.on('typing', async (d) => {
       if (!d || typeof d !== 'object') return;
       if (d.jam && typeof d.jam === 'string') {
@@ -553,6 +614,9 @@ app.prepare().then(() => {
         if (s.size === 0) online.delete(userId);
       }
       pushPresence();
+      if (socket.data.voiceJams && socket.data.voiceJams.size) {
+        for (const jamId of [...socket.data.voiceJams]) leaveVoice(jamId);
+      }
     });
   });
 

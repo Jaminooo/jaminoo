@@ -162,7 +162,17 @@
     "delete": "Delete jam",
     "deleteConfirm": "Delete this jam forever?",
     "deleteYes": "Delete",
-    "deleted": "Jam deleted."
+    "deleted": "Jam deleted.",
+    "voice": "Voice chat",
+    "voiceJoin": "Join voice",
+    "voiceLeave": "Leave voice",
+    "voiceMute": "Mute",
+    "voiceUnmute": "Unmute",
+    "voiceMuted": "Muted",
+    "voiceEmpty": "No one in voice yet. Be the first to join.",
+    "voiceYou": "You",
+    "voiceUnknown": "…",
+    "voiceDenied": "Microphone access was denied."
   },
   "dm": {
     "title": "Message",

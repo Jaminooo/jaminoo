@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import { BadgeCheck, Heart, History, ListMusic, Music2, Pause, Play, Plus, Radio, Search, SkipForward, Sparkles, UsersRound } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
@@ -34,7 +35,7 @@ function SongRow({ song, active, playing, favorite, playlists, onPlay, onFavorit
   return (
     <div className={`music-hub-song ${active ? 'active' : ''}`}>
       <button type="button" className="music-hub-song-play" onClick={onPlay} aria-label={playing ? 'Pause' : 'Play'}>
-        {song.coverUrl ? <img src={song.coverUrl} alt="" loading="lazy" /> : <Music2 size={16} />}
+        {song.coverUrl ? <Image src={song.coverUrl} alt="" fill unoptimized loading="lazy" /> : <Music2 size={16} />}
         <span className="music-hub-play-overlay">{playing ? <Pause size={14} /> : <Play size={14} />}</span>
       </button>
       <button type="button" className="music-hub-song-meta" onClick={onPlay}><b>{song.title}</b><span>{artistLabel(song) || 'Unknown artist'}</span></button>
@@ -201,7 +202,7 @@ export function MusicHub() {
         </main>
       </div>
       <audio ref={audioRef} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || current?.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onEnded={() => setPlaying(false)} />
-      {current && <div className="music-hub-player"><button type="button" className="music-hub-player-main" onClick={() => playSong(current)}>{current.coverUrl ? <img src={current.coverUrl} alt="" /> : <Music2 size={16} />}<span><b>{current.title}</b><small>{artistLabel(current)}</small></span></button><button type="button" className="btn-icon music-hub-play-button" onClick={() => playSong(current)}>{playing ? <Pause size={18} /> : <Play size={18} />}</button><input className="music-hub-range" type="range" min={0} max={duration || current.durationSec || 1} step={0.1} value={Math.min(position, duration || current.durationSec || 1)} onChange={(event) => { const next = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = next; setPosition(next); }} /><span className="music-hub-player-time">{timeLabel(position)} / {timeLabel(duration || current.durationSec)}</span><button type="button" className="btn-icon" onClick={() => { const next = radioSongs.find((song) => song.id !== current.id); if (next) playSong(next); }} title="Next"><SkipForward size={16} /></button></div>}
+      {current && <div className="music-hub-player"><button type="button" className="music-hub-player-main" onClick={() => playSong(current)}>{current.coverUrl ? <Image src={current.coverUrl} alt="" fill unoptimized /> : <Music2 size={16} />}<span><b>{current.title}</b><small>{artistLabel(current)}</small></span></button><button type="button" className="btn-icon music-hub-play-button" onClick={() => playSong(current)}>{playing ? <Pause size={18} /> : <Play size={18} />}</button><input className="music-hub-range" type="range" min={0} max={duration || current.durationSec || 1} step={0.1} value={Math.min(position, duration || current.durationSec || 1)} onChange={(event) => { const next = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = next; setPosition(next); }} /><span className="music-hub-player-time">{timeLabel(position)} / {timeLabel(duration || current.durationSec)}</span><button type="button" className="btn-icon" onClick={() => { const next = radioSongs.find((song) => song.id !== current.id); if (next) playSong(next); }} title="Next"><SkipForward size={16} /></button></div>}
       <nav className="hub-mobile-nav">{NAV.slice(0, 5).map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
       <CreatorApplyModal hub="MUSIC" open={creatorOpen} onClose={() => setCreatorOpen(false)} />
     </div>

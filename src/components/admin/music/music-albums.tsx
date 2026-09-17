@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Trash2, Pencil, Disc3 } from 'lucide-react';
@@ -98,7 +99,7 @@ export function AdminMusicAlbums() {
                   <td>
                     <div className="admin-artist-cell">
                       <div className="admin-upload-thumb small">
-                        {a.coverUrl ? <img src={a.coverUrl} alt="" loading="lazy" /> : <Disc3 size={14} />}
+                        {a.coverUrl ? <Image src={a.coverUrl} alt="" fill unoptimized loading="lazy" /> : <Disc3 size={14} />}
                       </div>
                       <b>{a.title}</b>
                     </div>

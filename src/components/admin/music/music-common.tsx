@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { api, uploadWithProgress } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { MUSIC_GENRES } from '@/lib/constants';
@@ -80,7 +81,7 @@ export function CoverField({
   return (
     <div className="admin-upload-field">
       <div className={`admin-upload-thumb ${shown ? 'has' : ''}`}>
-        {shown ? <img src={shown} alt="" loading="lazy" /> : <ImagePlus size={18} />}
+        {shown ? <Image src={shown} alt="" fill unoptimized loading="lazy" /> : <ImagePlus size={18} />}
       </div>
       <div className="admin-upload-actions">
         <button className="btn btn-ghost pill-sm" type="button" disabled={uploading} onClick={() => inputRef.current?.click()}>

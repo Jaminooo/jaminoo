@@ -6,6 +6,7 @@ import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { EmojiText } from '@/components/emoji-text';
 import { VoicePlayer } from '@/components/voice-player';
+import { RoomVoiceChat } from '@/components/room-voice-chat';
 import { MessageComposer } from '@/components/message-composer';
 import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/message-reactions';
 import { useContextMenu, ContextMenu, type CmItem } from '@/components/context-menu';
@@ -411,6 +412,8 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
               );
             })}
           </div>
+
+          <RoomVoiceChat jamId={jam.id} members={jam.members} />
 
           {isOwner && (
             <div className="room-role-row">

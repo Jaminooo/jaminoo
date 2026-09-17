@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Image from 'next/image';
 import { emojiUrl, isEmojiSegment } from '@/lib/emoji';
 
 export function EmojiText({ text, className }: { text: string; className?: string }) {
@@ -13,8 +14,7 @@ export function EmojiText({ text, className }: { text: string; className?: strin
     <span className={className}>
       {parts.map((s, i) =>
         isEmojiSegment(s.segment) ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={i} className="emoji-img" src={emojiUrl(s.segment)} alt={s.segment} draggable={false} />
+          <Image key={i} className="emoji-img" src={emojiUrl(s.segment)} alt={s.segment} width={20} height={20} unoptimized draggable={false} />
         ) : (
           <span key={i}>{s.segment}</span>
         )

@@ -6634,5 +6634,103 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .admin-root *, .admin-root *::before, .admin-root *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+.admin-root *, .admin-root *::before, .admin-root *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
+.admin-cinema-thumb,
+.admin-media-preview,
+.admin-avatar,
+.admin-upload-thumb,
+.admin-playlist-art,
+.creator-studio-card-media,
+.creator-profile-post-media,
+.music-result-art,
+.music-art,
+.music-hub-player-main {
+  position: relative;
+}
+
+.room-voice {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 8px 10px 2px;
+  border-radius: 14px;
+  background: rgba(186, 214, 247, 0.04);
+  box-shadow: 0 0 0 1px rgba(186, 215, 247, 0.1) inset;
+}
+.room-voice-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #c7d3ea;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.room-voice-count {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 10px;
+  color: #b39dfc;
+  background: rgba(102, 58, 243, 0.18);
+}
+.room-voice-grid {
+  display: grid;
+  gap: 6px;
+}
+.room-voice-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 5px;
+  border-radius: 999px;
+  background: rgba(186, 214, 247, 0.05);
+}
+.room-voice-chip.speaking {
+  background: rgba(102, 58, 243, 0.22);
+  box-shadow: 0 0 0 1px rgba(102, 58, 243, 0.5) inset;
+}
+.room-voice-chip.speaking .avatar {
+  outline: 2px solid #b39dfc;
+  outline-offset: 1px;
+}
+.room-voice-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #d1e4fa;
+}
+.room-voice-chip.self .room-voice-name {
+  color: #b39dfc;
+}
+.room-voice-muted {
+  flex: none;
+  margin-inline-start: auto;
+  color: #9da7ba;
+}
+.room-voice-empty {
+  padding: 2px 2px 4px;
+  color: #9da7ba;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.room-voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.room-voice-join {
+  width: 100%;
+  justify-content: center;
+}
+.room-voice-error {
+  color: #fda4af;
+  font-size: 11px;
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import Image from 'next/image';
 import {
   BadgeCheck,
   Bookmark,
@@ -136,7 +137,7 @@ function VideoMedia({ post }: { post: VideoPost }) {
   }, [muted, post.id, post.kind, post.mediaType]);
 
   if (post.mediaType === 'IMAGE' && (post.assetUrl || post.externalUrl)) {
-    return <div className="video-card-media video-card-image"><img src={post.assetUrl || post.externalUrl || ''} alt={post.title || 'Video post'} loading="lazy" /></div>;
+    return <div className="video-card-media video-card-image"><Image src={post.assetUrl || post.externalUrl || ''} alt={post.title || 'Video post'} fill unoptimized loading="lazy" /></div>;
   }
   if (post.mediaType === 'VIDEO' && (post.assetUrl || post.externalUrl)) {
     return <div className="video-card-media video-card-video-wrap"><video ref={videoRef} src={post.assetUrl || post.externalUrl || ''} poster={post.thumbnailUrl || undefined} muted={muted} playsInline loop preload="metadata" controls={post.kind === 'LONG'}><track kind="subtitles" src={post.subtitlesUrl || undefined} srcLang="en" label="English" default={!!post.subtitlesUrl} /></video>{post.kind === 'SHORT' && <><button type="button" className="video-sound-button" onClick={(event) => { event.stopPropagation(); const next = !muted; setMuted(next); setAudioBlocked(false); if (videoRef.current) { videoRef.current.muted = next; videoRef.current.play().catch(() => {}); } }} title={muted ? 'Turn sound on' : 'Mute sound'}>{muted ? <VolumeX size={17} /> : <Volume2 size={17} />}</button>{audioBlocked && muted && <span className="video-sound-hint">Tap for sound</span>}</>}</div>;
@@ -323,7 +324,7 @@ function CommentsModal({ post, open, onClose, onAdded }: { post: VideoPost | nul
 }
 
 function CreatorStudio({ posts, loading, onDelete }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void }) {
-  return <section className="creator-studio-view"><div className="creator-studio-hero"><div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review your published work, remove a post, or create the next short and long video.</p></div><LayoutDashboard size={32} /></div>{loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <div className="creator-studio-grid">{posts.map((post) => <article className="creator-studio-card" key={post.id}><div className="creator-studio-card-media">{post.mediaType === 'VIDEO' ? <video controls playsInline poster={post.thumbnailUrl || undefined} src={post.assetUrl || post.externalUrl || undefined} /> : post.mediaType === 'IMAGE' ? <img src={post.assetUrl || post.externalUrl || ''} alt="" /> : <div><Sparkles size={18} /><span>{post.description || post.title}</span></div>}</div><div className="creator-studio-card-copy"><div><b>{post.title || 'Untitled post'}</b><small>{post.kind} · {new Date(post.createdAt).toLocaleDateString()}</small></div><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div></article>)}</div>}</section>;
+  return <section className="creator-studio-view"><div className="creator-studio-hero"><div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review your published work, remove a post, or create the next short and long video.</p></div><LayoutDashboard size={32} /></div>{loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <div className="creator-studio-grid">{posts.map((post) => <article className="creator-studio-card" key={post.id}><div className="creator-studio-card-media">{post.mediaType === 'VIDEO' ? <video controls playsInline poster={post.thumbnailUrl || undefined} src={post.assetUrl || post.externalUrl || undefined} /> : post.mediaType === 'IMAGE' ? <Image src={post.assetUrl || post.externalUrl || ''} alt="" fill unoptimized /> : <div><Sparkles size={18} /><span>{post.description || post.title}</span></div>}</div><div className="creator-studio-card-copy"><div><b>{post.title || 'Untitled post'}</b><small>{post.kind} · {new Date(post.createdAt).toLocaleDateString()}</small></div><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div></article>)}</div>}</section>;
 }
 
 export function VideoHub() {

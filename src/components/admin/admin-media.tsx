@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Trash2, Volume2, ImageIcon, ExternalLink } from 'lucide-react';
@@ -106,7 +107,7 @@ export function AdminMedia() {
                   </td>
                   <td>
                     <div className="admin-media-preview">
-                      {f.kind === 'IMAGE' ? <img src={`/api/media/${encodeURIComponent(f.id)}`} alt="" loading="lazy" /> : <Volume2 size={17} />}
+                      {f.kind === 'IMAGE' ? <Image src={`/api/media/${encodeURIComponent(f.id)}`} alt="" fill unoptimized loading="lazy" /> : <Volume2 size={17} />}
                     </div>
                   </td>
                   <td>

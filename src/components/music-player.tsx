@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { Howl } from 'howler';
 import { useTranslations } from '@/providers/use-translations';
 import { api } from '@/lib/client-api';
@@ -644,7 +645,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost, chatSlot }: { jamId: st
 
       <div className="music-player">
         <div className="music-art">
-          {song?.coverUrl ? <img src={song.coverUrl} alt="" loading="lazy" /> : <Mic2 size={26} />}
+          {song?.coverUrl ? <Image src={song.coverUrl} alt="" fill unoptimized loading="lazy" /> : <Mic2 size={26} />}
         </div>
         <div className="music-main">
           <div className="music-now-title">{song?.title ?? t('music.nothingPlaying')}</div>
@@ -803,7 +804,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost, chatSlot }: { jamId: st
             {results && results.songs.length === 0 && <div className="empty-state" style={{ padding: 16 }}>{t('music.noResults')}</div>}
             {results?.songs.map((s) => (
               <div className="music-result" key={s.id}>
-                <div className="music-result-art">{s.coverUrl ? <img src={s.coverUrl} alt="" loading="lazy" /> : <Mic2 size={14} />}</div>
+                <div className="music-result-art">{s.coverUrl ? <Image src={s.coverUrl} alt="" fill unoptimized loading="lazy" /> : <Mic2 size={14} />}</div>
                 <div className="music-result-info">
                   <b>{s.title}</b>
                   <span>{artistLabel(s)}</span>

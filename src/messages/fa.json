@@ -162,7 +162,17 @@
     "delete": "حذف جم",
     "deleteConfirm": "این جم برای همیشه حذف شود؟",
     "deleteYes": "حذفش کن",
-    "deleted": "جم حذف شد."
+    "deleted": "جم حذف شد.",
+    "voice": "چت صوتی",
+    "voiceJoin": "ورود به چت صوتی",
+    "voiceLeave": "خروج از چت صوتی",
+    "voiceMute": "بی‌صدا کردن",
+    "voiceUnmute": "صدا روشن",
+    "voiceMuted": "بی‌صدا",
+    "voiceEmpty": "فعلاً کسی در چت صوتی نیست. اولین نفر باش.",
+    "voiceYou": "شما",
+    "voiceUnknown": "…",
+    "voiceDenied": "دسترسی به میکروفون رد شد."
   },
   "dm": {
     "title": "پیام",

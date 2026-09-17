@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
 import { JaminoAvatar, AVATAR_PRESETS } from '@/components/jamino-avatar';
@@ -345,8 +346,7 @@ export function ProfilePanel() {
               <div className="media-grid">
                 {media.map((m) => (
                   <div key={m.id} className="media-item">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.url} alt="" />
+                    <Image src={m.url} alt="" fill unoptimized />
                     <button
                       type="button"
                       className={`media-set ${m.isProfile ? 'active' : ''}`}

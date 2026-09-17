@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { ShieldCheck, ShieldOff, Ban, BadgeCheck, Eye, Github } from 'lucide-react';
@@ -148,7 +149,7 @@ export function AdminUsers() {
                   <td>
                     <div className="admin-user-cell">
                       <div className="admin-avatar">
-                        {u.profilePhotoId ? <img src={`/api/media/${encodeURIComponent(u.profilePhotoId)}`} alt="" loading="lazy" /> : <span>{u.username.slice(0, 1).toUpperCase()}</span>}
+                        {u.profilePhotoId ? <Image src={`/api/media/${encodeURIComponent(u.profilePhotoId)}`} alt="" fill unoptimized loading="lazy" /> : <span>{u.username.slice(0, 1).toUpperCase()}</span>}
                       </div>
                       <button className="admin-user-name" onClick={() => openDetail(u.id)}>
                         @{u.username}
