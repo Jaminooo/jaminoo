@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createSession, parseUserAgent } from '@/lib/session';
 import { uidDisplay } from '@/lib/constants';
+import { cookies } from 'next/headers';
 
 // GitHub OAuth callback — exchanges the code for an access token,
 // then signs in (or creates) the matching Jamino account.
@@ -9,9 +10,17 @@ export const GET = async (req: Request) => {
   const clientSecret = process.env.GITHUB_CLIENT_SECRET?.trim();
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
+
+  const c = await cookies();
+  const storedState = c.get('jam_oauth_state')?.value;
+  c.delete('jam_oauth_state');
 
   if (!clientId || !clientSecret || !code) {
     return Response.json({ ok: false, error: 'GitHub OAuth is not configured or the callback is missing a code.' }, { status: 400 });
+  }
+  if (!state || !storedState || state !== storedState) {
+    return Response.json({ ok: false, error: 'Invalid OAuth state.' }, { status: 400 });
   }
 
   try {
@@ -29,6 +38,15 @@ export const GET = async (req: Request) => {
     const gh = (await userRes.json()) as { id: number; login: string; email?: string };
     if (!gh.id) return Response.json({ ok: false, error: 'GitHub identity could not be read.' }, { status: 401 });
 
+    let email = gh.email ?? '';
+    if (!email) {
+      const emailRes = await fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/json' },
+      });
+      const emails = (await emailRes.json()) as { email?: string; primary?: boolean; verified?: boolean }[];
+      email = emails.find((item) => item.primary && item.verified)?.email || emails.find((item) => item.verified)?.email || '';
+    }
+
     const ghLogin = String(gh.id);
     let user = await prisma.user.findUnique({ where: { githubLogin: ghLogin } });
     if (!user) {
@@ -40,13 +58,16 @@ export const GET = async (req: Request) => {
       user = await prisma.user.create({
         data: {
           username,
-          email: gh.email ?? '',
+          email,
           github: true,
           githubLogin: ghLogin,
           avatarId: Math.floor(Math.random() * 12),
           bio: 'Signed in with GitHub',
         },
       });
+    }
+    if (user.bannedUntil && user.bannedUntil > new Date()) {
+      return Response.json({ ok: false, error: 'This account is banned.' }, { status: 403 });
     }
 
     await createSession(user.id, parseUserAgent(req.headers.get('user-agent')));

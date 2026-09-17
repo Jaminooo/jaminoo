@@ -7,7 +7,7 @@ import { toast } from '@/components/toast';
 import { Monitor, Smartphone, Tablet, Globe, Shield } from 'lucide-react';
 
 interface Session {
-  token: string;
+  suffix: string;
   name: string;
   device: string;
   createdAt: string;
@@ -40,12 +40,12 @@ export function SecurityPanel() {
 
   useEffect(() => { load(); }, []);
 
-  const revoke = async (token: string, current: boolean) => {
+  const revoke = async (suffix: string, current: boolean) => {
     try {
-      await api('/api/auth/sessions', { method: 'DELETE', body: JSON.stringify({ token }) });
+      await api('/api/auth/sessions', { method: 'DELETE', body: JSON.stringify({ suffix }) });
       toast(current ? t('toast.loggedOut') : t('toast.revoked'));
       if (current) { window.location.reload(); return; }
-      setSessions((p) => p.filter((s) => s.token !== token));
+      setSessions((p) => p.filter((s) => s.suffix !== suffix));
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
     }
@@ -71,7 +71,7 @@ export function SecurityPanel() {
       ) : (
         <div style={{ display: 'grid', gap: 10 }}>
           {sessions.map((s) => (
-            <div key={s.token} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, opacity: s.current ? 1 : 0.92 }}>
+            <div key={s.suffix} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, opacity: s.current ? 1 : 0.92 }}>
               <div style={{ color: s.current ? 'var(--color-violet)' : 'var(--color-fog)' }}>{icon(s.device)}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, color: '#fff', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name || 'Browser'}</div>
@@ -80,7 +80,7 @@ export function SecurityPanel() {
               {s.current ? (
                 <span className="badge badge-violet">{t('security.current')}</span>
               ) : (
-                <button type="button" className="btn btn-ghost pill-sm" onClick={() => revoke(s.token, false)}>
+                <button type="button" className="btn btn-ghost pill-sm" onClick={() => revoke(s.suffix, false)}>
                   {t('security.revoke')}
                 </button>
               )}

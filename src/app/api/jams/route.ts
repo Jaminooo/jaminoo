@@ -1,6 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { JAM_KINDS } from '@/lib/constants';
+import { randomBytes } from 'crypto';
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -44,10 +45,7 @@ export const POST = handle(async (req) => {
   const ownedCount = await prisma.jam.count({ where: { ownerId: me.id } });
   if (ownedCount >= 1) return err('You can only own one jam', 403);
 
-  const last = await prisma.jam.findMany({ orderBy: { id: 'desc' }, take: 1 });
-  let seq = 1;
-  if (last[0]?.id?.startsWith('J')) seq = parseInt(last[0].id.slice(1), 10) + 1;
-  const id = `J${seq}`;
+  const id = `J${Date.now().toString(36)}${randomBytes(4).toString('hex').toUpperCase()}`;
 
   const jam = await prisma.jam.create({
     data: {
@@ -57,7 +55,7 @@ export const POST = handle(async (req) => {
       type: jtype,
       kind: jkind,
       ownerId: me.id,
-      members: { create: { userId: me.id } },
+      members: { create: { userId: me.id, role: 'HOST' } },
     },
   });
   return json({ ok: true, jam: { id: jam.id, name: jam.name, desc: jam.desc, type: jam.type, kind: jam.kind } }, 201);

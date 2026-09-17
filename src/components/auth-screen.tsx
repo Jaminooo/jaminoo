@@ -81,12 +81,12 @@ function LoginForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot') 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [githubEnabled, setGithubEnabled] = useState(false);
+  const [githubEnabled, setGithubEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     api<{ enabled: boolean }>('/api/auth/github/status')
       .then((d) => setGithubEnabled(d.enabled))
-      .catch(() => setGithubEnabled(false));
+      .catch(() => setGithubEnabled(null));
   }, []);
 
   const submit = async (e: React.FormEvent) => {
@@ -127,7 +127,7 @@ function LoginForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot') 
         <div className="or-divider">
           <span>{t('auth.or')}</span>
         </div>
-        {githubEnabled && (
+        {githubEnabled !== false && (
           <button type="button" className="btn btn-social btn-block" onClick={() => (window.location.href = '/api/auth/github')}>
             <span className="gh-icon">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
@@ -157,7 +157,7 @@ function SignupForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.password.length < 6) return toast(t('toast.shortPassword'), 'error');
+    if (form.password.length < 8) return toast(t('toast.shortPassword'), 'error');
     if (form.password !== form.password2) return toast(t('toast.noMatch'), 'error');
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(form.username)) return toast(t('toast.invalidUsername'), 'error');
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return toast(t('toast.invalidEmail'), 'error');
@@ -263,7 +263,7 @@ function ForgotForm({ onSwitch }: { onSwitch: (v: 'login' | 'signup' | 'forgot')
   };
 
   const reset = async () => {
-    if (newPass.length < 6) return toast(t('toast.shortPassword'), 'error');
+    if (newPass.length < 8) return toast(t('toast.shortPassword'), 'error');
     if (newPass !== newPass2) return toast(t('toast.noMatch'), 'error');
     setLoading(true);
     try {

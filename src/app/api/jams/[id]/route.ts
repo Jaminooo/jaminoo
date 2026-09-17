@@ -52,7 +52,7 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       ownerId: jam.ownerId,
       closed: jam.closed,
       createdAt: jam.createdAt.toISOString(),
-      members: jam.members.map((m) => pubUser(m.user)),
+      members: jam.members.map((m) => ({ ...pubUser(m.user), role: m.role })),
       messages: jam.messages.map((m) => msgPayload(m, me.id)),
     },
   });

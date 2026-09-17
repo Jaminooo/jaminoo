@@ -1,0 +1,80 @@
+import { handle, json, err, requireAdmin } from '@/lib/api';
+import { prisma } from '@/lib/prisma';
+import { recentAdminEvents } from '@/lib/admin';
+
+export const GET = handle(async () => {
+  await requireAdmin();
+  const dayAgo = new Date(Date.now() - 86400000);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+  const now = new Date();
+  const [
+    users,
+    jams,
+    openJams,
+    jamMsgs,
+    dmMsgs,
+    media,
+    sessions,
+    friends,
+    pendingInvites,
+    banned,
+    newUsers24h,
+    jamMsgs24h,
+    dmMsgs24h,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.jam.count(),
+    prisma.jam.count({ where: { closed: false } }),
+    prisma.jamMessage.count(),
+    prisma.dmMessage.count(),
+    prisma.media.count(),
+    prisma.session.count(),
+    prisma.friendRequest.count({ where: { status: 'FRIENDS' } }),
+    prisma.jamInvite.count({ where: { status: 'PENDING' } }),
+    prisma.user.count({ where: { bannedUntil: { gt: now } } }),
+    prisma.user.count({ where: { createdAt: { gte: dayAgo } } }),
+    prisma.jamMessage.count({ where: { createdAt: { gte: dayAgo } } }),
+    prisma.dmMessage.count({ where: { createdAt: { gte: dayAgo } } }),
+  ]);
+
+  const countryRows = await prisma.session.groupBy({
+    by: ['country'],
+    _count: true,
+    where: { createdAt: { gte: thirtyDaysAgo }, country: { not: '' } },
+    orderBy: { _count: { country: 'desc' } },
+    take: 20,
+  });
+  const countryStats = countryRows.map((r) => ({ country: r.country, count: r._count }));
+
+  const signupRows: { day: string; count: number }[] = await prisma.$queryRaw`
+    SELECT date(createdAt / 1000, 'unixepoch') as day, COUNT(*) as count FROM User
+    WHERE createdAt >= ${sevenDaysAgo.getTime()}
+    GROUP BY day ORDER BY day ASC
+  `;
+  const signupTrend = signupRows.map((r) => ({ date: r.day, count: Number(r.count) }));
+
+  const online = (globalThis as any).__jaminoLive?.online?.size ?? 0;
+  const events = recentAdminEvents(50);
+  return json({
+    stats: {
+      users,
+      newUsers24h,
+      jams,
+      openJams,
+      jamMsgs,
+      dmMsgs,
+      jamMsgs24h,
+      dmMsgs24h,
+      media,
+      sessions,
+      friends,
+      pendingInvites,
+      banned,
+      online,
+      countryStats,
+      signupTrend,
+    },
+    events,
+  });
+});

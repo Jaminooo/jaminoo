@@ -16,11 +16,12 @@ import { FriendProfilePanel } from '@/components/friend-profile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { connectLive, onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
-import { User, Shield, Users, Radio, MessageCircle } from 'lucide-react';
+import { User, Shield, Users, Radio, MessageCircle, House } from 'lucide-react';
+import { GlobalSearch } from '@/components/global-search';
 
 export function PanelShell() {
   const me = useAppStore((s) => s.me);
-  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith, profileUserId, setProfileUserId, unread, setUnread } = useAppStore();
+  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith, profileUserId, setProfileUserId, unread, setUnread, setProduct } = useAppStore();
   const t = useTranslations();
 
   useEffect(() => {
@@ -28,7 +29,16 @@ export function PanelShell() {
     connectLive();
     loadUnread();
     const offBadge = onLive('friends:update', loadUnread);
-    const offPresence = onLive('presence:update', (d: { online: number[] }) => useAppStore.getState().setOnline(d.online ?? []));
+    const offPresence = onLive('presence:update', (d: { online: number[]; presence?: Record<number, { status: string; statusText: string }> }) => {
+      useAppStore.getState().setOnline(d.online ?? []);
+      if (d.presence) useAppStore.getState().setPresenceMap(d.presence);
+    });
+    const offStatus = onLive('status:update', (d: { userId: number; status: string; statusText: string }) => {
+      if (!d || typeof d.userId !== 'number') return;
+      const map = { ...useAppStore.getState().presenceMap };
+      if (map[d.userId]) map[d.userId] = { status: d.status, statusText: d.statusText };
+      useAppStore.getState().setPresenceMap(map);
+    });
     const offDm = onLive('dm:new', loadUnread);
     const offInvite = onLive('jam-invite', loadUnread);
     const offSeen = onLive('dm:seen', loadUnread);
@@ -36,6 +46,7 @@ export function PanelShell() {
     return () => {
       offBadge();
       offPresence();
+      offStatus();
       offDm();
       offInvite();
       offSeen();
@@ -48,11 +59,36 @@ export function PanelShell() {
 
   const sectionClass = roomId ? 'section-room' : dmWith != null ? 'section-dm' : profileUserId != null ? 'section-profile-view' : `section-${tab}`;
 
+  const topbar = (
+    <div className="topbar">
+      <button className="wordmark" onClick={() => setProduct('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }} title="All hubs">
+        <span className="wordmark-mark">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 3 5 21" />
+            <path d="M22 17a2 2 0 1 0-4-1.5L16 21a2 2 0 1 0 4 0Z" />
+          </svg>
+        </span>
+        {t('brand.name')}
+      </button>
+      <div className="tb-right">
+        <GlobalSearch />
+        <TopRightControls inline />
+        <div className="user-chip">
+          {me && <JaminoAvatar avatarId={me.avatarId} size={32} photo={me.avatarPhoto} name={me.username} />}
+          {me && <span className="friend-name" style={{ fontSize: 14 }}>{me.username}</span>}
+        </div>
+      </div>
+    </div>
+  );
+
   if (profileUserId != null) {
     return (
-      <div className={`panel-body ${sectionClass}`} style={{ minHeight: '100vh' }}>
-        <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
-          <FriendProfilePanel userId={profileUserId} onBack={() => setProfileUserId(null)} />
+      <div className="screen-panel">
+        {topbar}
+        <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
+          <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
+            <FriendProfilePanel userId={profileUserId} onBack={() => setProfileUserId(null)} />
+          </div>
         </div>
       </div>
     );
@@ -60,9 +96,12 @@ export function PanelShell() {
 
   if (roomId) {
     return (
-      <div className={`panel-body ${sectionClass}`} style={{ minHeight: '100vh' }}>
-        <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
-          <RoomPanel jamId={roomId} onBack={exitRoom} />
+      <div className="screen-panel">
+        {topbar}
+        <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
+          <div className="content room-content" style={{ maxWidth: 1440, marginInline: 'auto' }}>
+            <RoomPanel jamId={roomId} onBack={exitRoom} />
+          </div>
         </div>
       </div>
     );
@@ -70,9 +109,12 @@ export function PanelShell() {
 
   if (dmWith != null) {
     return (
-      <div className={`panel-body ${sectionClass}`} style={{ minHeight: '100vh' }}>
-        <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
-          <DmPanel otherId={dmWith} onBack={() => setDmWith(null)} />
+      <div className="screen-panel">
+        {topbar}
+        <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
+          <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
+            <DmPanel otherId={dmWith} onBack={() => setDmWith(null)} />
+          </div>
         </div>
       </div>
     );
@@ -82,24 +124,7 @@ export function PanelShell() {
 
   return (
     <div className="screen-panel">
-      <div className="topbar">
-        <button className="wordmark" onClick={() => setTab('jams')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="wordmark-mark">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 3 5 21" />
-              <path d="M22 17a2 2 0 1 0-4-1.5L16 21a2 2 0 1 0 4 0Z" />
-            </svg>
-          </span>
-          {t('brand.name')}
-        </button>
-        <div className="tb-right">
-          <TopRightControls inline />
-          <div className="user-chip">
-            {me && <JaminoAvatar avatarId={me.avatarId} size={32} photo={me.avatarPhoto} name={me.username} />}
-            {me && <span className="friend-name" style={{ fontSize: 14 }}>{me.username}</span>}
-          </div>
-        </div>
-      </div>
+      {topbar}
 
       <div className={`panel-body ${sectionClass}`}>
         <nav className="sidebar">

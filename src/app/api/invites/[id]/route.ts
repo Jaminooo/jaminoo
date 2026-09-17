@@ -28,6 +28,13 @@ export const POST = handle(async (req, { params }: Ctx) => {
       create: { jamId: invite.jamId, userId: me.id },
     });
     await prisma.jamInvite.update({ where: { id }, data: { status: 'ACCEPTED' } });
+    await prisma.notification.create({
+      data: {
+        userId: invite.fromId,
+        kind: 'JAM_INVITE_ACCEPTED',
+        payload: JSON.stringify({ message: `@${me.username} joined ${invite.jam.name}`, jamId: invite.jamId }),
+      },
+    });
     livePublish([`jam:${invite.jamId}`, `user:${me.id}`, `user:${invite.fromId}`], 'jam:update', invite.jamId);
   } else {
     await prisma.jamInvite.update({ where: { id }, data: { status: 'DECLINED' } });

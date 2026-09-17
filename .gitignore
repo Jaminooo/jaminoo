@@ -18,8 +18,9 @@ prisma/dev.db-journal
 # uploads
 uploads
 
-# server log (local run)
+# server logs (local run)
 srv.log
+srv.err.log
 
 # misc
 *.tsbuildinfo

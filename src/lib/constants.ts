@@ -22,6 +22,13 @@ export type JamKind = (typeof JAM_KINDS)[number];
 
 export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉'];
 
+export const MUSIC_GENRES = [
+  'Pop','Rock','Hip-Hop','R&B','Jazz','Electronic','Dance','Classical','Country','Metal',
+  'Folk','Latin','Reggae','Punk','Soul','Blues','Alternative','Indie','Film','Persian Traditional',
+];
+
+export const ALBUM_TYPES = ['ALBUM', 'EP', 'SINGLE'] as const;
+
 export function uidDisplay(id: number) {
   return U_ID_PREFIX + '-' + String(id).padStart(4, '0');
 }

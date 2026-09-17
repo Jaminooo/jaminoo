@@ -13,7 +13,7 @@ import { api } from '@/lib/client-api';
 import { connectLive, emitLive, onLive, liveSocketId, liveConnected } from '@/lib/live';
 import { toast } from '@/components/toast';
 import { loadUnread } from '@/lib/unread';
-import { ArrowLeft, Copy, User, Check, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Copy, User, Check, CheckCheck, Flag } from 'lucide-react';
 
 interface ChatUser {
   id: number;
@@ -195,6 +195,15 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
         icon: <User size={14} />,
         label: t('dm.profile'),
         onClick: () => setProfileUserId(m.userId),
+      });
+      items.push({
+        icon: <Flag size={14} />,
+        label: 'Report message',
+        onClick: () => {
+          api('/api/reports', { method: 'POST', body: JSON.stringify({ dmMessageId: m.id, reason: 'Reported by member' }) })
+            .then(() => toast('Message reported.', 'ok'))
+            .catch((err) => toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error'));
+        },
       });
     }
     return items;
