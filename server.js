@@ -558,7 +558,7 @@ app.prepare().then(() => {
 
   globalThis.__jaminoLive = { io, prisma, online, pushPresence, invalidateFriendCache: (a, b) => { friendCache.delete(a); friendCache.delete(b); } };
 
-  server.listen(port, () => {
-    console.log(`> Jamino live server ready on http://localhost:${port}`);
-  });
+ server.listen(port, '0.0.0.0', () => {
+  console.log(`> Jamino live server ready on http://0.0.0.0:${port}`);
+});
 });
