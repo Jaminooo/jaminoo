@@ -38,6 +38,12 @@ export function AdminCreators() {
     }
   };
 
+  const reviewMany = async (nextStatus: CreatorRow['status']) => {
+    await Promise.allSettled(selection.selectedIds.map((id) => api('/api/admin/creators', { method: 'PATCH', body: JSON.stringify({ id: Number(id), status: nextStatus }) })));
+    selection.clear();
+    list.reload();
+  };
+
   return (
     <div className="admin-card admin-table-card">
       <div className="admin-toolbar">
@@ -97,10 +103,5 @@ function statusLabel(t: (key: string) => string, status: CreatorRow['status']) {
     REJECTED: 'admin.rejected',
   };
 
-  const reviewMany = async (nextStatus: CreatorRow['status']) => {
-    await Promise.allSettled(selection.selectedIds.map((id) => api('/api/admin/creators', { method: 'PATCH', body: JSON.stringify({ id: Number(id), status: nextStatus }) })));
-    selection.clear();
-    list.reload();
-  };
   return t(keys[status]);
 }

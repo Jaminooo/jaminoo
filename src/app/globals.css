@@ -1,5 +1,5 @@
-@import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Lalezar&display=swap');
+@import 'tailwindcss';
 
 @theme {
   --color-midnight: #05060f;

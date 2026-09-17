@@ -16,7 +16,7 @@ export async function api<T = unknown>(url: string, init?: RequestInit): Promise
 
 export function uploadWithProgress<T = unknown>(
   url: string,
-  body: BodyInit,
+  body: XMLHttpRequestBodyInit,
   onProgress?: (percent: number) => void
 ): Promise<T> {
   return new Promise((resolve, reject) => {
