@@ -10,6 +10,7 @@ import { toast } from '@/components/toast';
 import { uidDisplay } from '@/store/app-store';
 import { MAX_PROFILE_MEDIA } from '@/lib/constants';
 import { Copy, Check, Lock, Upload, X, Star, CircleDot, Heart, History, ListMusic } from 'lucide-react';
+import { IdentityCard } from '@/components/identity-card';
 
 interface MediaItem {
   id: string;
@@ -179,6 +180,8 @@ export function ProfilePanel() {
           <p className="pane-sub">{t('panel.profileSub')}</p>
         </div>
       </header>
+
+      <IdentityCard />
 
       <div className="grid-2">
         {/* Avatar card */}

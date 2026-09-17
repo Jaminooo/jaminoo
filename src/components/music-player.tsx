@@ -27,6 +27,8 @@ import {
   Heart,
   Volume2,
   VolumeX,
+  Swords,
+  Trophy,
 } from 'lucide-react';
 
 const MusicVisualizer = dynamic(
@@ -638,6 +640,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost, chatSlot }: { jamId: st
     votes: qi.votes ?? 0,
     voted: !!qi.voted,
   }));
+  const battleLeader = [...queue].sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0))[0] ?? null;
 
   return (
     <div className="music-room" ref={rootRef}>
@@ -729,6 +732,8 @@ export function MusicPlayer({ jamId, canOwner, miniHost, chatSlot }: { jamId: st
           title={t('music.volume')}
         />
       </div>
+
+      {queue.length > 1 && <div className="music-battle-card"><span className="music-battle-icon"><Swords size={16} /></span><span><b>Music Battle</b><small>{battleLeader ? `${battleLeader.song.title} leads with ${battleLeader.votes ?? 0} votes` : 'Vote for the next track in the queue'}</small></span><Trophy size={15} /></div>}
 
       <div className="music-actions-row">
         <button type="button" className={`btn btn-ghost pill-sm ${favorite ? 'active' : ''}`} onClick={toggleFavorite} disabled={!song} title={t('music.favorite') ?? 'Favorite'}>

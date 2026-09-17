@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Film, Pause, Play, RefreshCw, SkipBack } from 'lucide-react';
+import { Film, Pause, Play, RefreshCw, Share2, SkipBack, Sparkles, UsersRound } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { connectLive, emitLive, emitWhenConnected, liveConnected, onLive } from '@/lib/live';
@@ -101,9 +101,19 @@ export function CinemaPlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Re
 
   const selected = items.find((item) => String(item.id) === selectedId) ?? state.now;
 
+  const shareParty = async () => {
+    await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`).catch(() => {});
+    toast('Cinema Party link copied.', 'ok');
+  };
+
+  const sendPartyReaction = async (emoji: string) => {
+    await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} Cinema Party reaction` }) }).catch(() => {});
+  };
+
   return (
     <div className="cinema-room-player">
       <div className="room-col-title"><Film size={14} /> Cinema sync</div>
+      <div className="cinema-party-bar"><div><span className="cinema-party-kicker"><Sparkles size={12} /> CINEMA PARTY</span><b><UsersRound size={13} /> Watch together, react together</b></div><div className="cinema-party-actions"><button type="button" className="btn-icon" onClick={shareParty} title="Share party"><Share2 size={14} /></button><button type="button" onClick={() => void sendPartyReaction('🔥')}>🔥</button><button type="button" onClick={() => void sendPartyReaction('😂')}>😂</button><button type="button" onClick={() => void sendPartyReaction('👏')}>👏</button></div></div>
       {items.length === 0 ? <div className="cinema-room-empty"><Film size={20} /><span>No Cinema Hub titles are available yet.</span></div> : <>
         <div className="cinema-room-select"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={!state.canControl}><option value="">Choose from Cinema Hub</option>{items.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.kind}</option>)}</select><button type="button" className="btn-icon violet" disabled={!state.canControl || !selectedId || busy} onClick={() => void control('load', { videoId: Number(selectedId) })} title="Load title"><RefreshCw size={15} /></button></div>
         <div className="cinema-room-video-wrap"><video ref={videoRef} poster={state.now?.thumbnailUrl || undefined} playsInline preload="metadata" onEnded={() => void control('ended')} />{!state.now && <div className="cinema-room-video-empty"><Film size={26} /><span>Select a Cinema Hub title to start.</span></div>}</div>

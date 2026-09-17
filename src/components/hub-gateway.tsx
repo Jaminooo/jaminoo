@@ -7,6 +7,7 @@ import { TopRightControls } from '@/components/top-controls';
 import { ArrowLeft, ArrowRight, House, Music2, PlaySquare, UsersRound, Clapperboard } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { GlobalSearch } from '@/components/global-search';
+import { NowFeed } from '@/components/now-feed';
 
 const HUBS: { id: Exclude<HubProduct, 'home'>; icon: typeof Music2; title: string; description: string; tone: string }[] = [
   { id: 'community', icon: UsersRound, title: 'Community Hub', description: 'Friends, Jams, chat and your account workspace.', tone: 'community' },
@@ -58,6 +59,7 @@ export function HubGateway() {
           ))}
         </div>
         {me && <div className="hub-account-note">Signed in as <b>@{me.username}</b>. Your identity and friends stay shared across every hub.</div>}
+        {me && <NowFeed />}
       </main>
     </div>
   );

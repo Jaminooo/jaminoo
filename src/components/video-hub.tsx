@@ -41,6 +41,7 @@ import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
+import { CreatorCollabStudio } from '@/components/creator-collab-studio';
 
 type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists';
 type FeedKind = 'ALL' | 'SHORT' | 'LONG';
@@ -355,6 +356,7 @@ function CreatorStudio({ posts, loading, onDelete, onEditProfile }: { posts: Vid
           <div className="creator-studio-row creator-studio-row-head"><span>Post</span><span>Likes</span><span>Saves</span><span>Comments</span><span>Type</span><span /></div>
           {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || 'Untitled post'}</b><small>{new Date(post.createdAt).toLocaleDateString()}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>likes</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>saves</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>comments</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>format</span><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div>)}
         </div>
+        <CreatorCollabStudio posts={posts.map((post) => ({ id: post.id, title: post.title, kind: post.kind }))} />
       </>}
     </section>
   );

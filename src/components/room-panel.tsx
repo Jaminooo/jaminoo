@@ -16,6 +16,7 @@ import { usePanelResize } from '@/lib/use-panel-resize';
 import { api } from '@/lib/client-api';
 import { connectLive, emitLive, emitWhenConnected, onLive, onLiveConnect, liveConnected, liveSocketId } from '@/lib/live';
 import { toast } from '@/components/toast';
+import { JamWorldPanel } from '@/components/jam-world-panel';
 import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Hammer, Trash2, MessageCircle, Flag } from 'lucide-react';
 
 interface ChatUser {
@@ -392,6 +393,8 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           ))}
         <span className="room-desc">{jam.desc || ' '}</span>
       </div>
+
+      <JamWorldPanel jamId={jam.id} jamName={jam.name} kind={jam.kind} description={jam.desc} members={jam.members} messages={jam.messages} isOwner={isOwner} />
 
       <div className="room-mobile-tabs" role="tablist" aria-label="Room views">
         <button type="button" className={mobilePane === 'chat' ? 'active' : ''} onClick={() => setMobilePane('chat')}>
