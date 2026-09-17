@@ -15,6 +15,8 @@ export const GET = handle(async () => {
     where: { toId: me.id, status: 'PENDING' },
   });
 
+  const unreadNotifications = prisma.notification.count({ where: { userId: me.id, readAt: null } });
+
   const convs = await prisma.conversation.findMany({
     where: { OR: [{ userA: me.id }, { userB: me.id }] },
   });
@@ -32,5 +34,6 @@ export const GET = handle(async () => {
     friends: await incomingFriends,
     invites: await pendingInvites,
     dms: unreadDms,
+    notifications: await unreadNotifications,
   });
 });

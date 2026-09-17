@@ -8,7 +8,7 @@ import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { uidDisplay } from '@/store/app-store';
 import { MAX_PROFILE_MEDIA } from '@/lib/constants';
-import { Copy, Check, Lock, Upload, X, Star, CircleDot } from 'lucide-react';
+import { Copy, Check, Lock, Upload, X, Star, CircleDot, Heart, History, ListMusic } from 'lucide-react';
 
 interface MediaItem {
   id: string;
@@ -18,6 +18,8 @@ interface MediaItem {
   url: string;
   isProfile: boolean;
 }
+
+interface LibrarySong { id: number; title: string; artist?: { name: string } | null; coverUrl?: string | null; }
 
 export function ProfilePanel() {
   const t = useTranslations();
@@ -36,9 +38,19 @@ export function ProfilePanel() {
   const [statusText, setStatusText] = useState(me?.statusText ?? '');
 
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [library, setLibrary] = useState<{ favorites: LibrarySong[]; history: LibrarySong[]; playlists: { id: number; name: string; items: { song: LibrarySong }[] }[] }>({ favorites: [], history: [], playlists: [] });
 
   useEffect(() => {
     api<{ media: MediaItem[] }>('/api/media').then((d) => setMedia(d.media)).catch(() => {});
+    Promise.all([
+      api<{ favorites: { song: LibrarySong }[] }>('/api/music/favorites'),
+      api<{ history: { song: LibrarySong }[] }>('/api/music/history'),
+      api<{ playlists: { id: number; name: string; items: { song: LibrarySong }[] }[] }>('/api/music/playlists'),
+    ]).then(([favorites, history, playlists]) => setLibrary({
+      favorites: favorites.favorites.map((item) => item.song),
+      history: history.history.map((item) => item.song),
+      playlists: playlists.playlists,
+    })).catch(() => {});
   }, []);
 
   if (!me) return null;
@@ -252,6 +264,15 @@ export function ProfilePanel() {
         <button type="button" className="btn btn-violet" style={{ marginTop: 14 }} onClick={saveStatus}>
           {t('profile.saveChanges')}
         </button>
+      </section>
+
+      <section className="card profile-library-card" style={{ padding: 24, marginBottom: 0 }}>
+        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><ListMusic size={16} /> Music library</h3>
+        <div className="profile-library-grid">
+          <div><div className="profile-library-title"><Heart size={14} /> Favorites</div>{library.favorites.length === 0 ? <span className="pane-sub">No favorites yet.</span> : library.favorites.slice(0, 8).map((item) => <div className="profile-library-row" key={item.id}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
+          <div><div className="profile-library-title"><History size={14} /> Recently played</div>{library.history.length === 0 ? <span className="pane-sub">No history yet.</span> : library.history.slice(0, 8).map((item, index) => <div className="profile-library-row" key={`${item.id}-${index}`}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
+          <div><div className="profile-library-title"><ListMusic size={14} /> Playlists</div>{library.playlists.length === 0 ? <span className="pane-sub">No playlists yet.</span> : library.playlists.map((playlist) => <div className="profile-library-row" key={playlist.id}><b>{playlist.name}</b><span>{playlist.items.length} songs</span></div>)}</div>
+        </div>
       </section>
 
       <div className="grid-2" style={{ marginTop: 0 }}>

@@ -27,6 +27,7 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
             },
           },
           addedByRef: { select: { id: true, username: true } },
+          votes: { select: { userId: true } },
         },
         orderBy: [{ pos: 'asc' }, { createdAt: 'asc' }],
       },
@@ -54,6 +55,8 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
       song: songPayload(qi.song),
       addedBy: { id: qi.addedBy, username: qi.addedByRef?.username ?? '' },
       createdAt: qi.createdAt.toISOString(),
+      votes: qi.votes.length,
+      voted: qi.votes.some((vote) => vote.userId === viewerId),
     })),
   };
 }

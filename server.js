@@ -158,6 +158,7 @@ app.prepare().then(() => {
         include: {
           song: { include: { artist: true, album: true } },
           addedByRef: { select: { id: true, username: true } },
+          votes: { select: { userId: true } },
         },
         orderBy: [{ pos: 'asc' }, { createdAt: 'asc' }],
       },
@@ -188,6 +189,7 @@ app.prepare().then(() => {
           song: songPayloadJS(qi.song),
           addedBy: { id: qi.addedBy, username: qi.addedByRef ? qi.addedByRef.username : '' },
           createdAt: qi.createdAt.toISOString(),
+          votes: qi.votes ? qi.votes.length : 0,
         })),
       });
     };
@@ -354,7 +356,9 @@ app.prepare().then(() => {
           }
         } else if (action === 'seek') {
           if (cur.currentSongId) {
-            const pos = Math.max(0, Math.min((cur.currentSong.durationSec || 0) * 1000, Number(d.position) || 0));
+            const requested = Math.max(0, Number(d.position) || 0);
+            const durationMs = Math.max(0, (cur.currentSong.durationSec || 0) * 1000);
+            const pos = durationMs > 0 ? Math.min(durationMs, requested) : requested;
             await prisma.jam.update({
               where: { id: jamId },
               data: { currentPlaying: cur.currentPlaying, currentPosition: pos, currentStartedAt: cur.currentPlaying ? new Date() : cur.currentStartedAt },
@@ -383,6 +387,103 @@ app.prepare().then(() => {
         await advanceQueue(jamId);
       } catch (e) {
         console.error('music:ended error:', e && e.message);
+      }
+    });
+
+    const cinemaPositionMs = (jam) => {
+      if (jam.currentCinemaPlaying && jam.currentCinemaStartedAt) {
+        return jam.currentCinemaPosition + (Date.now() - jam.currentCinemaStartedAt.getTime());
+      }
+      return jam.currentCinemaPosition;
+    };
+
+    const cinemaPayloadJS = (video) => video ? {
+      id: video.id,
+      title: video.title,
+      description: video.description,
+      kind: video.kind,
+      externalUrl: video.externalUrl || null,
+      thumbnailUrl: video.thumbnailUrl || null,
+      subtitlesUrl: video.subtitlesUrl || null,
+      durationSec: video.durationSec,
+    } : null;
+
+    const refreshCinemaJam = async (jamId) => prisma.jam.findUnique({
+      where: { id: jamId },
+      include: { currentCinemaVideo: true, members: true },
+    });
+
+    const broadcastCinemaState = (jam) => {
+      io.to(`jam:${jam.id}`).emit('cinema:state', {
+        jamId: jam.id,
+        now: cinemaPayloadJS(jam.currentCinemaVideo),
+        playing: jam.currentCinemaPlaying,
+        positionMs: cinemaPositionMs(jam),
+        atMs: Date.now(),
+        durationSec: jam.currentCinemaVideo ? jam.currentCinemaVideo.durationSec : 0,
+      });
+    };
+
+    socket.on('cinema:sync', async (jamId) => {
+      if (typeof jamId !== 'string' || !jamId) return;
+      try {
+        const jam = await refreshCinemaJam(jamId);
+        if (!jam || jam.kind !== 'MOVIE' || !jam.members.some((member) => member.userId === userId)) return;
+        broadcastCinemaState(jam);
+      } catch (e) {
+        console.error('cinema:sync error:', e && e.message);
+      }
+    });
+
+    socket.on('cinema:control', async (d) => {
+      if (!d || typeof d !== 'object' || typeof d.jamId !== 'string') return;
+      const jamId = d.jamId;
+      const action = String(d.action || '').toLowerCase();
+      try {
+        const jam = await refreshCinemaJam(jamId);
+        if (!jam || jam.kind !== 'MOVIE') return;
+        const member = jam.members.find((item) => item.userId === userId);
+        if (!member) return;
+        const canControl = jam.ownerId === userId || !!socket.data.isAdmin || member.role === 'MINI_HOST';
+        if (!canControl) return;
+        const videoId = Number(d.videoId);
+        const position = Number(d.position);
+        const update = {};
+
+        if (action === 'load' || (action === 'play' && Number.isInteger(videoId) && videoId > 0)) {
+          const video = await prisma.cinemaVideo.findFirst({ where: { id: videoId, visibility: 'PUBLIC' } });
+          if (!video) return;
+          update.currentCinemaVideoId = video.id;
+          update.currentCinemaPosition = Math.max(0, Math.min(video.durationSec * 1000, Number.isFinite(position) ? position : 0));
+          update.currentCinemaPlaying = action === 'play';
+          update.currentCinemaStartedAt = action === 'play' ? new Date() : null;
+        } else if (action === 'play' || action === 'resume') {
+          if (!jam.currentCinemaVideoId) return;
+          update.currentCinemaPlaying = true;
+          update.currentCinemaStartedAt = new Date();
+        } else if (action === 'pause') {
+          update.currentCinemaPlaying = false;
+          update.currentCinemaPosition = cinemaPositionMs(jam);
+          update.currentCinemaStartedAt = null;
+        } else if (action === 'seek') {
+          if (!jam.currentCinemaVideoId) return;
+          const durationMs = Math.max(0, (jam.currentCinemaVideo?.durationSec || 0) * 1000);
+          const requested = Math.max(0, Number.isFinite(position) ? position : 0);
+          update.currentCinemaPosition = durationMs > 0 ? Math.min(durationMs, requested) : requested;
+          update.currentCinemaStartedAt = jam.currentCinemaPlaying ? new Date() : null;
+        } else if (action === 'ended') {
+          update.currentCinemaPlaying = false;
+          update.currentCinemaPosition = Math.max(0, (jam.currentCinemaVideo?.durationSec || 0) * 1000);
+          update.currentCinemaStartedAt = null;
+        } else {
+          return;
+        }
+
+        await prisma.jam.update({ where: { id: jamId }, data: update });
+        const fresh = await refreshCinemaJam(jamId);
+        if (fresh) broadcastCinemaState(fresh);
+      } catch (e) {
+        console.error('cinema:control error:', e && e.message);
       }
     });
 

@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTranslations } from '@/providers/use-translations';
-import { Clock3, GripVertical, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { Clock3, GripVertical, ChevronUp, ChevronDown, Trash2, ThumbsUp } from 'lucide-react';
 
 export interface QueueRow {
   id: number;
@@ -25,6 +25,8 @@ export interface QueueRow {
   artist: string;
   addedBy: string;
   isNow: boolean;
+  votes: number;
+  voted: boolean;
 }
 
 function SortableQueueRow({
@@ -34,6 +36,7 @@ function SortableQueueRow({
   canControl,
   onMove,
   onRemove,
+  onVote,
 }: {
   row: QueueRow;
   index: number;
@@ -41,6 +44,7 @@ function SortableQueueRow({
   canControl: boolean;
   onMove: (qi: number, toIndex: number) => void;
   onRemove: (qi: number) => void;
+  onVote: (qi: number) => void;
 }) {
   const t = useTranslations();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -63,6 +67,10 @@ function SortableQueueRow({
         <span>{row.artist}</span>
       </div>
       <span className="music-queue-added">@{row.addedBy}</span>
+      <button type="button" className={`btn-icon music-vote-btn ${row.voted ? 'active' : ''}`} onClick={() => onVote(row.id)} title="Vote for this song" aria-label="Vote for this song">
+        <ThumbsUp size={13} />
+        <small>{row.votes}</small>
+      </button>
       {canControl && (
         <>
           <span className="music-grip" {...attributes} {...listeners} title={t('music.queueHint')}>
@@ -102,6 +110,7 @@ export function QueueList({
   canControl,
   onMove,
   onRemove,
+  onVote,
   emptyText,
   hintText,
 }: {
@@ -109,6 +118,7 @@ export function QueueList({
   canControl: boolean;
   onMove: (qi: number, toIndex: number) => void;
   onRemove: (qi: number) => void;
+  onVote: (qi: number) => void;
   emptyText: string;
   hintText: string;
 }) {
@@ -141,6 +151,7 @@ export function QueueList({
               canControl={canControl}
               onMove={onMove}
               onRemove={onRemove}
+              onVote={onVote}
             />
           ))}
         </div>

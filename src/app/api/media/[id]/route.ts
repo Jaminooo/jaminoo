@@ -17,11 +17,14 @@ async function canAccessMedia(meId: number, mediaId: string, isAdmin = false) {
       profileUser: { select: { id: true } },
       messages: { select: { jamId: true } },
       dmMessages: { select: { convId: true } },
+      videoPosts: { where: { visibility: 'PUBLIC' }, select: { id: true } },
+      videoThumbnails: { where: { visibility: 'PUBLIC' }, select: { id: true } },
     },
   });
   if (!media) return false;
   if (isAdmin) return true;
   if (media.userId === meId) return true;
+  if (media.videoPosts.length > 0 || media.videoThumbnails.length > 0) return true;
 
   if (media.profileUser) {
     const otherId = media.profileUser.id;
@@ -57,7 +60,7 @@ async function canAccessMedia(meId: number, mediaId: string, isAdmin = false) {
   return false;
 }
 
-export const GET = handle(async (_req, { params }: Ctx) => {
+export const GET = handle(async (req, { params }: Ctx) => {
   const me = await requireUser();
   const media = await prisma.media.findUnique({ where: { id: params.id } });
   if (!media) return err('Not found', 404);
@@ -65,14 +68,39 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   const fpath = path.join(UPLOAD_DIR, media.filename);
   try {
     const fs = await import('fs/promises');
-    const buf = await fs.readFile(fpath);
-    return new NextResponse(new Uint8Array(buf), {
-      headers: {
-        'Content-Type': media.mime,
-        'X-Content-Type-Options': 'nosniff',
-        'Cache-Control': 'private, max-age=3600',
-      },
-    });
+    const buffer = await fs.readFile(fpath);
+    const range = req.headers.get('range');
+    let start = 0;
+    let end = buffer.length - 1;
+    let status = 200;
+
+    if (range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+      if (!match) return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${buffer.length}` } });
+      if (match[1]) start = Number(match[1]);
+      if (match[2]) end = Number(match[2]);
+      if (!match[1] && match[2]) {
+        const suffixLength = Number(match[2]);
+        start = Math.max(0, buffer.length - suffixLength);
+        end = buffer.length - 1;
+      }
+      end = Math.min(end, buffer.length - 1);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start > end || start >= buffer.length) {
+        return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${buffer.length}` } });
+      }
+      status = 206;
+    }
+
+    const body = buffer.subarray(start, end + 1);
+    const headers: Record<string, string> = {
+      'Content-Type': media.mime,
+      'Content-Length': String(body.length),
+      'Accept-Ranges': 'bytes',
+      'X-Content-Type-Options': 'nosniff',
+      'Cache-Control': media.kind.endsWith('_ASSET') ? 'public, max-age=3600' : 'private, max-age=3600',
+    };
+    if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${buffer.length}`;
+    return new NextResponse(new Uint8Array(body), { status, headers });
   } catch {
     return err('File missing', 404);
   }

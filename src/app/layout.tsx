@@ -2,10 +2,12 @@ import type { Metadata, Viewport } from 'next';
 import '@/app/globals.css';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { I18nProvider } from '@/providers/i18n-provider';
+import { PwaRegister } from '@/components/pwa-register';
 
 export const metadata: Metadata = {
   title: 'Jamino — Hang out, without the noise',
   description: 'Rooms for your people. Find friends, drop into a jam, and talk.',
+  manifest: '/manifest.webmanifest',
 };
 
 export const viewport: Viewport = {
@@ -17,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <I18nProvider>{children}</I18nProvider>
+          <I18nProvider><PwaRegister />{children}</I18nProvider>
         </ThemeProvider>
       </body>
     </html>

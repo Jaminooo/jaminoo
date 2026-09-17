@@ -16,12 +16,12 @@ import { FriendProfilePanel } from '@/components/friend-profile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { connectLive, onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
-import { useSyncRouting } from '@/lib/sync-routing';
-import { User, Shield, Users, Radio, MessageCircle } from 'lucide-react';
+import { User, Shield, Users, Radio, MessageCircle, House } from 'lucide-react';
+import { GlobalSearch } from '@/components/global-search';
 
 export function PanelShell() {
   const me = useAppStore((s) => s.me);
-  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith, profileUserId, setProfileUserId, unread, setUnread } = useAppStore();
+  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith, profileUserId, setProfileUserId, unread, setUnread, setProduct } = useAppStore();
   const t = useTranslations();
 
   useEffect(() => {
@@ -57,13 +57,11 @@ export function PanelShell() {
   const goRoom = (id: string) => setRoomId(id);
   const exitRoom = () => setRoomId(null);
 
-  useSyncRouting();
-
   const sectionClass = roomId ? 'section-room' : dmWith != null ? 'section-dm' : profileUserId != null ? 'section-profile-view' : `section-${tab}`;
 
   const topbar = (
     <div className="topbar">
-      <button className="wordmark" onClick={() => setTab('jams')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <button className="wordmark" onClick={() => setProduct('home')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }} title="All hubs">
         <span className="wordmark-mark">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 3 5 21" />
@@ -73,6 +71,7 @@ export function PanelShell() {
         {t('brand.name')}
       </button>
       <div className="tb-right">
+        <GlobalSearch />
         <TopRightControls inline />
         <div className="user-chip">
           {me && <JaminoAvatar avatarId={me.avatarId} size={32} photo={me.avatarPhoto} name={me.username} />}

@@ -1,0 +1,13 @@
+{
+  "name": "Jamino",
+  "short_name": "Jamino",
+  "description": "Connected community, music and video hubs.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#05060f",
+  "theme_color": "#05060f",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

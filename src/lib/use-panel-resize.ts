@@ -4,17 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const LS_KEY = 'jamine-room-panels';
 
-export type RoomLayout = 'classic' | 'stack' | 'focus';
-
 export interface PanelSizes {
   members: number;
   music: number;
   height: number;
-  layout: RoomLayout;
 }
 
 const DEFAULT_HEIGHT = 560;
-const DEFAULTS: PanelSizes = { members: 232, music: 340, height: DEFAULT_HEIGHT, layout: 'classic' };
+const DEFAULTS: PanelSizes = { members: 232, music: 340, height: DEFAULT_HEIGHT };
 const MIN_MEMBERS = 164;
 const MAX_MEMBERS = 440;
 const MIN_MUSIC = 268;
@@ -40,7 +37,6 @@ export function usePanelResize(hasMusic: boolean) {
         members: clampBetween(Number(p.members) || s.members, MIN_MEMBERS, MAX_MEMBERS),
         music: clampBetween(Number(p.music) || s.music, MIN_MUSIC, MAX_MUSIC),
         height: clampBetween(Number(p.height) || s.height, MIN_HEIGHT, MAX_HEIGHT),
-        layout: p.layout === 'stack' || p.layout === 'focus' ? p.layout : 'classic',
       }));
     } catch {}
   }, []);
@@ -50,17 +46,6 @@ export function usePanelResize(hasMusic: boolean) {
       localStorage.setItem(LS_KEY, JSON.stringify(next));
     } catch {}
   }, []);
-
-  const setLayout = useCallback(
-    (layout: RoomLayout) => {
-      setSizes((prev) => {
-        const next = { ...prev, layout };
-        persist(next);
-        return next;
-      });
-    },
-    [persist]
-  );
 
   const beginResize = useCallback(
     (key: 'members' | 'music') => (down: React.PointerEvent<HTMLDivElement>) => {
@@ -156,5 +141,5 @@ export function usePanelResize(hasMusic: boolean) {
     '--room-h': `${sizes.height}px`,
   } as React.CSSProperties;
 
-  return { gridRef, gridStyle, sizes, layout: sizes.layout, setLayout, beginResize, beginVertical };
+  return { gridRef, gridStyle, sizes, beginResize, beginVertical };
 }

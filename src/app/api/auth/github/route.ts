@@ -16,7 +16,7 @@ export const GET = async () => {
   });
   const url = new URL('https://github.com/login/oauth/authorize');
   url.searchParams.set('client_id', clientId);
-  url.searchParams.set('scope', 'read:user');
+  url.searchParams.set('scope', 'read:user user:email');
   url.searchParams.set('state', state);
   const redirect =
     process.env.GITHUB_REDIRECT_URI?.trim() ||

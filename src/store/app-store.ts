@@ -30,17 +30,20 @@ export interface Me {
 
 export type Tab = 'profile' | 'security' | 'friends' | 'jams' | 'dms';
 export type AuthView = 'login' | 'signup' | 'forgot';
+export type HubProduct = 'home' | 'community' | 'music' | 'video' | 'cinema';
 
 export interface Unread {
   friends: number;
   invites: number;
   dms: number;
+  notifications: number;
 }
 
 interface AppState {
   me: Me | null;
   booted: boolean;
   tab: Tab;
+  product: HubProduct;
   authView: AuthView;
   roomId: string | null;
   dmWith: number | null;
@@ -51,6 +54,7 @@ interface AppState {
   setMe: (me: Me | null) => void;
   setBooted: (b: boolean) => void;
   setTab: (t: Tab) => void;
+  setProduct: (product: HubProduct) => void;
   setAuthView: (v: AuthView) => void;
   setRoomId: (id: string | null) => void;
   setDmWith: (id: number | null) => void;
@@ -64,16 +68,18 @@ export const useAppStore = create<AppState>((set) => ({
   me: null,
   booted: false,
   tab: 'profile',
+  product: 'home',
   authView: 'login',
   roomId: null,
   dmWith: null,
   profileUserId: null,
 online: [],
   presenceMap: {},
-  unread: { friends: 0, invites: 0, dms: 0 },
+  unread: { friends: 0, invites: 0, dms: 0, notifications: 0 },
   setMe: (me) => set({ me }),
   setBooted: (booted) => set({ booted }),
   setTab: (tab) => set({ tab, roomId: null, dmWith: null, profileUserId: null }),
+  setProduct: (product) => set({ product, tab: 'profile', roomId: null, dmWith: null, profileUserId: null }),
   setAuthView: (authView) => set({ authView }),
   setRoomId: (roomId) => set({ roomId, dmWith: null, profileUserId: null }),
   setDmWith: (dmWith) => set({ dmWith, roomId: null, profileUserId: null }),

@@ -31,6 +31,13 @@ export const POST = handle(async (req, { params }: Ctx) => {
   if (existing) return err('Invite already pending', 409);
 
   await prisma.jamInvite.create({ data: { jamId: jam.id, fromId: me.id, toId: userId } });
+  await prisma.notification.create({
+    data: {
+      userId,
+      kind: 'JAM_INVITE',
+      payload: JSON.stringify({ message: `@${me.username} invited you to ${jam.name}`, jamId: jam.id }),
+    },
+  });
   livePublish([`user:${userId}`, `user:${me.id}`], 'jam-invite', { at: Date.now() });
   return json({ ok: true });
 });

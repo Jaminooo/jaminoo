@@ -38,6 +38,15 @@ export const GET = async (req: Request) => {
     const gh = (await userRes.json()) as { id: number; login: string; email?: string };
     if (!gh.id) return Response.json({ ok: false, error: 'GitHub identity could not be read.' }, { status: 401 });
 
+    let email = gh.email ?? '';
+    if (!email) {
+      const emailRes = await fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${tokenData.access_token}`, Accept: 'application/json' },
+      });
+      const emails = (await emailRes.json()) as { email?: string; primary?: boolean; verified?: boolean }[];
+      email = emails.find((item) => item.primary && item.verified)?.email || emails.find((item) => item.verified)?.email || '';
+    }
+
     const ghLogin = String(gh.id);
     let user = await prisma.user.findUnique({ where: { githubLogin: ghLogin } });
     if (!user) {
@@ -49,7 +58,7 @@ export const GET = async (req: Request) => {
       user = await prisma.user.create({
         data: {
           username,
-          email: gh.email ?? '',
+          email,
           github: true,
           githubLogin: ghLogin,
           avatarId: Math.floor(Math.random() * 12),

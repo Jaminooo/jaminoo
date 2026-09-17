@@ -14,6 +14,8 @@ import {
   Image,
   KeyRound,
   Music2,
+  Flag,
+  BadgeCheck,
   ArrowLeft,
   RefreshCw,
   Loader2,
@@ -25,6 +27,9 @@ import { AdminMessages } from './admin-messages';
 import { AdminMedia } from './admin-media';
 import { AdminSessions } from './admin-sessions';
 import { AdminMusic } from './music/admin-music';
+import { AdminReports } from './admin-reports';
+import { AdminCreators } from './admin-creators';
+import { AdminCinema } from './admin-cinema';
 
 export interface AdminStats {
   users: number;
@@ -52,15 +57,18 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-type Tab = 'dashboard' | 'users' | 'jams' | 'messages' | 'media' | 'sessions' | 'music';
+type Tab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema';
 
 const TABS: { id: Tab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
   { id: 'users', icon: Users, key: 'admin.users' },
   { id: 'jams', icon: RadioTower, key: 'admin.jams' },
   { id: 'messages', icon: MessageSquare, key: 'admin.messages' },
+  { id: 'reports', icon: Flag, key: 'admin.reports' },
+  { id: 'creators', icon: BadgeCheck, key: 'admin.creators' },
   { id: 'media', icon: Image, key: 'admin.media' },
-  { id: 'music', icon: Music2, key: 'admin.music' },
+  { id: 'music', icon: Music2, key: 'admin.musicLabel' },
+  { id: 'cinema', icon: RadioTower, key: 'admin.cinema' },
   { id: 'sessions', icon: KeyRound, key: 'admin.sessions' },
 ];
 
@@ -168,8 +176,11 @@ export function AdminPanel() {
           {tab === 'users' && <AdminUsers />}
           {tab === 'jams' && <AdminJams />}
           {tab === 'messages' && <AdminMessages />}
+          {tab === 'reports' && <AdminReports />}
+          {tab === 'creators' && <AdminCreators />}
           {tab === 'media' && <AdminMedia />}
           {tab === 'music' && <AdminMusic />}
+          {tab === 'cinema' && <AdminCinema />}
           {tab === 'sessions' && <AdminSessions />}
         </div>
       </main>

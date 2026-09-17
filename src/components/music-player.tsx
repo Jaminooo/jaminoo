@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { Howl } from 'howler';
 import { useTranslations } from '@/providers/use-translations';
@@ -23,6 +23,7 @@ import {
   Plus,
   Search,
   Star,
+  Heart,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -67,12 +68,20 @@ interface QueueItem {
   song: MusicSong;
   addedBy: { id: number; username: string };
   createdAt: string;
+  votes?: number;
+  voted?: boolean;
 }
 
 interface SearchResult {
   songs: MusicSong[];
   artists: { id: number; name: string; coverUrl: string | null }[];
   albums: { id: number; title: string; artist: string; coverUrl: string | null }[];
+}
+
+interface UserPlaylist {
+  id: number;
+  name: string;
+  items?: { songId: number }[];
 }
 
 const AUDIO_FORMAT = ['mp3'];
@@ -84,6 +93,11 @@ function fmtTime(ms: number) {
   return `${m}:${String(r).padStart(2, '0')}`;
 }
 
+function statePositionMs(state: MusicState | null) {
+  if (!state) return 0;
+  return state.playing ? state.positionMs + Math.max(0, Date.now() - state.atMs) : state.positionMs;
+}
+
 export function artistLabel(song: MusicSong | null) {
   if (!song) return '';
   const feat = song.feat.filter((f) => f.id !== song.artist?.id).map((f) => f.name);
@@ -91,31 +105,38 @@ export function artistLabel(song: MusicSong | null) {
   return names.join(' ft. ');
 }
 
-export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canOwner: boolean; miniHost?: boolean }) {
+export function MusicPlayer({ jamId, canOwner, miniHost, chatSlot }: { jamId: string; canOwner: boolean; miniHost?: boolean; chatSlot?: ReactNode }) {
   const t = useTranslations();
   const rootRef = useRef<HTMLDivElement>(null);
   const lyricsBoxRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MusicState | null>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showQueue, setShowQueue] = useState(false);
-  const [showLyrics, setShowLyrics] = useState(false);
+  const [activePanel, setActivePanel] = useState<'lyrics' | 'queue' | 'add' | null>(null);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResult | null>(null);
   const [searching, setSearching] = useState(false);
+  const [playlists, setPlaylists] = useState<UserPlaylist[]>([]);
+  const [playlistName, setPlaylistName] = useState('');
   const [active, setActive] = useState<LyricActive | null>(null);
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
   const [prefersReduced, setPrefersReduced] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
-  const drill = useRef<number | null>(null);
+  const [playbackMs, setPlaybackMs] = useState(0);
+  const [audioDurationSec, setAudioDurationSec] = useState(0);
+  const [favorite, setFavorite] = useState(false);
+  const historySongRef = useRef<number | null>(null);
 
   const howlRef = useRef<Howl | null>(null);
   const wantPlayRef = useRef(false);
   const volumeRef = useRef(0.8);
   const mutedRef = useRef(false);
   const seekOnLoadRef = useRef(0);
+  const playbackMsRef = useRef(0);
+  const seekTimerRef = useRef<number | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
+  const seekingRef = useRef(false);
   const frameRef = useRef<AudioFrame>({
     volume: 0,
     bass: 0,
@@ -176,6 +197,10 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
       if (d.jamId !== jamId) return;
       setQueue(d.queue);
     });
+    const offVote = onLive('music:vote', (d: { jamId: string; queueItemId: number; votes: number; userId: number }) => {
+      if (d.jamId !== jamId) return;
+      setQueue((items) => items.map((item) => item.id === d.queueItemId ? { ...item, votes: d.votes } : item));
+    });
     const offUpdate = onLive('jam:update', (id: string) => {
       if (id === jamId) loadState();
     });
@@ -186,6 +211,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
     return () => {
       offState();
       offQueue();
+      offVote();
       offUpdate();
       clearInterval(sync);
     };
@@ -194,6 +220,46 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
 
   const song = state?.now ?? null;
   const songId = song?.id ?? null;
+
+  useEffect(() => {
+    if (!songId) {
+      setFavorite(false);
+      return;
+    }
+    api<{ favorites: { songId: number }[] }>('/api/music/favorites')
+      .then((data) => setFavorite(data.favorites.some((item) => item.songId === songId)))
+      .catch(() => setFavorite(false));
+  }, [songId]);
+
+  useEffect(() => {
+    if (activePanel !== 'add') return;
+    api<{ playlists: UserPlaylist[] }>('/api/music/playlists').then((data) => setPlaylists(data.playlists)).catch(() => {});
+  }, [activePanel]);
+
+  useEffect(() => {
+    if (!songId || !state?.playing || historySongRef.current === songId) return;
+    historySongRef.current = songId;
+    api('/api/music/history', { method: 'POST', body: JSON.stringify({ songId, jamId }) }).catch(() => {});
+  }, [jamId, songId, state?.playing]);
+
+  useEffect(() => {
+    if (seekingRef.current) return;
+    const next = Math.max(0, statePositionMs(state));
+    playbackMsRef.current = next;
+    setPlaybackMs(next);
+  }, [songId, state?.atMs, state?.playing, state?.positionMs]);
+
+  useEffect(() => {
+    if (!state?.playing) return;
+    const timer = window.setInterval(() => {
+      if (seekingRef.current) return;
+      const next = Math.max(0, statePositionMs(state));
+      playbackMsRef.current = next;
+      setPlaybackMs(next);
+    }, 100);
+    return () => window.clearInterval(timer);
+  }, [state]);
+
   const useWebAudio = isDesktop && !prefersReduced;
   const analysisEnabled = useWebAudio;
   const show3D = !!hasWebGL && useWebAudio;
@@ -215,6 +281,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
     }
     if (!song || !song.audioUrl) return;
 
+    setAudioDurationSec(0);
     const effVolume = mutedRef.current ? 0 : volumeRef.current;
     wantPlayRef.current = state?.playing ?? false;
     seekOnLoadRef.current = state?.positionMs ?? 0;
@@ -227,6 +294,8 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
       preload: true,
       onload: () => {
         if (howlRef.current !== howl) return;
+        const loadedDuration = howl.duration();
+        if (Number.isFinite(loadedDuration) && loadedDuration > 0) setAudioDurationSec(loadedDuration);
         const seekSec = seekOnLoadRef.current / 1000;
         if (seekSec > 0.5) {
           try {
@@ -278,6 +347,10 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
   }, [volume, muted]);
 
   useEffect(() => () => {
+    if (seekTimerRef.current !== null) {
+      window.clearTimeout(seekTimerRef.current);
+      seekTimerRef.current = null;
+    }
     try {
       howlRef.current?.stop();
       howlRef.current?.unload();
@@ -305,13 +378,21 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
       } catch {}
     }
     return state?.durationSec ?? song?.durationSec ?? 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [song?.durationSec, state?.durationSec]);
 
   // --- Shared rAF loop: analysis + beat + lyrics + imperative frame ref ---
   const onTick = useCallback(
     (frame: AudioFrame) => {
       frameRef.current = frame;
+
+      if (!seekingRef.current) {
+        const fallbackMs = statePositionMs(state);
+        const nextMs = howlRef.current?.state() === 'loaded' ? frame.time * 1000 : fallbackMs;
+        if (Math.abs(nextMs - playbackMsRef.current) >= 80 || !frame.playing) {
+          playbackMsRef.current = Math.max(0, nextMs);
+          setPlaybackMs(playbackMsRef.current);
+        }
+      }
 
       const lc = lyricsBoxRef.current;
       if (lc) {
@@ -338,7 +419,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
         return next;
       });
     },
-    [lrcLines]
+    [lrcLines, state?.atMs, state?.playing, state?.positionMs]
   );
 
   useAudioFrame({
@@ -374,20 +455,96 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, songId]);
 
-  const desiredMs = useMemo(() => {
-    if (!state || !song) return 0;
-    return state.playing ? state.positionMs + (Date.now() - state.atMs) : state.positionMs;
-  }, [state, song]);
-
-  const durationSec = song?.durationSec || state?.durationSec || 0;
-  const pct = durationSec ? Math.min(100, (desiredMs / (durationSec * 1000)) * 100) : 0;
+  const durationSec = song?.durationSec || state?.durationSec || audioDurationSec || getDuration();
+  const durationMs = Math.max(0, durationSec * 1000);
+  const desiredMs = durationMs ? Math.min(durationMs, Math.max(0, playbackMs)) : Math.max(0, playbackMs);
+  const pct = durationMs ? Math.min(100, (desiredMs / durationMs) * 100) : 0;
 
   const control = useCallback(
     (action: string, extra?: Record<string, unknown>) => {
-      emitLive('music:control', { jamId, action, ...extra });
+      emitWhenConnected('music:control', { jamId, action, ...extra });
     },
     [jamId]
   );
+
+  const toggleFavorite = useCallback(async () => {
+    if (!songId) return;
+    const next = !favorite;
+    setFavorite(next);
+    try {
+      await api('/api/music/favorites', { method: next ? 'POST' : 'DELETE', body: JSON.stringify({ songId }) });
+    } catch {
+      setFavorite(!next);
+    }
+  }, [favorite, songId]);
+
+  const sendPendingSeek = useCallback(() => {
+    if (seekTimerRef.current !== null) {
+      window.clearTimeout(seekTimerRef.current);
+      seekTimerRef.current = null;
+    }
+    const position = pendingSeekRef.current;
+    if (position === null) return;
+    pendingSeekRef.current = null;
+    control('seek', { position });
+  }, [control]);
+
+  const queueSeek = useCallback(
+    (rawPosition: number) => {
+      const position = durationMs ? Math.min(durationMs, Math.max(0, rawPosition)) : 0;
+      seekingRef.current = true;
+      pendingSeekRef.current = position;
+      playbackMsRef.current = position;
+      setPlaybackMs(position);
+      setState((prev) => prev ? { ...prev, positionMs: position, atMs: Date.now() } : prev);
+
+      const h = howlRef.current;
+      if (h?.state() === 'loaded') {
+        try {
+          h.seek(position / 1000);
+        } catch {}
+      }
+
+      if (seekTimerRef.current !== null) window.clearTimeout(seekTimerRef.current);
+      seekTimerRef.current = window.setTimeout(sendPendingSeek, 180);
+    },
+    [durationMs, sendPendingSeek]
+  );
+
+  const finishSeek = useCallback(() => {
+    sendPendingSeek();
+    seekingRef.current = false;
+  }, [sendPendingSeek]);
+
+  const seekFromPointer = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canControl || !durationMs) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!rect.width) return;
+    const raw = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const rtl = document.documentElement.dir === 'rtl';
+    queueSeek((rtl ? 1 - raw : raw) * durationMs);
+  }, [canControl, durationMs, queueSeek]);
+
+  const onSeekPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!canControl || !durationMs) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    seekingRef.current = true;
+    seekFromPointer(event);
+  }, [canControl, durationMs, seekFromPointer]);
+
+  const onSeekPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (seekingRef.current && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      seekFromPointer(event);
+    }
+  }, [seekFromPointer]);
+
+  const onSeekPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    finishSeek();
+  }, [finishSeek]);
 
   const syncGesture = useCallback(() => {
     const an = getAudioAnalyzer();
@@ -412,9 +569,46 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
     toast(t('music.addedToQueue'), 'ok');
   };
 
+  const createPlaylist = async (event: FormEvent) => {
+    event.preventDefault();
+    const name = playlistName.trim();
+    if (!name) return;
+    try {
+      const data = await api<{ playlist: UserPlaylist }>('/api/music/playlists', { method: 'POST', body: JSON.stringify({ name }) });
+      setPlaylists((items) => [data.playlist, ...items]);
+      setPlaylistName('');
+      toast('Playlist created.', 'ok');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('toast.unknownError'), 'error');
+    }
+  };
+
+  const addToPlaylist = async (playlistId: number, songId: number) => {
+    try {
+      await api(`/api/music/playlists/${playlistId}`, { method: 'POST', body: JSON.stringify({ songId }) });
+      toast('Added to playlist.', 'ok');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('toast.unknownError'), 'error');
+    }
+  };
+
   const queueRemove = (qi: number) => control('queue-remove', { qi });
 
   const queueMove = (qi: number, toIndex: number) => control('queue-move', { qi, toIndex });
+
+  const queueVote = async (queueItemId: number) => {
+    const item = queue.find((entry) => entry.id === queueItemId);
+    if (!item) return;
+    try {
+      const response = await api<{ votes: number; voted: boolean }>(`/api/jams/${jamId}/music/vote`, {
+        method: item.voted ? 'DELETE' : 'POST',
+        body: JSON.stringify({ queueItemId }),
+      });
+      setQueue((items) => items.map((entry) => entry.id === queueItemId ? { ...entry, votes: response.votes, voted: response.voted } : entry));
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('toast.unknownError'), 'error');
+    }
+  };
 
   const skipBack = () => {
     if (!song) return;
@@ -439,6 +633,8 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
     artist: artistLabel(qi.song),
     addedBy: qi.addedBy.username,
     isNow: song?.id === qi.song.id,
+    votes: qi.votes ?? 0,
+    voted: !!qi.voted,
   }));
 
   return (
@@ -457,18 +653,37 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
             <span className={canControl ? 'music-time' : 'music-time muted'}>{fmtTime(desiredMs)}</span>
             <div className="music-track">
               <div className="music-track-fill" style={{ width: `${pct}%` }} />
+              <div className="music-seek-thumb" style={{ insetInlineStart: `${pct}%` }} />
               {canControl && (
-                <input
+                <div
                   className="music-seek"
-                  type="range"
-                  min={0}
-                  max={durationSec * 1000 || 0}
-                  value={Math.min(desiredMs, durationSec * 1000 || 0)}
-                  onChange={(e) => {
-                    if (drill.current) clearTimeout(drill.current);
-                    drill.current = window.setTimeout(() => control('seek', { position: Number(e.target.value) }), 200);
+                  role="slider"
+                  tabIndex={0}
+                  aria-label={t('music.seek')}
+                  aria-valuemin={0}
+                  aria-valuemax={durationMs}
+                  aria-valuenow={desiredMs}
+                  onPointerDown={onSeekPointerDown}
+                  onPointerMove={onSeekPointerMove}
+                  onPointerUp={onSeekPointerUp}
+                  onPointerCancel={onSeekPointerUp}
+                  onKeyDown={(e) => {
+                    const step = Math.max(1000, durationMs / 100);
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      queueSeek(desiredMs - step);
+                    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      queueSeek(desiredMs + step);
+                    } else if (e.key === 'Home') {
+                      e.preventDefault();
+                      queueSeek(0);
+                    } else if (e.key === 'End') {
+                      e.preventDefault();
+                      queueSeek(durationMs);
+                    }
                   }}
-                  disabled={!durationSec}
+                  onBlur={finishSeek}
                 />
               )}
             </div>
@@ -514,10 +729,13 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
       </div>
 
       <div className="music-actions-row">
-        <button type="button" className={`btn btn-ghost pill-sm ${showLyrics ? 'active' : ''}`} onClick={() => setShowLyrics((v) => !v)} disabled={!song?.lyrics && !song?.lrc}>
+        <button type="button" className={`btn btn-ghost pill-sm ${favorite ? 'active' : ''}`} onClick={toggleFavorite} disabled={!song} title={t('music.favorite') ?? 'Favorite'}>
+          <Heart size={14} fill={favorite ? 'currentColor' : 'none'} />
+        </button>
+        <button type="button" className={`btn btn-ghost pill-sm ${activePanel === 'lyrics' ? 'active' : ''}`} onClick={() => setActivePanel((p) => p === 'lyrics' ? null : 'lyrics')} disabled={!song?.lyrics && !song?.lrc}>
           <Mic2 size={14} /> {t('music.lyrics')}
         </button>
-        <button type="button" className={`btn btn-ghost pill-sm ${showQueue ? 'active' : ''}`} onClick={() => setShowQueue((v) => !v)}>
+        <button type="button" className={`btn btn-ghost pill-sm ${activePanel === 'queue' ? 'active' : ''}`} onClick={() => setActivePanel((p) => p === 'queue' ? null : 'queue')}>
           <ListMusic size={14} /> {t('music.queue')} {queue.length > 0 && <b className="music-queue-count">{queue.length}</b>}
         </button>
         {canControl && (
@@ -525,8 +743,7 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
             type="button"
             className="btn btn-violet pill-sm"
             onClick={() => {
-              setShowQueue(false);
-              setShowAdd((v) => !v);
+              setActivePanel((p) => p === 'add' ? null : 'add');
             }}
           >
             <Plus size={14} /> {t('music.addSong')}
@@ -534,25 +751,41 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
         )}
       </div>
 
-      {showLyrics && song && (song.lyrics || song.lrc) && (
-        <div ref={lyricsBoxRef} className="music-lyrics-wrap">
-          <SyncedLyrics lines={lrcLines} hasWordTiming={hasWordTiming} plainLyrics={plainLyrics} active={active} />
-        </div>
-      )}
-
-      {showQueue && (
-        <QueueList
-          rows={queueRows}
-          canControl={canControl}
-          onMove={queueMove}
-          onRemove={queueRemove}
-          emptyText={t('music.queueEmpty')}
-          hintText={t('music.queueHint')}
-        />
-      )}
-
-      {showAdd && (
-        <div className="music-add">
+      {activePanel && (
+        <div className="music-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => setActivePanel(null)}>
+          <div className="music-modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="music-modal-head">
+              <div className="music-modal-title">
+                {activePanel === 'lyrics' ? <Mic2 size={17} /> : activePanel === 'queue' ? <ListMusic size={17} /> : <Plus size={17} />}
+                {activePanel === 'lyrics' ? t('music.lyrics') : activePanel === 'queue' ? t('music.queue') : t('music.addSong')}
+              </div>
+              <button type="button" className="btn-icon" onClick={() => setActivePanel(null)} title={t('modal.close')}>×</button>
+            </div>
+            <div className="music-modal-grid">
+              <section className="music-modal-main">
+                {activePanel === 'lyrics' && song && (song.lyrics || song.lrc) && (
+                  <div ref={lyricsBoxRef} className="music-lyrics-wrap music-modal-scroll">
+                    <SyncedLyrics lines={lrcLines} hasWordTiming={hasWordTiming} plainLyrics={plainLyrics} active={active} />
+                  </div>
+                )}
+                {activePanel === 'queue' && (
+                  <QueueList
+                    rows={queueRows}
+                    canControl={canControl}
+                    onMove={queueMove}
+                    onRemove={queueRemove}
+                    onVote={queueVote}
+                    emptyText={t('music.queueEmpty')}
+                    hintText={t('music.queueHint')}
+                  />
+                )}
+                {activePanel === 'add' && (
+                  <div className="music-add">
+          <form className="music-playlist-create" onSubmit={createPlaylist}>
+            <input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder="New playlist name" maxLength={80} />
+            <button type="submit" className="btn btn-ghost pill-sm">Create</button>
+          </form>
+          {playlists.length > 0 && <div className="music-playlists-strip">{playlists.map((playlist) => <span className="music-playlist-chip" key={playlist.id}>{playlist.name}</span>)}</div>}
           <form
             className="music-search"
             onSubmit={(e) => {
@@ -579,9 +812,19 @@ export function MusicPlayer({ jamId, canOwner, miniHost }: { jamId: string; canO
                 <button type="button" className="btn btn-ghost pill-sm" onClick={() => queueAdd(s.id)}>
                   <Plus size={13} /> {t('music.queueAdd')}
                 </button>
+                {playlists.length > 0 && <select className="music-playlist-select" defaultValue="" onChange={(event) => { if (event.target.value) addToPlaylist(Number(event.target.value), s.id); event.currentTarget.value = ''; }} aria-label="Add to playlist">
+                  <option value="">Playlist</option>
+                  {playlists.map((playlist) => <option key={playlist.id} value={playlist.id}>{playlist.name}</option>)}
+                </select>}
               </div>
             ))}
             {searching && <div className="empty-state" style={{ padding: 16 }}>{t('admin.loading')}</div>}
+                  </div>
+                  </div>
+                )}
+              </section>
+              {chatSlot && <aside className="music-modal-chat">{chatSlot}</aside>}
+            </div>
           </div>
         </div>
       )}
