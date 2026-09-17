@@ -172,7 +172,11 @@
     "voiceEmpty": "فعلاً کسی در چت صوتی نیست. اولین نفر باش.",
     "voiceYou": "شما",
     "voiceUnknown": "…",
-    "voiceDenied": "دسترسی به میکروفون رد شد."
+    "voiceDenied": "دسترسی به میکروفون رد شد.",
+    "tabChat": "چت",
+    "tabMembers": "اعضا",
+    "tabMusic": "موسیقی",
+    "tabCinema": "سینما"
   },
   "dm": {
     "title": "پیام",

@@ -177,6 +177,27 @@ export function PanelShell() {
           </AnimatePresence>
         </main>
       </div>
+
+      <nav className="mobile-tabnav" aria-label="Primary">
+        <button type="button" className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>
+          <User size={18} /><span>{t('panel.profile')}</span>
+        </button>
+        <button type="button" className={tab === 'security' ? 'active' : ''} onClick={() => setTab('security')}>
+          <Shield size={18} /><span>{t('panel.security')}</span>
+        </button>
+        <button type="button" className={tab === 'friends' ? 'active' : ''} onClick={() => setTab('friends')}>
+          <Users size={18} /><span>{t('panel.friends')}</span>
+          {badge(unread.friends)}
+        </button>
+        <button type="button" className={tab === 'jams' ? 'active' : ''} onClick={() => setTab('jams')}>
+          <Radio size={18} /><span>{t('panel.jams')}</span>
+          {badge(unread.invites)}
+        </button>
+        <button type="button" className={tab === 'dms' ? 'active' : ''} onClick={() => setTab('dms')}>
+          <MessageCircle size={18} /><span>{t('panel.messages')}</span>
+          {badge(unread.dms)}
+        </button>
+      </nav>
     </div>
   );
 }

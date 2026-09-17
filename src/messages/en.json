@@ -172,7 +172,11 @@
     "voiceEmpty": "No one in voice yet. Be the first to join.",
     "voiceYou": "You",
     "voiceUnknown": "…",
-    "voiceDenied": "Microphone access was denied."
+    "voiceDenied": "Microphone access was denied.",
+    "tabChat": "Chat",
+    "tabMembers": "Members",
+    "tabMusic": "Music",
+    "tabCinema": "Cinema"
   },
   "dm": {
     "title": "Message",

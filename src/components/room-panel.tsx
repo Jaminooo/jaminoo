@@ -74,6 +74,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const [sendingVoice, setSendingVoice] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'chat' | 'members' | 'music'>('chat');
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -392,7 +393,21 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         <span className="room-desc">{jam.desc || ' '}</span>
       </div>
 
-      <div className="room-grid" ref={gridRef} style={gridStyle}>
+      <div className="room-mobile-tabs" role="tablist" aria-label="Room views">
+        <button type="button" className={mobilePane === 'chat' ? 'active' : ''} onClick={() => setMobilePane('chat')}>
+          <MessageCircle size={15} /> {t('room.tabChat')}
+        </button>
+        <button type="button" className={mobilePane === 'members' ? 'active' : ''} onClick={() => setMobilePane('members')}>
+          <UsersIcon size={15} /> {t('room.tabMembers')}
+        </button>
+        {(jam.kind === 'MUSIC' || jam.kind === 'MOVIE') && (
+          <button type="button" className={mobilePane === 'music' ? 'active' : ''} onClick={() => setMobilePane('music')}>
+            {jam.kind === 'MUSIC' ? <Music2 size={15} /> : <Film size={15} />} {jam.kind === 'MUSIC' ? t('room.tabMusic') : t('room.tabCinema')}
+          </button>
+        )}
+      </div>
+
+      <div className="room-grid" ref={gridRef} style={gridStyle} data-mpane={mobilePane}>
         <aside className="room-col-members">
           <div className="room-col-title">
             <UsersIcon size={13} /> {jam.members.length} {t('jams.members')}

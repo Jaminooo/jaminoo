@@ -62,7 +62,7 @@ export function TopRightControls({ inline = false }: { inline?: boolean }) {
         title={locale === 'en' ? 'فارسی' : 'English'}
       >
         <Languages size={15} />
-        <span style={{ fontSize: 12 }}>{locale === 'en' ? 'فا' : 'EN'}</span>
+        <span className="lang-label" style={{ fontSize: 12 }}>{locale === 'en' ? 'فا' : 'EN'}</span>
       </button>
 
       <button

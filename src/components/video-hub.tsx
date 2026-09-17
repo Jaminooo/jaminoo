@@ -11,6 +11,7 @@ import {
   Film,
   Flag,
   Heart,
+  House,
   Image as ImageIcon,
   Link2,
   ListVideo,
@@ -528,7 +529,7 @@ export function VideoHub() {
         </main>
       </div>
 
-      <nav className="hub-mobile-nav video-mobile-nav">{NAV.slice(0, 5).map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
+      <nav className="hub-mobile-nav video-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label="Hub home"><House size={17} /><span>Home</span></button>{NAV.slice(0, 5).map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
       <CreatorApplyModal hub="VIDEO" open={creatorOpen} onClose={() => setCreatorOpen(false)} onSubmitted={(application) => setCreatorStatus(application.status)} />
       <CreatePostModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={(post) => { setPosts((current) => [post, ...current.filter((item) => item.id !== post.id)]); setView('feed'); }} />
       <CommentsModal post={commentsPost} open={!!commentsPost} onClose={() => setCommentsPost(null)} onAdded={() => { if (commentsPost) updatePost(commentsPost.id, { comments: commentsPost.comments + 1 }); }} />
