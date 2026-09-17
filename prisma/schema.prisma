@@ -42,6 +42,19 @@ model User {
   jamInvitesReceived JamInvite[] @relation("JamInviteTo")
   reactions       Reaction[]
   queueAdds       JamQueueItem[] @relation("JamQueueAdd")
+  favoriteSongs   SongFavorite[]
+  playHistory     SongPlayHistory[]
+  musicPlaylists  UserMusicPlaylist[]
+  queueVotes      JamQueueVote[]
+  notifications   Notification[]
+  reports         MessageReport[]
+  creatorApplications CreatorApplication[]
+  videoPosts      VideoPost[]
+  videoLikes      VideoLike[]
+  videoSaves      VideoSave[]
+  videoComments   VideoComment[]
+  followingCreators CreatorFollow[] @relation("CreatorFollowing")
+  creatorFollowers  CreatorFollow[] @relation("CreatorFollowers")
 }
 
 model Session {
@@ -92,13 +105,19 @@ model Jam {
   currentStartedAt DateTime?
   currentPlaying   Boolean  @default(false)
   currentPosition  Int      @default(0)
+  currentCinemaVideoId Int?
+  currentCinemaStartedAt DateTime?
+  currentCinemaPlaying Boolean @default(false)
+  currentCinemaPosition Int @default(0)
 
   owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members      JamMember[]
   messages     JamMessage[]
   invites      JamInvite[]
   queueItems   JamQueueItem[]
+  queueVotes   JamQueueVote[]
   currentSong  Song?         @relation(fields: [currentSongId], references: [id], onDelete: SetNull)
+  currentCinemaVideo CinemaVideo? @relation("JamCinemaVideo", fields: [currentCinemaVideoId], references: [id], onDelete: SetNull)
 }
 
 model JamMember {
@@ -126,6 +145,7 @@ model JamMessage {
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   media     Media?       @relation("MessageMedia", fields: [mediaId], references: [id], onDelete: SetNull)
   reactions Reaction[]
+  reports   MessageReport[]
 }
 
 model Media {
@@ -141,6 +161,8 @@ model Media {
   profileUser User? @relation("ProfilePhoto")
   messages     JamMessage[] @relation("MessageMedia")
   dmMessages   DmMessage[] @relation("DmMedia")
+  videoPosts   VideoPost[] @relation("VideoPostAsset")
+  videoThumbnails VideoPost[] @relation("VideoPostThumbnail")
 }
 
 model Conversation {
@@ -170,6 +192,7 @@ model DmMessage {
   sender      User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
   media       Media?       @relation("DmMedia", fields: [mediaId], references: [id], onDelete: SetNull)
   reactions   Reaction[]
+  reports     MessageReport[]
 }
 
 model JamInvite {
@@ -263,6 +286,9 @@ model Song {
   playlistItems MusicPlaylistSong[]
   queueItems    JamQueueItem[]
   jamStates     Jam[]
+  favorites     SongFavorite[]
+  playHistory   SongPlayHistory[]
+  userPlaylistItems UserMusicPlaylistItem[]
 
   @@index([artistId])
   @@index([albumId])
@@ -302,4 +328,223 @@ model JamQueueItem {
   jam        Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
   song       Song @relation(fields: [songId], references: [id], onDelete: Cascade)
   addedByRef User @relation("JamQueueAdd", fields: [addedBy], references: [id], onDelete: Cascade)
+  votes      JamQueueVote[]
+}
+
+model SongFavorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  songId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+  @@index([userId, createdAt])
+}
+
+model SongPlayHistory {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  songId   Int
+  jamId    String?
+  playedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([userId, playedAt])
+  @@index([songId, playedAt])
+}
+
+model UserMusicPlaylist {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  name      String
+  desc      String   @default("")
+  createdAt DateTime @default(now())
+
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items UserMusicPlaylistItem[]
+
+  @@unique([userId, name])
+}
+
+model UserMusicPlaylistItem {
+  id         Int @id @default(autoincrement())
+  playlistId Int
+  songId     Int
+  pos        Int @default(0)
+
+  playlist UserMusicPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song     Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, songId])
+}
+
+model JamQueueVote {
+  id          Int      @id @default(autoincrement())
+  jamId       String
+  queueItemId Int
+  userId      Int
+  createdAt   DateTime @default(now())
+
+  jam       Jam          @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  queueItem JamQueueItem @relation(fields: [queueItemId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([queueItemId, userId])
+  @@index([jamId, queueItemId])
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  kind      String
+  payload   String    @default("{}")
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model MessageReport {
+  id           Int       @id @default(autoincrement())
+  reporterId   Int
+  jamMessageId Int?
+  dmMessageId  Int?
+  videoPostId  Int?
+  reason       String
+  status       String    @default("OPEN")
+  createdAt    DateTime  @default(now())
+
+  reporter   User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  jamMessage JamMessage? @relation(fields: [jamMessageId], references: [id], onDelete: Cascade)
+  dmMessage  DmMessage?  @relation(fields: [dmMessageId], references: [id], onDelete: Cascade)
+  videoPost   VideoPost? @relation(fields: [videoPostId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+model CreatorApplication {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  hub          String
+  channelName  String
+  handle       String
+  bio          String   @default("")
+  category     String   @default("")
+  links        String   @default("[]")
+  status       String   @default("PENDING")
+  reviewNote   String   @default("")
+  reviewerId   Int?
+  createdAt    DateTime @default(now())
+  reviewedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hub])
+  @@index([hub, status, createdAt])
+}
+
+model VideoPost {
+  id           Int      @id @default(autoincrement())
+  authorId     Int
+  assetId      String?
+  thumbnailAssetId String?
+  title        String   @default("")
+  description  String   @default("")
+  kind         String   @default("POST")
+  mediaType    String   @default("TEXT")
+  externalUrl  String   @default("")
+  thumbnailUrl String   @default("")
+  subtitlesUrl String   @default("")
+  durationSec  Int      @default(0)
+  visibility   String   @default("PUBLIC")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  author   User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  asset    Media?      @relation("VideoPostAsset", fields: [assetId], references: [id], onDelete: SetNull)
+  thumbnailAsset Media? @relation("VideoPostThumbnail", fields: [thumbnailAssetId], references: [id], onDelete: SetNull)
+  likes    VideoLike[]
+  saves    VideoSave[]
+  comments VideoComment[]
+  reports  MessageReport[]
+
+  @@index([kind, visibility, id])
+  @@index([authorId, createdAt])
+}
+
+model VideoLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post VideoPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+}
+
+model VideoSave {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  post VideoPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId, createdAt])
+}
+
+model VideoComment {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  text      String
+  createdAt DateTime @default(now())
+
+  post VideoPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+}
+
+model CreatorFollow {
+  id         Int      @id @default(autoincrement())
+  followerId Int
+  creatorId  Int
+  createdAt  DateTime @default(now())
+
+  follower User @relation("CreatorFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  creator  User @relation("CreatorFollowers", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, creatorId])
+  @@index([creatorId, createdAt])
+}
+
+model CinemaVideo {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String   @default("")
+  kind         String   @default("MOVIE")
+  externalUrl  String   @default("")
+  thumbnailUrl String   @default("")
+  subtitlesUrl String   @default("")
+  durationSec  Int      @default(0)
+  visibility   String   @default("PUBLIC")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  jams Jam[] @relation("JamCinemaVideo")
+
+  @@index([kind, visibility, id])
 }
