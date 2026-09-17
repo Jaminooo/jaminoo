@@ -47,10 +47,12 @@ export const GET = handle(async () => {
   });
   const countryStats = countryRows.map((r) => ({ country: r.country, count: r._count }));
 
-  const signupRows: { day: string; count: number }[] = await prisma.$queryRaw`
-    SELECT date(createdAt / 1000, 'unixepoch') as day, COUNT(*) as count FROM User
-    WHERE createdAt >= ${sevenDaysAgo.getTime()}
-    GROUP BY day ORDER BY day ASC
+  const signupRows: { day: string; count: bigint }[] = await prisma.$queryRaw`
+    SELECT TO_CHAR(DATE("createdAt"), 'YYYY-MM-DD') AS day, COUNT(*) AS count
+    FROM "User"
+    WHERE "createdAt" >= ${sevenDaysAgo}
+    GROUP BY DATE("createdAt")
+    ORDER BY DATE("createdAt") ASC
   `;
   const signupTrend = signupRows.map((r) => ({ date: r.day, count: Number(r.count) }));
 
