@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { CheckSquare, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 
 export function formatBytes(n: number) {
   if (!Number.isFinite(n) || n <= 0) return '—';
@@ -39,6 +39,78 @@ export type Tone = 'violet' | 'green' | 'red' | 'amber' | 'steel';
 
 export function Badge({ tone = 'steel', children }: { tone?: Tone; children: ReactNode }) {
   return <span className={`admin-badge ${tone}`}>{children}</span>;
+}
+
+export function useSelection(ids: Array<string | number> = []) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggle = useCallback((id: string | number) => {
+    const key = String(id);
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback((nextIds: Array<string | number>) => {
+    const keys = nextIds.map(String);
+    setSelected((current) => {
+      const allSelected = keys.length > 0 && keys.every((key) => current.has(key));
+      if (allSelected) return new Set([...current].filter((key) => !keys.includes(key)));
+      return new Set([...current, ...keys]);
+    });
+  }, []);
+
+  const clear = useCallback(() => setSelected(new Set()), []);
+  const isSelected = useCallback((id: string | number) => selected.has(String(id)), [selected]);
+
+  return {
+    selected,
+    selectedIds: [...selected],
+    count: selected.size,
+    toggle,
+    toggleAll,
+    clear,
+    isSelected,
+    allSelected: ids.length > 0 && ids.every((id) => selected.has(String(id))),
+  };
+}
+
+export function SelectCheckbox({
+  checked,
+  indeterminate = false,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  onChange: () => void;
+  label: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+  return <input ref={ref} className="admin-checkbox" type="checkbox" checked={checked} onChange={onChange} aria-label={label} />;
+}
+
+export function SelectionToolbar({ count, onClear, children }: { count: number; onClear: () => void; children?: ReactNode }) {
+  const t = useTranslations();
+  if (!count) return null;
+  return (
+    <div className="admin-selection-toolbar">
+      <div className="admin-selection-copy">
+        <CheckSquare size={15} />
+        <strong>{t('admin.selected', { n: count })}</strong>
+        <button type="button" className="admin-selection-clear" onClick={onClear}>
+          {t('admin.clearSelection')}
+        </button>
+      </div>
+      {children ? <div className="admin-selection-actions">{children}</div> : null}
+    </div>
+  );
 }
 
 export function StatCard({ icon, label, value, tone = 'steel' }: { icon: ReactNode; label: string; value: string | number; tone?: Tone }) {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { ShieldCheck, ShieldOff, Ban, BadgeCheck, Eye, Github } from 'lucide-react';
-import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, AdminModal, fmtDateTime } from './admin-ui';
+import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, AdminModal, fmtDateTime, useSelection, SelectCheckbox, SelectionToolbar } from './admin-ui';
 
 interface UserRow {
   id: number;
@@ -54,8 +54,9 @@ interface UserDetail {
 export function AdminUsers() {
   const t = useTranslations();
   const list = useAdminList<UserRow>({ path: '/api/admin/users', per: 15 });
+  const selection = useSelection(list.rows.map((row) => row.id));
   const { confirm, ask, close } = useConfirm();
-  const [ban, setBan] = useState<{ id: number; username: string } | null>(null);
+  const [ban, setBan] = useState<{ ids: number[]; username: string } | null>(null);
   const [days, setDays] = useState('7');
   const [reason, setReason] = useState('');
   const [detail, setDetail] = useState<UserDetail | null>(null);
@@ -76,7 +77,24 @@ export function AdminUsers() {
   function confirmBan(u: UserRow) {
     setDays(u.bannedUntil ? '7' : '7');
     setReason(u.bannedReason ?? '');
-    setBan({ id: u.id, username: u.username });
+    setBan({ ids: [u.id], username: `@${u.username}` });
+  }
+
+  function confirmBanSelected() {
+    setDays('7');
+    setReason('');
+    setBan({ ids: selection.selectedIds.map(Number), username: t('admin.selected') });
+  }
+
+  async function banUsers(ids: number[]) {
+    setBusy(true);
+    try {
+      await Promise.allSettled(ids.map((id) => api(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ action: 'ban', days: Number(days) || 7, reason }) })));
+      selection.clear();
+      list.reload();
+    } finally {
+      setBusy(false);
+    }
   }
 
   function openDetail(id: number) {
@@ -94,10 +112,19 @@ export function AdminUsers() {
         <span className="admin-count">{t('admin.items', { n: list.total })}</span>
       </div>
 
+      <SelectionToolbar count={selection.count} onClear={selection.clear}>
+        <button type="button" className="btn btn-danger pill-sm" disabled={busy} onClick={confirmBanSelected}>
+          <Ban size={13} /> {t('admin.bulkBan')}
+        </button>
+      </SelectionToolbar>
+
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
+              <th className="admin-check-cell">
+                <SelectCheckbox checked={selection.allSelected} indeterminate={selection.count > 0 && !selection.allSelected} onChange={() => selection.toggleAll(list.rows.map((row) => row.id))} label={t('admin.selectAll')} />
+              </th>
               <th>{t('admin.username')}</th>
               <th>{t('admin.email')}</th>
               <th>{t('admin.joined')}</th>
@@ -115,10 +142,18 @@ export function AdminUsers() {
             {!list.loading &&
               list.rows.map((u) => (
                 <tr key={u.id}>
+                  <td className="admin-check-cell">
+                    <SelectCheckbox checked={selection.isSelected(u.id)} onChange={() => selection.toggle(u.id)} label={u.username} />
+                  </td>
                   <td>
-                    <button className="admin-user-name" onClick={() => openDetail(u.id)}>
-                      @{u.username}
-                    </button>
+                    <div className="admin-user-cell">
+                      <div className="admin-avatar">
+                        {u.profilePhotoId ? <img src={`/api/media/${encodeURIComponent(u.profilePhotoId)}`} alt="" loading="lazy" /> : <span>{u.username.slice(0, 1).toUpperCase()}</span>}
+                      </div>
+                      <button className="admin-user-name" onClick={() => openDetail(u.id)}>
+                        @{u.username}
+                      </button>
+                    </div>
                     {u.github && <Github size={13} className="admin-inline-ico" />}
                     <span className="admin-status-dot" style={{ background: statusColor(u.status) }} title={u.status} />
                   </td>
@@ -202,7 +237,7 @@ export function AdminUsers() {
                 className="btn btn-danger"
                 disabled={busy}
                 onClick={() => {
-                  void action(ban.id, { action: 'ban', days: Number(days) || 7, reason });
+                  void banUsers(ban.ids);
                   setBan(null);
                 }}
               >

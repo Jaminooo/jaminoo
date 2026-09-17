@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Trash2, Volume2, ImageIcon, ExternalLink } from 'lucide-react';
-import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, formatBytes, fmtDateTime } from './admin-ui';
+import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, formatBytes, fmtDateTime, useSelection, SelectCheckbox, SelectionToolbar } from './admin-ui';
 import type { Tone } from './admin-ui';
 
 interface MediaRow {
@@ -23,6 +23,7 @@ export function AdminMedia() {
   const [kind, setKind] = useState('');
   const extra = useMemo(() => ({ kind }), [kind]);
   const list = useAdminList<MediaRow>({ path: '/api/admin/media', extra, per: 15 });
+  const selection = useSelection(list.rows.map((row) => row.id));
   const { confirm, ask, close } = useConfirm();
   const [busy, setBusy] = useState(false);
 
@@ -30,9 +31,21 @@ export function AdminMedia() {
     setBusy(true);
     try {
       await api(`/api/admin/media/${id}`, { method: 'DELETE' });
+      selection.clear();
       list.reload();
     } catch (e) {
       console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function delMany(ids: string[]) {
+    setBusy(true);
+    try {
+      await Promise.allSettled(ids.map((id) => api(`/api/admin/media/${id}`, { method: 'DELETE' })));
+      selection.clear();
+      list.reload();
     } finally {
       setBusy(false);
     }
@@ -56,12 +69,25 @@ export function AdminMedia() {
         <span className="admin-count">{t('admin.items', { n: list.total })}</span>
       </div>
 
+      <SelectionToolbar count={selection.count} onClear={selection.clear}>
+        <button
+          type="button"
+          className="btn btn-danger pill-sm"
+          disabled={busy}
+          onClick={() => ask(t('admin.bulkDelete'), t('admin.deleteMediaConfirm'), () => delMany(selection.selectedIds))}
+        >
+          <Trash2 size={13} /> {t('admin.bulkDelete')}
+        </button>
+      </SelectionToolbar>
+
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
-              <th>#</th>
-              <th>{t('admin.file')}</th>
+              <th className="admin-check-cell">
+                <SelectCheckbox checked={selection.allSelected} indeterminate={selection.count > 0 && !selection.allSelected} onChange={() => selection.toggleAll(list.rows.map((row) => row.id))} label={t('admin.selectAll')} />
+              </th>
+              <th>{t('admin.preview')}</th>
               <th>{t('admin.file')}</th>
               <th>{t('admin.size')}</th>
               <th>{t('admin.username')}</th>
@@ -75,7 +101,14 @@ export function AdminMedia() {
             {!list.loading &&
               list.rows.map((f) => (
                 <tr key={f.id}>
-                  <td className="admin-mono">{f.id}</td>
+                  <td className="admin-check-cell">
+                    <SelectCheckbox checked={selection.isSelected(f.id)} onChange={() => selection.toggle(f.id)} label={f.filename} />
+                  </td>
+                  <td>
+                    <div className="admin-media-preview">
+                      {f.kind === 'IMAGE' ? <img src={`/api/media/${encodeURIComponent(f.id)}`} alt="" loading="lazy" /> : <Volume2 size={17} />}
+                    </div>
+                  </td>
                   <td>
                     <Badge tone={tone(f.kind)}>
                       {f.kind === 'VOICE' ? <Volume2 size={11} /> : <ImageIcon size={11} />} {f.kind}

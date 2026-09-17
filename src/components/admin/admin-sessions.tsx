@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Trash2 } from 'lucide-react';
-import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, fmtDateTime } from './admin-ui';
+import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, fmtDateTime, useSelection, SelectCheckbox, SelectionToolbar } from './admin-ui';
 
 interface SessionRow {
   token: string;
@@ -20,6 +20,7 @@ interface SessionRow {
 export function AdminSessions() {
   const t = useTranslations();
   const list = useAdminList<SessionRow>({ path: '/api/admin/sessions', per: 20 });
+  const selection = useSelection(list.rows.map((row) => row.token));
   const { confirm, ask, close } = useConfirm();
   const [busy, setBusy] = useState(false);
 
@@ -27,9 +28,21 @@ export function AdminSessions() {
     setBusy(true);
     try {
       await api(`/api/admin/sessions/${token}`, { method: 'DELETE' });
+      selection.clear();
       list.reload();
     } catch (e) {
       console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revokeMany(tokens: string[]) {
+    setBusy(true);
+    try {
+      await Promise.allSettled(tokens.map((token) => api(`/api/admin/sessions/${encodeURIComponent(token)}`, { method: 'DELETE' })));
+      selection.clear();
+      list.reload();
     } finally {
       setBusy(false);
     }
@@ -42,10 +55,19 @@ export function AdminSessions() {
         <span className="admin-count">{t('admin.items', { n: list.total })}</span>
       </div>
 
+      <SelectionToolbar count={selection.count} onClear={selection.clear}>
+        <button type="button" className="btn btn-danger pill-sm" disabled={busy} onClick={() => ask(t('admin.bulkRevoke'), t('admin.revokeConfirm'), () => revokeMany(selection.selectedIds))}>
+          <Trash2 size={13} /> {t('admin.bulkRevoke')}
+        </button>
+      </SelectionToolbar>
+
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
+              <th className="admin-check-cell">
+                <SelectCheckbox checked={selection.allSelected} indeterminate={selection.count > 0 && !selection.allSelected} onChange={() => selection.toggleAll(list.rows.map((row) => row.token))} label={t('admin.selectAll')} />
+              </th>
               <th>{t('admin.suffix')}</th>
               <th>{t('admin.username')}</th>
               <th>{t('admin.device')}</th>
@@ -63,6 +85,9 @@ export function AdminSessions() {
                 const expired = new Date(s.expiresAt).getTime() < Date.now();
                 return (
                   <tr key={s.token}>
+                    <td className="admin-check-cell">
+                      <SelectCheckbox checked={selection.isSelected(s.token)} onChange={() => selection.toggle(s.token)} label={`…${s.suffix}`} />
+                    </td>
                     <td className="admin-mono">…{s.suffix}</td>
                     <td>@{s.username}</td>
                     <td>{s.device || '—'}</td>

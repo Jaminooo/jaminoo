@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api } from '@/lib/client-api';
+import { api, uploadWithProgress } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { MUSIC_GENRES } from '@/lib/constants';
 import { ImagePlus, Loader2, Music2, UploadCloud, X } from 'lucide-react';
@@ -10,16 +10,18 @@ import { ImagePlus, Loader2, Music2, UploadCloud, X } from 'lucide-react';
 export function useUpload(kind: 'audio' | 'cover') {
   const t = useTranslations();
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
 
   const upload = async (file: File): Promise<string | null> => {
     setError('');
+    setProgress(0);
     setUploading(true);
     try {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('kind', kind);
-      const d = await api<{ ok: boolean; fileName: string }>('/api/admin/music/upload', { method: 'POST', body: fd });
+      const d = await uploadWithProgress<{ ok: boolean; fileName: string }>('/api/admin/music/upload', fd, setProgress);
       return d.fileName;
     } catch (e) {
       setError(e instanceof Error ? e.message : t('toast.unknownError'));
@@ -29,7 +31,22 @@ export function useUpload(kind: 'audio' | 'cover') {
     }
   };
 
-  return { uploading, error, upload };
+  return { uploading, progress, error, upload };
+}
+
+function UploadProgress({ progress }: { progress: number }) {
+  const t = useTranslations();
+  return (
+    <div className="admin-upload-progress" aria-live="polite">
+      <div className="admin-upload-progress-head">
+        <span>{t('admin.music.uploading')}</span>
+        <strong>{progress}%</strong>
+      </div>
+      <div className="admin-upload-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+        <span style={{ width: `${progress}%` }} />
+      </div>
+    </div>
+  );
 }
 
 export function CoverField({
@@ -42,14 +59,22 @@ export function CoverField({
   previewUrl?: string | null;
 }) {
   const t = useTranslations();
-  const { uploading, error, upload } = useUpload('cover');
+  const { uploading, progress, error, upload } = useUpload('cover');
   const inputRef = useRef<HTMLInputElement>(null);
-  const shown = previewUrl || null;
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const shown = localPreview || previewUrl || null;
+
+  useEffect(() => () => {
+    if (localPreview) URL.revokeObjectURL(localPreview);
+  }, [localPreview]);
 
   const pick = async (f: File | null) => {
     if (!f) return;
     const name = await upload(f);
-    if (name) onChange(name);
+    if (name) {
+      setLocalPreview(URL.createObjectURL(f));
+      onChange(name);
+    }
   };
 
   return (
@@ -62,12 +87,13 @@ export function CoverField({
           {uploading ? <Loader2 className="spin" size={13} /> : <UploadCloud size={13} />} {t('admin.music.uploadCover')}
         </button>
         {value ? (
-          <button className="btn btn-ghost pill-sm" type="button" onClick={() => onChange('')}>
-            <X size={13} /> clear
+          <button className="btn btn-ghost pill-sm" type="button" onClick={() => { setLocalPreview(null); onChange(''); }}>
+            <X size={13} /> {t('admin.music.clear')}
           </button>
         ) : null}
       </div>
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { pick(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+      {uploading ? <UploadProgress progress={progress} /> : null}
       {error && <span className="admin-form-error">{error}</span>}
     </div>
   );
@@ -75,7 +101,7 @@ export function CoverField({
 
 export function AudioField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const t = useTranslations();
-  const { uploading, error, upload } = useUpload('audio');
+  const { uploading, progress, error, upload } = useUpload('audio');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const notUploaded = value && !value.startsWith('http');
@@ -105,6 +131,7 @@ export function AudioField({ value, onChange }: { value: string; onChange: (v: s
         {notUploaded ? <span className="admin-dim" style={{ fontSize: 12 }}>{value}</span> : null}
       </div>
       <input ref={inputRef} type="file" accept="audio/*" hidden onChange={(e) => { pick(e.target.files?.[0] ?? null); e.target.value = ''; }} />
+      {uploading ? <UploadProgress progress={progress} /> : null}
       {error && <span className="admin-form-error">{error}</span>}
       {value?.startsWith('/') && (
         <audio controls src={value} preload="none" style={{ height: 34, marginTop: 6, width: '100%' }} />

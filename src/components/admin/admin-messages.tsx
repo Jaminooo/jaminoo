@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Trash2, Volume2 } from 'lucide-react';
-import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, fmtDateTime } from './admin-ui';
+import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, ConfirmModal, useConfirm, fmtDateTime, useSelection, SelectCheckbox, SelectionToolbar } from './admin-ui';
 import type { Tone } from './admin-ui';
 
 interface MsgRow {
@@ -30,6 +30,7 @@ export function AdminMessages() {
   const [kind, setKind] = useState('');
   const extra = useMemo(() => ({ kind }), [kind]);
   const list = useAdminList<MsgRow>({ path: '/api/admin/messages', extra, per: 20 });
+  const selection = useSelection(list.rows.map((row) => row.key));
   const { confirm, ask, close } = useConfirm();
   const [busy, setBusy] = useState(false);
 
@@ -37,9 +38,26 @@ export function AdminMessages() {
     setBusy(true);
     try {
       await api(`/api/admin/messages/${id}`, { method: 'DELETE', body: JSON.stringify({ kind }) });
+      selection.clear();
       list.reload();
     } catch (e) {
       console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function delMany(keys: string[]) {
+    setBusy(true);
+    try {
+      await Promise.allSettled(
+        keys.map((key) => {
+          const row = list.rows.find((item) => item.key === key);
+          return row ? api(`/api/admin/messages/${row.id}`, { method: 'DELETE', body: JSON.stringify({ kind: row.kind }) }) : Promise.resolve();
+        })
+      );
+      selection.clear();
+      list.reload();
     } finally {
       setBusy(false);
     }
@@ -59,10 +77,19 @@ export function AdminMessages() {
         <span className="admin-count">{t('admin.items', { n: list.total })}</span>
       </div>
 
+      <SelectionToolbar count={selection.count} onClear={selection.clear}>
+        <button type="button" className="btn btn-danger pill-sm" disabled={busy} onClick={() => ask(t('admin.bulkDelete'), t('admin.deleteMsgConfirm'), () => delMany(selection.selectedIds))}>
+          <Trash2 size={13} /> {t('admin.bulkDelete')}
+        </button>
+      </SelectionToolbar>
+
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
+              <th className="admin-check-cell">
+                <SelectCheckbox checked={selection.allSelected} indeterminate={selection.count > 0 && !selection.allSelected} onChange={() => selection.toggleAll(list.rows.map((row) => row.key))} label={t('admin.selectAll')} />
+              </th>
               <th>#</th>
               <th>{t('admin.sender')}</th>
               <th>{t('admin.in')}</th>
@@ -79,6 +106,9 @@ export function AdminMessages() {
             {!list.loading &&
               list.rows.map((m) => (
                 <tr key={m.key}>
+                  <td className="admin-check-cell">
+                    <SelectCheckbox checked={selection.isSelected(m.key)} onChange={() => selection.toggle(m.key)} label={m.key} />
+                  </td>
                   <td className="admin-mono">{m.key}</td>
                   <td>@{m.sender}</td>
                   <td>
@@ -93,7 +123,9 @@ export function AdminMessages() {
                       {m.type === 'VOICE' ? <Volume2 size={11} /> : t('admin.text')}
                     </Badge>
                   </td>
-                  <td className="admin-ellipsis">{m.text ? truncate(m.text) : m.mediaId ? '🎙' : '—'}</td>
+                  <td className="admin-message-preview">
+                    {m.text ? truncate(m.text) : m.mediaId ? <audio controls preload="none" src={`/api/media/${encodeURIComponent(m.mediaId)}`} /> : '—'}
+                  </td>
                   <td className="admin-num">{m.reactions}</td>
                   <td className="admin-dim" title={fmtDateTime(m.createdAt)}>
                     {fmtDateTime(m.createdAt)}

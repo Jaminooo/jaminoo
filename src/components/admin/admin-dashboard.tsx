@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import {
+  Activity,
   Users,
   UserPlus,
   RadioTower,
@@ -49,6 +50,25 @@ export function AdminDashboard({ stats, events }: { stats: AdminStats | null; ev
 
   return (
     <div className="admin-dashboard">
+      <section className="admin-hero">
+        <div className="admin-hero-copy">
+          <div className="admin-hero-kicker"><span className="admin-live-dot" /> {t('admin.live')} · {t('admin.overview')}</div>
+          <h2>{t('admin.controlRoom')}</h2>
+          <p>{t('admin.dashboardHint')}</p>
+        </div>
+        <div className="admin-hero-summary">
+          <div className="admin-hero-summary-item">
+            <Activity size={16} />
+            <span>{t('admin.systemHealth')}</span>
+            <strong>{t('admin.healthy')}</strong>
+          </div>
+          <div className="admin-hero-summary-item">
+            <Users size={16} />
+            <span>{t('admin.usersOnline')}</span>
+            <strong>{stats.online}</strong>
+          </div>
+        </div>
+      </section>
       <section className="admin-card admin-stats-grid">
         {cards.map((c, i) => (
           <StatCard key={i} {...c} />

@@ -4,10 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/client-api';
 import { connectLive, onLive } from '@/lib/live';
-import { useTranslations } from '@/providers/use-translations';
+import { useLocale, useTranslations } from '@/providers/use-translations';
 import {
+  Activity,
+  ExternalLink,
   Shield,
   LayoutDashboard,
+  Languages,
+  Menu,
   Users,
   RadioTower,
   MessageSquare,
@@ -19,6 +23,7 @@ import {
   ArrowLeft,
   RefreshCw,
   Loader2,
+  X,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminUsers } from './admin-users';
@@ -74,7 +79,9 @@ const TABS: { id: Tab; icon: typeof Users; key: string }[] = [
 
 export function AdminPanel() {
   const t = useTranslations();
+  const { locale, setLocale } = useLocale();
   const [tab, setTab] = useState<Tab>('dashboard');
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [state, setState] = useState<'loading' | 'forbidden' | 'ready'>('loading');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -128,9 +135,15 @@ export function AdminPanel() {
     );
   }
 
+  const selectTab = (nextTab: Tab) => {
+    setTab(nextTab);
+    setMobileOpen(false);
+  };
+
   return (
     <div className="admin-root">
-      <aside className="admin-side">
+      {mobileOpen ? <button className="admin-side-overlay" aria-label={t('admin.closeMenu')} onClick={() => setMobileOpen(false)} /> : null}
+      <aside className={`admin-side ${mobileOpen ? 'open' : ''}`}>
         <div className="admin-brand">
           <span className="wordmark-mark">
             <RadioTower size={17} />
@@ -140,12 +153,17 @@ export function AdminPanel() {
             <em>{t('admin.title')}</em>
           </span>
         </div>
+        <div className="admin-nav-caption">
+          <Activity size={13} />
+          {t('admin.workspace')}
+        </div>
         <nav className="admin-nav">
           {TABS.map(({ id, icon: Icon, key }) => (
             <button
               key={id}
               className={`admin-nav-item ${tab === id ? 'active' : ''}`}
-              onClick={() => setTab(id)}
+              onClick={() => selectTab(id)}
+              aria-current={tab === id ? 'page' : undefined}
             >
               <Icon size={17} />
               <span>{t(key)}</span>
@@ -162,13 +180,34 @@ export function AdminPanel() {
 
       <main className="admin-main">
         <header className="admin-top">
-          <div>
-            <h1>{t(`admin.${tab}`)}</h1>
-            <p>{t('admin.tagline')}</p>
+          <div className="admin-top-copy">
+            <button className="admin-mobile-menu btn-icon" onClick={() => setMobileOpen(true)} aria-label={t('admin.menu')}>
+              <Menu size={18} />
+            </button>
+            <div>
+              <div className="admin-eyebrow">{t('admin.controlRoom')}</div>
+              <h1>{t(`admin.${tab}`)}</h1>
+              <p>{t('admin.tagline')}</p>
+            </div>
           </div>
-          <button className="btn btn-ghost btn-icon-label" onClick={reload} title="refresh">
-            <RefreshCw size={15} />
-          </button>
+          <div className="admin-top-actions">
+            <span className="admin-status-chip"><span className="admin-live-dot" />{t('admin.live')}</span>
+            <button className="admin-language btn-icon-label" onClick={() => setLocale(locale === 'fa' ? 'en' : 'fa')} title={t('admin.language')}>
+              <Languages size={15} />
+              {locale === 'fa' ? 'EN' : 'FA'}
+            </button>
+            <Link className="btn-icon-label admin-open-app" href="/" title={t('admin.openApp')}>
+              <ExternalLink size={15} />
+              <span>{t('admin.openApp')}</span>
+            </Link>
+            <button className="btn btn-ghost btn-icon-label" onClick={reload} title={t('admin.refresh')}>
+              <RefreshCw size={15} />
+              <span className="admin-refresh-label">{t('admin.refresh')}</span>
+            </button>
+            <button className="admin-close-mobile btn-icon" onClick={() => setMobileOpen(false)} aria-label={t('admin.closeMenu')}>
+              <X size={18} />
+            </button>
+          </div>
         </header>
 
         <div className="admin-content">
