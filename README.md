@@ -10,7 +10,7 @@
 | Motion | Framer Motion |
 | Icons | Lucide React |
 | Auth | Credentials (bcrypt) + GitHub OAuth (optional) |
-| DB | Prisma + SQLite |
+| DB | Prisma + PostgreSQL |
 | Uploads | Local `./uploads` (≤5 profile photos per user, deleteable) |
 | State | Zustand |
 | i18n | Custom (FA / EN, RTL + LTR) |
@@ -27,14 +27,15 @@
 
 ```bash
 npm install
-npx prisma db push          # create + sync the SQLite schema
+npx prisma migrate deploy   # apply PostgreSQL migrations
 npm run dev                 # http://localhost:3000
 ```
 
 `.env`:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
 COOKIE_SECURE="0"           # set to "1" behind HTTPS
 GITHUB_CLIENT_ID=""         # optional OAuth
 GITHUB_CLIENT_SECRET=""
@@ -45,7 +46,7 @@ Production:
 
 ```bash
 npm run build
-npm run start   # live server: Next.js + WebSocket (socket.io) + presence
+npm run start   # applies migrations, then starts Next.js + Socket.IO
 ```
 
 ## Git workflow
