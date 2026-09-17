@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="Jami 404">
+  <defs>
+    <linearGradient id="core" x1="165" y1="135" x2="475" y2="525" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FAFF"/><stop offset=".38" stop-color="#DCE4EE"/>
+      <stop offset=".78" stop-color="#AAB7C7"/><stop offset="1" stop-color="#7F8EA0"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="180" y1="220" x2="470" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#69E0FF"/><stop offset=".48" stop-color="#5F8CFF"/><stop offset="1" stop-color="#9A72FF"/>
+    </linearGradient>
+    <linearGradient id="void" x1="230" y1="180" x2="390" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#141B27"/><stop offset="1" stop-color="#0A0F18"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="18" stdDeviation="20" flood-opacity=".22"/></filter>
+    <filter id="glow" x="-200%" y="-200%" width="400%" height="400%"><feGaussianBlur stdDeviation="12"/></filter>
+  </defs>
+
+  <g transform="translate(453 151) rotate(-55)">
+    <path d="M0 24C-17 4-16-22 2-39C20-55 45-49 58-30C70-12 61 10 43 22C27 32 11 34 0 24Z" fill="url(#accent)" opacity=".14" filter="url(#glow)"/>
+    <path d="M0 22C-15 3-14-20 3-36C20-51 43-46 55-28C66-11 58 8 41 19C25 29 10 31 0 22Z" fill="#1B2533" stroke="url(#accent)" stroke-width="4"/>
+    <circle cx="29" cy="-9" r="7" fill="#EAFBFF"/><circle cx="31" cy="-11" r="3" fill="#6FE2FF"/>
+  </g>
+
+  <path d="M431 181C475 202 489 245 475 286" fill="none" stroke="#6D82FF" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 13" opacity=".55"/>
+  <circle cx="430" cy="181" r="4" fill="#70E1FF"/><circle cx="476" cy="286" r="4" fill="#9D78FF"/>
+
+  <g filter="url(#shadow)">
+    <path d="M183 239C147 219 135 178 154 151C171 126 204 129 221 151C233 166 233 190 223 211L210 243Z" fill="#A8B5C5" stroke="#7D8B9C" stroke-width="6"/>
+    <path d="M228 135C311 105 409 128 455 193C494 249 484 337 450 410C425 462 380 492 322 492L263 492C217 492 182 470 168 435C154 401 167 372 190 354C211 338 222 319 217 292C207 238 193 168 228 135Z" fill="url(#core)" stroke="#78879A" stroke-width="7"/>
+    <path d="M211 315C198 355 201 392 228 417C251 439 287 445 326 437C360 430 385 413 399 389" fill="none" stroke="url(#accent)" stroke-width="18" stroke-linecap="round"/>
+    <path d="M211 315C198 355 201 392 228 417C251 439 287 445 326 437" fill="none" stroke="#F2F7FD" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+    <path d="M217 191C237 158 288 147 332 160C372 172 394 207 390 244C386 278 358 302 320 309C281 316 239 302 220 274C204 251 204 216 217 191Z" fill="url(#void)" stroke="#2E3A4B" stroke-width="6"/>
+    <ellipse cx="300" cy="232" rx="18" ry="20" fill="#A97CFF"/><circle cx="295" cy="225" r="3.5" fill="#FFFFFF"/>
+    <path d="M244 259C256 269 269 273 281 270" fill="none" stroke="#738297" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="300" cy="366" rx="46" ry="58" fill="#1B2532" opacity=".92"/>
+    <ellipse cx="300" cy="366" rx="29" ry="37" fill="url(#accent)" opacity=".17"/>
+    <path d="M290 337C284 355 285 374 296 386C307 398 324 394 331 381" fill="none" stroke="url(#accent)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="330" cy="376" r="5" fill="#A97CFF"/>
+    <path d="M428 331C454 336 470 351 470 372C470 390 458 402 444 399" fill="none" stroke="#99A7B8" stroke-width="20" stroke-linecap="round"/>
+    <circle cx="443" cy="398" r="10" fill="#DDE5EF"/>
+    <path d="M236 486C225 507 230 529 250 536C271 543 292 531 298 509" fill="#9AA8B9" stroke="#778699" stroke-width="6"/>
+    <path d="M334 486C331 510 344 527 365 527C386 527 398 512 390 489" fill="#8B99AB" stroke="#778699" stroke-width="6"/>
+  </g>
+  <path d="M256 399C273 391 291 391 307 399" fill="none" stroke="#78889D" stroke-width="5" stroke-linecap="round" stroke-dasharray="3 8"/><text x="214" y="150" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#6DDAFF">?</text>
+</svg>

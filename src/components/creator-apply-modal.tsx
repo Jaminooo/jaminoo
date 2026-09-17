@@ -62,7 +62,7 @@ export function CreatorApplyModal({ hub, open, onClose, onSubmitted }: { hub: Cr
     setSaving(true);
     try {
       const data = await api<{ application: CreatorApplication }>('/api/creator/apply', {
-        method: 'POST',
+        method: isApproved ? 'PUT' : 'POST',
         body: JSON.stringify({ hub, channelName, handle, category, bio, links }),
       });
       setApplication(data.application);
@@ -113,12 +113,12 @@ export function CreatorApplyModal({ hub, open, onClose, onSubmitted }: { hub: Cr
               </div>
               <div className="creator-form-foot">
                 <span><ExternalLink size={13} /> You can update this while it is pending.</span>
-                <button type="submit" className="btn btn-violet" disabled={saving || isApproved}>{saving ? 'Sending…' : isPending ? 'Update application' : <><Send size={14} /> Send for review</>}</button>
+                <button type="submit" className="btn btn-violet" disabled={saving}>{saving ? 'Saving…' : isApproved ? 'Save profile' : isPending ? 'Update application' : <><Send size={14} /> Send for review</>}</button>
               </div>
             </form>
           )}
 
-          {isApproved && <div className="creator-approved-note"><CheckCircle2 size={20} /><div><b>You are ready to publish.</b><span>Close this window and use Create in the hub to start sharing.</span></div></div>}
+          {isApproved && <div className="creator-approved-note"><CheckCircle2 size={20} /><div><b>You are ready to publish.</b><span>Update your public profile here, then keep creating inside the hub.</span></div></div>}
         </div>
       </section>
     </div>

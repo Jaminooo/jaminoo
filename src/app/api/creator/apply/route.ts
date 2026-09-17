@@ -93,3 +93,29 @@ export const POST = handle(async (req: Request) => {
   });
   return json({ application: payload(application) }, 201);
 });
+
+export const PUT = handle(async (req: Request) => {
+  const me = await requireUser();
+  const body = await req.json().catch(() => ({}));
+  const hub = typeof body.hub === 'string' ? body.hub.toUpperCase() : '';
+  const channelName = clean(body.channelName, 80);
+  const handleName = clean(body.handle, 40).replace(/^@+/, '');
+  const bio = clean(body.bio, 700);
+  const category = clean(body.category, 80);
+  const links = parseLinks(body.links);
+
+  if (!HUBS.has(hub)) return err('Choose a valid creator hub');
+  if (channelName.length < 2) return err('Channel name must be at least 2 characters');
+  if (!/^[a-zA-Z0-9._-]{2,40}$/.test(handleName)) return err('Handle can use letters, numbers, dot, dash and underscore');
+
+  const existing = await prisma.creatorApplication.findUnique({
+    where: { userId_hub: { userId: me.id, hub } },
+  });
+  if (!existing || existing.status !== 'APPROVED') return err('An approved creator profile is required', 409);
+
+  const application = await prisma.creatorApplication.update({
+    where: { id: existing.id },
+    data: { channelName, handle: handleName, bio, category, links: JSON.stringify(links) },
+  });
+  return json({ application: payload(application) });
+});

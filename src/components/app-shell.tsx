@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { api } from '@/lib/client-api';
 import { useAppStore } from '@/store/app-store';
-import { AuthScreen } from '@/components/auth-screen';
 import { PanelShell } from '@/components/panel-shell';
 import { TopRightControls } from '@/components/top-controls';
 import { ToastHost } from '@/components/toast-host';
@@ -12,6 +11,7 @@ import { HubGateway } from '@/components/hub-gateway';
 import { MusicHub } from '@/components/music-hub';
 import { VideoHub } from '@/components/video-hub';
 import { CinemaHub } from '@/components/cinema-hub';
+import { LandingPage } from '@/components/landing-page';
 import { useSyncRouting } from '@/lib/sync-routing';
 
 export function AppShell() {
@@ -58,11 +58,7 @@ export function AppShell() {
           </motion.div>
         ) : (
           <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <div className="screen screen-auth">
-              <div className="bg-grid" />
-              <div className="bg-halo" />
-              <AuthScreen />
-            </div>
+            <LandingPage />
           </motion.div>
         )}
       </AnimatePresence>

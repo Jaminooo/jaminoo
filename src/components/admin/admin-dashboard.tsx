@@ -16,10 +16,12 @@ import {
   MailPlus,
   Ban,
   Wifi,
+  ArrowUpRight,
 } from 'lucide-react';
 import { StatCard, timeAgo, HBarChart, BarSeriesChart, dayLabel } from './admin-ui';
-import type { AdminStats, AdminEvent } from './admin-panel';
+import type { AdminStats, AdminEvent, AdminTab } from './admin-panel';
 import type { Tone } from './admin-ui';
+import { JamiMascot } from '@/components/jami-mascot';
 
 const EVENT_TONE: Record<string, Tone> = {
   admin: 'violet',
@@ -29,7 +31,7 @@ const EVENT_TONE: Record<string, Tone> = {
   steel: 'steel',
 };
 
-export function AdminDashboard({ stats, events }: { stats: AdminStats | null; events: AdminEvent[] }) {
+export function AdminDashboard({ stats, events, onNavigate }: { stats: AdminStats | null; events: AdminEvent[]; onNavigate?: (tab: AdminTab) => void }) {
   const t = useTranslations();
   if (!stats) return null;
   const cards: { icon: ReactNode; label: string; value: number; tone: Tone }[] = [
@@ -55,6 +57,9 @@ export function AdminDashboard({ stats, events }: { stats: AdminStats | null; ev
           <div className="admin-hero-kicker"><span className="admin-live-dot" /> {t('admin.live')} · {t('admin.overview')}</div>
           <h2>{t('admin.controlRoom')}</h2>
           <p>{t('admin.dashboardHint')}</p>
+        </div>
+        <div className="admin-hero-mascot" aria-hidden="true">
+          <JamiMascot state="v2" size={138} />
         </div>
         <div className="admin-hero-summary">
           <div className="admin-hero-summary-item">
@@ -88,6 +93,41 @@ export function AdminDashboard({ stats, events }: { stats: AdminStats | null; ev
           </header>
           <BarSeriesChart rows={(stats.signupTrend ?? []).map((r) => ({ label: dayLabel(r.date), value: r.count }))} emptyText={t('admin.signupsEmpty')} />
         </div>
+      </section>
+
+      <section className="admin-ops-grid">
+        <button className="admin-card admin-ops-card" onClick={() => onNavigate?.('jams')}>
+          <span className="admin-ops-icon admin-ops-violet"><RadioTower size={18} /></span>
+          <span className="admin-ops-copy">
+            <strong>{stats.openJams} / {stats.jams}</strong>
+            <small>{t('admin.openJams')} · {t('admin.totalJams')}</small>
+          </span>
+          <ArrowUpRight size={16} className="admin-ops-arrow" />
+        </button>
+        <button className="admin-card admin-ops-card" onClick={() => onNavigate?.('messages')}>
+          <span className="admin-ops-icon admin-ops-green"><Activity size={18} /></span>
+          <span className="admin-ops-copy">
+            <strong>{stats.jamMsgs24h + stats.dmMsgs24h}</strong>
+            <small>{t('admin.msgs24h')}</small>
+          </span>
+          <ArrowUpRight size={16} className="admin-ops-arrow" />
+        </button>
+        <button className="admin-card admin-ops-card" onClick={() => onNavigate?.('users')}>
+          <span className="admin-ops-icon admin-ops-amber"><MailPlus size={18} /></span>
+          <span className="admin-ops-copy">
+            <strong>{stats.pendingInvites}</strong>
+            <small>{t('admin.pendingInvites')}</small>
+          </span>
+          <ArrowUpRight size={16} className="admin-ops-arrow" />
+        </button>
+        <button className="admin-card admin-ops-card" onClick={() => onNavigate?.('media')}>
+          <span className="admin-ops-icon admin-ops-teal"><ImageIcon size={18} /></span>
+          <span className="admin-ops-copy">
+            <strong>{stats.media}</strong>
+            <small>{t('admin.mediaFiles')}</small>
+          </span>
+          <ArrowUpRight size={16} className="admin-ops-arrow" />
+        </button>
       </section>
 
       <section className="admin-card admin-feed-card">

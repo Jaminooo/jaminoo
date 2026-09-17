@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import Image from 'next/image';
 import {
   BadgeCheck,
+  BarChart3,
   Bookmark,
   Camera,
   Clapperboard,
@@ -20,11 +21,13 @@ import {
   MoreHorizontal,
   Play,
   Plus,
+  Pencil,
   Search,
   Send,
   Share2,
   Sparkles,
   Tv2,
+  TrendingUp,
   UploadCloud,
   UsersRound,
   Volume2,
@@ -324,8 +327,37 @@ function CommentsModal({ post, open, onClose, onAdded }: { post: VideoPost | nul
   );
 }
 
-function CreatorStudio({ posts, loading, onDelete }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void }) {
+function LegacyCreatorStudio({ posts, loading, onDelete }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void }) {
   return <section className="creator-studio-view"><div className="creator-studio-hero"><div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review your published work, remove a post, or create the next short and long video.</p></div><LayoutDashboard size={32} /></div>{loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <div className="creator-studio-grid">{posts.map((post) => <article className="creator-studio-card" key={post.id}><div className="creator-studio-card-media">{post.mediaType === 'VIDEO' ? <video controls playsInline poster={post.thumbnailUrl || undefined} src={post.assetUrl || post.externalUrl || undefined} /> : post.mediaType === 'IMAGE' ? <Image src={post.assetUrl || post.externalUrl || ''} alt="" fill unoptimized /> : <div><Sparkles size={18} /><span>{post.description || post.title}</span></div>}</div><div className="creator-studio-card-copy"><div><b>{post.title || 'Untitled post'}</b><small>{post.kind} · {new Date(post.createdAt).toLocaleDateString()}</small></div><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div></article>)}</div>}</section>;
+}
+
+function CreatorStudio({ posts, loading, onDelete, onEditProfile }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void; onEditProfile: () => void }) {
+  const likes = posts.reduce((sum, post) => sum + post.likes, 0);
+  const saves = posts.reduce((sum, post) => sum + post.saves, 0);
+  const comments = posts.reduce((sum, post) => sum + post.comments, 0);
+  const interactions = likes + saves + comments;
+
+  return (
+    <section className="creator-studio-view">
+      <div className="creator-studio-hero">
+        <div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review every post, understand the response and update your public channel profile without leaving the hub.</p></div>
+        <div className="creator-studio-hero-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={onEditProfile}><Pencil size={14} /> Edit channel</button><LayoutDashboard size={32} /></div>
+      </div>
+      <div className="creator-studio-metrics">
+        <div className="creator-studio-metric"><BarChart3 size={17} /><b>{posts.length}</b><span>Published posts</span></div>
+        <div className="creator-studio-metric"><Heart size={17} /><b>{likes}</b><span>Total likes</span></div>
+        <div className="creator-studio-metric"><Bookmark size={17} /><b>{saves}</b><span>Total saves</span></div>
+        <div className="creator-studio-metric"><MessageCircle size={17} /><b>{interactions}</b><span>Audience actions</span></div>
+      </div>
+      {loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <>
+        <div className="creator-studio-toolbar"><p>Per-post analytics from likes, saves and comments.</p><span className="creator-studio-edit"><TrendingUp size={14} /> {interactions} tracked interactions</span></div>
+        <div className="creator-studio-table">
+          <div className="creator-studio-row creator-studio-row-head"><span>Post</span><span>Likes</span><span>Saves</span><span>Comments</span><span>Type</span><span /></div>
+          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || 'Untitled post'}</b><small>{new Date(post.createdAt).toLocaleDateString()}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>likes</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>saves</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>comments</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>format</span><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div>)}
+        </div>
+      </>}
+    </section>
+  );
 }
 
 export function VideoHub() {
@@ -520,7 +552,7 @@ export function VideoHub() {
 
           {view === 'creators' && <section className="creator-hub-panel"><div className="creator-hub-art"><BadgeCheck size={34} /><span /><span /><span /></div><div><div className="hub-kicker">CREATOR SPACE</div><h2>Make a channel people remember.</h2><p>Apply once, publish after approval, and keep your creator identity connected across Jamino hubs.</p><button type="button" className="btn btn-violet" onClick={() => setCreatorOpen(true)}><Sparkles size={15} /> Open creator application</button></div><div className="creator-perks"><div><UploadCloud size={18} /><b>Publish</b><span>Photos, posts and video uploads.</span></div><div><Heart size={18} /><b>Connect</b><span>Likes, saves and comments.</span></div><div><Film size={18} /><b>Grow</b><span>Shorts and long-form in one feed.</span></div></div></section>}
 
-          {view === 'studio' && <CreatorStudio posts={studioPosts} loading={studioLoading} onDelete={(post) => void deleteStudioPost(post)} />}
+          {view === 'studio' && <CreatorStudio posts={studioPosts} loading={studioLoading} onDelete={(post) => void deleteStudioPost(post)} onEditProfile={() => setCreatorOpen(true)} />}
           {view === 'playlists' && <section className="video-playlists-view"><div className="video-playlist-hero"><ListVideo size={26} /><div><div className="hub-kicker">YOUR LIBRARY</div><h2>Keep a queue for later.</h2><p>Save a post to Watchlist now; named playlists are ready for the next phase of the hub.</p></div></div><form className="video-create-playlist" onSubmit={createPlaylist}><input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder="New video playlist" maxLength={80} /><button type="submit" className="btn btn-violet pill-sm"><Plus size={14} /> Create</button></form><div className="video-playlist-grid">{playlists.length === 0 && <div className="video-hub-empty"><ListVideo size={22} /><b>No playlists yet.</b><span>Create a place for your next watch session.</span></div>}{playlists.map((playlist) => <div className="video-playlist-card" key={playlist}><ListVideo size={20} /><b>{playlist}</b><span>Ready for saved videos</span></div>)}</div></section>}
 
           {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><video controls playsInline src={activeUrl} /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}

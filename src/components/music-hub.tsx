@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { BadgeCheck, Heart, History, House, ListMusic, Music2, Pause, Play, Plus, Radio, Search, SkipForward, Sparkles, UsersRound } from 'lucide-react';
+import { BadgeCheck, Heart, History, House, LayoutDashboard, ListMusic, Music2, Pause, Play, Plus, Radio, Search, SkipForward, Sparkles, UsersRound } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { useAppStore } from '@/store/app-store';
@@ -10,7 +10,7 @@ import { artistLabel, type MusicSong } from '@/components/music-player';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 
-type MusicView = 'home' | 'discover' | 'library' | 'playlists' | 'favorites' | 'history' | 'radio';
+type MusicView = 'home' | 'discover' | 'library' | 'playlists' | 'favorites' | 'history' | 'radio' | 'studio';
 
 interface FavoriteRow { songId: number; song: MusicSong; createdAt: string; }
 interface HistoryRow { id: number; song: MusicSong; playedAt: string; }
@@ -24,6 +24,7 @@ const NAV: { id: MusicView; label: string; icon: typeof Music2 }[] = [
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'history', label: 'History', icon: History },
   { id: 'radio', label: 'Radio', icon: Radio },
+  { id: 'studio', label: 'Studio', icon: LayoutDashboard },
 ];
 
 function timeLabel(sec: number) {
@@ -49,6 +50,16 @@ function SongRow({ song, active, playing, favorite, playlists, onPlay, onFavorit
   );
 }
 
+function MusicStudio({ catalog, favorites, history, playlists, onEditProfile }: { catalog: MusicSong[]; favorites: FavoriteRow[]; history: HistoryRow[]; playlists: Playlist[]; onEditProfile: () => void }) {
+  return (
+    <section className="creator-studio-view">
+      <div className="creator-studio-hero"><div><div className="hub-kicker">MUSIC CREATOR STUDIO</div><h2>Your artist workspace.</h2><p>Keep your artist profile ready, understand your catalogue footprint and see how your connected library is moving.</p></div><button type="button" className="btn btn-ghost pill-sm" onClick={onEditProfile}><BadgeCheck size={14} /> Edit artist profile</button></div>
+      <div className="creator-studio-metrics"><div className="creator-studio-metric"><Music2 size={17} /><b>{catalog.length}</b><span>Tracks discoverable</span></div><div className="creator-studio-metric"><Heart size={17} /><b>{favorites.length}</b><span>Audience favourites</span></div><div className="creator-studio-metric"><History size={17} /><b>{history.length}</b><span>Recent listens</span></div><div className="creator-studio-metric"><ListMusic size={17} /><b>{playlists.length}</b><span>Saved playlists</span></div></div>
+      <div className="creator-studio-profile"><span className="hub-empty-icon"><Music2 size={20} /></span><div><b>Artist profile and release desk</b><span>Profile changes are saved to your approved Music Hub creator identity. Releases remain moderated through the Jamino music catalogue.</span></div><button type="button" className="btn btn-violet pill-sm" onClick={onEditProfile}>Manage profile</button></div>
+    </section>
+  );
+}
+
 export function MusicHub() {
   const setProduct = useAppStore((state) => state.setProduct);
   const setTab = useAppStore((state) => state.setTab);
@@ -65,6 +76,7 @@ export function MusicHub() {
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [creatorStatus, setCreatorStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const favoriteIds = useMemo(() => new Set(favorites.map((item) => item.songId)), [favorites]);
@@ -95,6 +107,7 @@ export function MusicHub() {
   useEffect(() => {
     loadCatalog();
     loadLibrary().catch(() => {});
+    api<{ applications: { status: 'PENDING' | 'APPROVED' | 'REJECTED' }[] }>('/api/creator/apply?hub=MUSIC').then((data) => setCreatorStatus(data.applications[0]?.status ?? null)).catch(() => {});
   }, [loadCatalog, loadLibrary]);
 
   useEffect(() => {
@@ -181,7 +194,7 @@ export function MusicHub() {
           <button type="button" className="music-hub-jam-link" onClick={() => { setProduct('community'); setTab('jams'); }}><UsersRound size={15} /> Join a Jam</button>
         </aside>
         <main className="music-hub-main">
-          <header className="music-hub-heading"><div><div className="hub-kicker">MUSIC HUB</div><h1>{view === 'home' ? 'Your sound, your space.' : NAV.find((item) => item.id === view)?.label}</h1><p>{view === 'home' ? 'Discover music, build your library and take the room with you.' : 'Everything stays connected to your Jamino account.'}</p></div><div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> Become a creator</button>{view === 'discover' && <form className="music-hub-search" onSubmit={(event) => { event.preventDefault(); loadCatalog(query); }}><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search songs and artists…" /><button type="submit" className="btn btn-violet pill-sm">Search</button></form>}</div></header>
+          <header className="music-hub-heading"><div><div className="hub-kicker">MUSIC HUB</div><h1>{view === 'home' ? 'Your sound, your space.' : NAV.find((item) => item.id === view)?.label}</h1><p>{view === 'home' ? 'Discover music, build your library and take the room with you.' : 'Everything stays connected to your Jamino account.'}</p></div><div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> {creatorStatus === 'APPROVED' ? 'Artist profile' : 'Become a creator'}</button>{view === 'discover' && <form className="music-hub-search" onSubmit={(event) => { event.preventDefault(); loadCatalog(query); }}><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search songs and artists…" /><button type="submit" className="btn btn-violet pill-sm">Search</button></form>}</div></header>
 
           {view === 'home' && <>
             <div className="music-hub-hero"><div><Sparkles size={20} /><h2>Make a soundtrack for the moment.</h2><p>Save favorites, build playlists and continue listening from any Jam.</p></div><button type="button" className="btn btn-violet" onClick={() => setView('discover')}>Explore music</button></div>
@@ -194,6 +207,8 @@ export function MusicHub() {
 
           {view === 'radio' && <div className="music-hub-radio-card"><Radio size={22} /><div><h2>Jamino Radio</h2><p>Start a continuous mix from the tracks in your library.</p></div><button type="button" className="btn btn-violet" disabled={!radioSongs.length} onClick={() => playSong(radioSongs[0])}><Play size={14} /> Start radio</button></div>}
 
+          {view === 'studio' && <MusicStudio catalog={catalog} favorites={favorites} history={history} playlists={playlists} onEditProfile={() => setCreatorOpen(true)} />}
+
           {view === 'library' && <div className="music-library-columns"><section><div className="music-hub-section-head"><h2>Favorites</h2><button type="button" className="btn btn-ghost pill-sm" onClick={() => setView('favorites')}>Open</button></div>{favorites.slice(0, 5).map((item) => <SongRow key={item.songId} song={item.song} active={current?.id === item.song.id} playing={playing && current?.id === item.song.id} favorite onPlay={() => playSong(item.song)} onFavorite={() => toggleFavorite(item.song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, item.song.id)} />)}</section><section><div className="music-hub-section-head"><h2>History</h2><button type="button" className="btn btn-ghost pill-sm" onClick={() => setView('history')}>Open</button></div>{history.slice(0, 5).map((item) => <SongRow key={item.id} song={item.song} active={current?.id === item.song.id} playing={playing && current?.id === item.song.id} favorite={favoriteIds.has(item.song.id)} onPlay={() => playSong(item.song)} onFavorite={() => toggleFavorite(item.song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, item.song.id)} />)}</section></div>}
 
           {(view === 'home' || view === 'discover' || view === 'favorites' || view === 'history') && <div className="music-hub-song-list">{searching && <div className="empty-state">Searching…</div>}{!searching && visibleSongs.length === 0 && <div className="music-hub-empty"><Music2 size={22} /><b>No tracks here yet.</b><span>Add music from a Jam or ask an admin to populate the catalog.</span></div>}{!searching && visibleSongs.map((song) => <SongRow key={song.id} song={song} active={current?.id === song.id} playing={playing && current?.id === song.id} favorite={favoriteIds.has(song.id)} onPlay={() => playSong(song)} onFavorite={() => toggleFavorite(song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, song.id)} />)}</div>}
@@ -203,8 +218,8 @@ export function MusicHub() {
       </div>
       <audio ref={audioRef} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || current?.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onEnded={() => setPlaying(false)} />
       {current && <div className="music-hub-player"><button type="button" className="music-hub-player-main" onClick={() => playSong(current)}>{current.coverUrl ? <Image src={current.coverUrl} alt="" fill unoptimized /> : <Music2 size={16} />}<span><b>{current.title}</b><small>{artistLabel(current)}</small></span></button><button type="button" className="btn-icon music-hub-play-button" onClick={() => playSong(current)}>{playing ? <Pause size={18} /> : <Play size={18} />}</button><input className="music-hub-range" type="range" min={0} max={duration || current.durationSec || 1} step={0.1} value={Math.min(position, duration || current.durationSec || 1)} onChange={(event) => { const next = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = next; setPosition(next); }} /><span className="music-hub-player-time">{timeLabel(position)} / {timeLabel(duration || current.durationSec)}</span><button type="button" className="btn-icon" onClick={() => { const next = radioSongs.find((song) => song.id !== current.id); if (next) playSong(next); }} title="Next"><SkipForward size={16} /></button></div>}
-      <nav className="hub-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label="Hub home"><House size={17} /><span>Home</span></button>{NAV.slice(1, 5).map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
-      <CreatorApplyModal hub="MUSIC" open={creatorOpen} onClose={() => setCreatorOpen(false)} />
+      <nav className="hub-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label="Hub home"><House size={17} /><span>Home</span></button>{NAV.filter(({ id }) => id === 'discover' || id === 'library' || id === 'playlists' || id === 'studio').map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
+      <CreatorApplyModal hub="MUSIC" open={creatorOpen} onClose={() => setCreatorOpen(false)} onSubmitted={(application) => setCreatorStatus(application.status)} />
     </div>
   );
 }

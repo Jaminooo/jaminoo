@@ -52,6 +52,7 @@ export interface MusicSong {
   coverUrl: string | null;
   featured: boolean;
   explicit: boolean;
+  plays: number;
 }
 
 export interface MusicState {

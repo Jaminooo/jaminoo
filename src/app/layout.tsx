@@ -5,8 +5,14 @@ import { I18nProvider } from '@/providers/i18n-provider';
 import { PwaRegister } from '@/components/pwa-register';
 
 export const metadata: Metadata = {
-  title: 'Jamino — Hang out, without the noise',
-  description: 'Rooms for your people. Find friends, drop into a jam, and talk.',
+  title: 'Jamino — Social rooms, music, video and cinema together',
+  description: 'Jamino brings private rooms, synced music, creator channels and watch-together moments into one connected workspace.',
+  keywords: ['Jamino', 'social rooms', 'listen together', 'creator studio', 'video hub', 'music hub', 'watch together'],
+  openGraph: {
+    title: 'Jamino — Hang out, without the noise',
+    description: 'A connected workspace for your people, sounds and stories.',
+    type: 'website',
+  },
   manifest: '/manifest.webmanifest',
 };
 

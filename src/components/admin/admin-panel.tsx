@@ -62,9 +62,9 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-type Tab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema';
+export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema';
 
-const TABS: { id: Tab; icon: typeof Users; key: string }[] = [
+const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
   { id: 'users', icon: Users, key: 'admin.users' },
   { id: 'jams', icon: RadioTower, key: 'admin.jams' },
@@ -80,7 +80,7 @@ const TABS: { id: Tab; icon: typeof Users; key: string }[] = [
 export function AdminPanel() {
   const t = useTranslations();
   const { locale, setLocale } = useLocale();
-  const [tab, setTab] = useState<Tab>('dashboard');
+  const [tab, setTab] = useState<AdminTab>('dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [state, setState] = useState<'loading' | 'forbidden' | 'ready'>('loading');
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -135,7 +135,7 @@ export function AdminPanel() {
     );
   }
 
-  const selectTab = (nextTab: Tab) => {
+  const selectTab = (nextTab: AdminTab) => {
     setTab(nextTab);
     setMobileOpen(false);
   };
@@ -211,7 +211,7 @@ export function AdminPanel() {
         </header>
 
         <div className="admin-content">
-          {tab === 'dashboard' && <AdminDashboard stats={stats} events={events} />}
+          {tab === 'dashboard' && <AdminDashboard stats={stats} events={events} onNavigate={selectTab} />}
           {tab === 'users' && <AdminUsers />}
           {tab === 'jams' && <AdminJams />}
           {tab === 'messages' && <AdminMessages />}
