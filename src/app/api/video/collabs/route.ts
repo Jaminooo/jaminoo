@@ -29,6 +29,8 @@ export const POST = handle(async (req) => {
     ? await prisma.videoCollabInvite.update({ where: { id: existing.id }, data: { fromId: me.id, status: 'PENDING', message }, include: { post: { select: { id: true, title: true, kind: true } }, from: { select: userSelect }, to: { select: userSelect } } })
     : await prisma.videoCollabInvite.create({ data: { postId, fromId: me.id, toId: toUserId, message }, include: { post: { select: { id: true, title: true, kind: true } }, from: { select: userSelect }, to: { select: userSelect } } });
   await prisma.notification.create({ data: { userId: toUserId, kind: 'VIDEO_COLLAB', payload: JSON.stringify({ inviteId: invite.id, postId, title: post.title, kind: post.kind, fromId: me.id, username: me.username }) } });
+  (globalThis as any).__jaminoLive?.io?.to(`user:${toUserId}`).emit('video:collab:update', { inviteId: invite.id, action: 'invite' });
+  (globalThis as any).__jaminoLive?.io?.to(`user:${me.id}`).emit('video:collab:update', { inviteId: invite.id, action: 'invite' });
   return json({ invite }, 201);
 });
 
@@ -42,5 +44,7 @@ export const PATCH = handle(async (req) => {
   if (!invite || invite.toId !== me.id) return err('Invite not found', 404);
   const updated = await prisma.videoCollabInvite.update({ where: { id: inviteId }, data: { status: action } });
   await prisma.notification.create({ data: { userId: invite.fromId, kind: 'VIDEO_COLLAB_RESPONSE', payload: JSON.stringify({ inviteId, postId: invite.postId, title: invite.post.title, status: action, userId: me.id, username: me.username }) } });
+  (globalThis as any).__jaminoLive?.io?.to(`user:${invite.fromId}`).emit('video:collab:update', { inviteId, action: action.toLowerCase() });
+  (globalThis as any).__jaminoLive?.io?.to(`user:${me.id}`).emit('video:collab:update', { inviteId, action: action.toLowerCase() });
   return json({ invite: updated });
 });

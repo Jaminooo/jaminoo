@@ -12,6 +12,7 @@ async function canAccessMedia(meId: number, mediaId: string, isAdmin = false) {
     where: { id: mediaId },
     select: {
       id: true,
+      kind: true,
       userId: true,
       profileUser: { select: { id: true } },
       messages: { select: { jamId: true } },
@@ -24,6 +25,7 @@ async function canAccessMedia(meId: number, mediaId: string, isAdmin = false) {
   if (!media) return false;
   if (isAdmin) return true;
   if (media.userId === meId) return true;
+  if (media.kind === 'CINEMA_ASSET') return true;
   if (media.videoPosts.length > 0 || media.videoThumbnails.length > 0 || media.tweetAssets.length > 0) return true;
 
   if (media.profileUser) {

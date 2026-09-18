@@ -21,6 +21,11 @@ interface CinemaItem {
   durationSec: number;
 }
 
+const CINEMA_SAMPLES: CinemaItem[] = [
+  { id: -1, title: 'Spider-Man: New Brand', description: 'A featured movie slot prepared for the first Cinema release. The video and dedicated player will be connected later.', kind: 'MOVIE', externalUrl: null, thumbnailUrl: null, subtitlesUrl: null, durationSec: 0 },
+  { id: -2, title: 'Spider-Man: New Brand — Series', description: 'A series slot prepared for future episodes. Episodes will appear here when the Cinema catalogue is ready.', kind: 'SERIES', externalUrl: null, thumbnailUrl: null, subtitlesUrl: null, durationSec: 0 },
+];
+
 function durationLabel(seconds: number) {
   if (!seconds) return '';
   const minutes = Math.floor(seconds / 60);
@@ -61,7 +66,8 @@ export function CinemaHub() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const visibleItems = useMemo(() => tab === 'my-list' ? items.filter((item) => savedIds.includes(item.id)) : items, [items, savedIds, tab]);
+  const catalogueItems = items.length || tab === 'my-list' ? items : CINEMA_SAMPLES.filter((item) => tab === 'home' || item.kind === (tab === 'movies' ? 'MOVIE' : 'SERIES'));
+  const visibleItems = useMemo(() => tab === 'my-list' ? catalogueItems.filter((item) => savedIds.includes(item.id)) : catalogueItems, [catalogueItems, savedIds, tab]);
 
   const toggleSaved = (item: CinemaItem) => {
     const next = savedIds.includes(item.id) ? savedIds.filter((id) => id !== item.id) : [...savedIds, item.id];

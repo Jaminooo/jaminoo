@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Handshake, Mail, Send, UsersRound, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
+import { connectLive, onLive } from '@/lib/live';
 import { toast } from '@/components/toast';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 
@@ -22,6 +23,10 @@ export function CreatorCollabStudio({ posts }: { posts: CollabPost[] }) {
   useEffect(() => {
     api<{ friends: Friend[] }>('/api/friends').then((data) => setFriends(data.friends)).catch(() => {});
     api<{ received: Invite[]; sent: Invite[] }>('/api/video/collabs').then((data) => { setReceived(data.received); setSent(data.sent); }).catch(() => {});
+    connectLive();
+    const refresh = () => api<{ received: Invite[]; sent: Invite[] }>('/api/video/collabs').then((data) => { setReceived(data.received); setSent(data.sent); }).catch(() => {});
+    const off = onLive('video:collab:update', refresh);
+    return off;
   }, []);
 
   useEffect(() => { if (!postId && posts[0]?.id) setPostId(String(posts[0].id)); }, [posts, postId]);

@@ -34,9 +34,10 @@ async function hasApprovedCreator(userId: number) {
 
 export const POST = handle(async (req: Request) => {
   const me = await requireUser();
-  if (!(await hasApprovedCreator(me.id))) return err('Creator approval is required before uploading media', 403);
-
   const form = await req.formData();
+  const context = form.get('context') === 'cinema' ? 'cinema' : 'video';
+  if (context !== 'cinema' && !(await hasApprovedCreator(me.id))) return err('Creator approval is required before uploading media', 403);
+  if (context === 'cinema' && !me.isAdmin) return err('Admin access is required for cinema uploads', 403);
   const file = form.get('file');
   if (!(file instanceof File)) return err('No file provided');
   if (file.size <= 0) return err('The selected file is empty');
@@ -60,7 +61,7 @@ export const POST = handle(async (req: Request) => {
     data: {
       id,
       userId: me.id,
-      kind: mime.startsWith('image/') ? 'IMAGE_ASSET' : 'VIDEO_ASSET',
+      kind: context === 'cinema' ? 'CINEMA_ASSET' : (mime.startsWith('image/') ? 'IMAGE_ASSET' : 'VIDEO_ASSET'),
       filename,
       mime,
       size: file.size,
