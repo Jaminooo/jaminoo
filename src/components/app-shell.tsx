@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { api } from '@/lib/client-api';
 import { useAppStore } from '@/store/app-store';
 import { PanelShell } from '@/components/panel-shell';
@@ -19,6 +19,9 @@ import { useSyncRouting } from '@/lib/sync-routing';
 export function AppShell() {
   const { me, booted, setMe, setBooted, product } = useAppStore();
   useSyncRouting();
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const scrollPositions = useRef<Record<string, number>>({});
+  const previousKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -32,6 +35,17 @@ export function AppShell() {
       }
     })();
   }, [setMe, setBooted]);
+
+  const sceneKey = me ? (product === 'home' ? 'home' : `product:${product}`) : 'auth';
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const previous = previousKeyRef.current;
+    if (previous && previous !== sceneKey) scrollPositions.current[previous] = scroller.scrollTop;
+    previousKeyRef.current = sceneKey;
+    scroller.scrollTop = scrollPositions.current[sceneKey] ?? 0;
+  }, [sceneKey]);
 
   if (!booted) {
     return (
@@ -50,20 +64,18 @@ export function AppShell() {
   }
 
   return (
-    <>
+    <div className="app-root">
       {!me && <TopRightControls />}
       <ToastHost />
       <AnimatePresence mode="wait">
-        {me ? (
-          <motion.div key="panel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            {product === 'home' ? <HubGateway /> : product === 'music' ? <MusicHub /> : product === 'video' ? <VideoHub /> : product === 'cinema' ? <CinemaHub /> : product === 'tweet' ? <TweetHub /> : product === 'anime' ? <AnimeHub /> : <PanelShell />}
-          </motion.div>
-        ) : (
-          <motion.div key="auth" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+        <motion.div key={sceneKey} className="app-scroller" ref={scrollerRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          {me ? (
+            product === 'home' ? <HubGateway /> : product === 'music' ? <MusicHub /> : product === 'video' ? <VideoHub /> : product === 'cinema' ? <CinemaHub /> : product === 'tweet' ? <TweetHub /> : product === 'anime' ? <AnimeHub /> : <PanelShell />
+          ) : (
             <LandingPage />
-          </motion.div>
-        )}
+          )}
+        </motion.div>
       </AnimatePresence>
-    </>
+    </div>
   );
 }
