@@ -1,0 +1,30 @@
+<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#070A17"/>
+      <stop offset="0.55" stop-color="#151035"/>
+      <stop offset="1" stop-color="#27104B"/>
+    </linearGradient>
+    <linearGradient id="orb" x1="270" y1="70" x2="1340" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="0.5" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#FB7185"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="42"/></filter>
+    <filter id="glow"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" stroke="#fff" stroke-opacity=".055"/></pattern>
+  </defs>
+  <rect width="1600" height="520" rx="30" fill="url(#bg)"/>
+  <rect width="1600" height="520" rx="30" fill="url(#grid)"/>
+  <circle cx="1260" cy="40" r="250" fill="#8B5CF6" fill-opacity=".22" filter="url(#blur)"/>
+  <circle cx="380" cy="500" r="220" fill="#38BDF8" fill-opacity=".18" filter="url(#blur)"/>
+  <path d="M880 72C1090 30 1355 132 1450 310C1510 424 1420 516 1275 492C1125 468 1065 347 930 314C790 280 708 108 880 72Z" fill="url(#orb)" fill-opacity=".18" stroke="url(#orb)" stroke-opacity=".42"/>
+  <path d="M1070 116C1190 92 1342 156 1380 267C1410 355 1342 412 1256 392C1164 370 1128 282 1048 255C968 228 978 136 1070 116Z" fill="#0A0B1A" fill-opacity=".7" stroke="#fff" stroke-opacity=".12"/>
+  <g filter="url(#glow)"><path d="M1230 128L1110 344" stroke="#fff" stroke-width="25" stroke-linecap="round"/><path d="M1270 266C1286 237 1325 235 1340 262C1350 280 1344 294 1332 311L1302 383C1290 412 1250 416 1234 389C1226 375 1227 365 1235 347L1260 288C1264 280 1266 273 1270 266Z" fill="#FB7185"/></g>
+  <g fill="#fff"><circle cx="1010" cy="90" r="3" fill-opacity=".8"/><circle cx="1430" cy="116" r="4" fill-opacity=".55"/><circle cx="1500" cy="410" r="3" fill-opacity=".7"/><circle cx="920" cy="430" r="4" fill-opacity=".45"/></g>
+  <text x="108" y="205" fill="#A5B4FC" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="5">A SOCIAL UNIVERSE FOR YOUR PEOPLE</text>
+  <text x="100" y="300" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="92" font-weight="800" letter-spacing="-5">JAMINO</text>
+  <text x="108" y="350" fill="#CBD5E1" fill-opacity=".82" font-family="Inter,Arial,sans-serif" font-size="22">Rooms · Music · Video · Cinema · Anime · Moments</text>
+  <rect x="108" y="392" width="210" height="44" rx="22" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".16"/>
+  <text x="138" y="421" fill="#fff" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="700">NEXT-GEN COMMUNITY</text>
+</svg>
