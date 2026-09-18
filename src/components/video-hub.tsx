@@ -19,16 +19,19 @@ import {
   LayoutDashboard,
   MessageCircle,
   MoreHorizontal,
+  Pencil,
   Play,
   Plus,
-  Pencil,
   Search,
   Send,
   Share2,
   Sparkles,
-  Tv2,
+  Trash2,
   TrendingUp,
+  Tv2,
   UploadCloud,
+  UserPlus,
+  UserRoundCheck,
   UsersRound,
   Volume2,
   VolumeX,
@@ -81,6 +84,33 @@ interface VideoComment {
   text: string;
   createdAt: string;
   user: VideoAuthor;
+}
+
+interface VideoPlaylistSummary {
+  id: number;
+  name: string;
+  description: string;
+  count: number;
+  createdAt: string;
+}
+
+interface VideoPlaylistDetail extends VideoPlaylistSummary {
+  items: { id: number; postId: number; note: string; post: VideoPost | null }[];
+}
+
+interface DiscoverCreator {
+  id: number;
+  username: string;
+  avatarId: number;
+  avatarPhoto: string | null;
+  channelName: string;
+  handle: string;
+  category: string;
+  bio: string;
+  followers: number;
+  postCount: number;
+  following: boolean;
+  latestPosts: VideoPost[];
 }
 
 const NAV: { id: VideoView; label: string; icon: typeof Film }[] = [
@@ -150,7 +180,7 @@ function VideoMedia({ post }: { post: VideoPost }) {
   return <div className="video-card-media video-card-text"><Sparkles size={25} /><p>{post.description || post.title || 'A new thought from Jamino.'}</p></div>;
 }
 
-function VideoCard({ post, compact = false, onOpen, onOpenPost, onOpenCreator, onLike, onSave, onComment, onShare, onReport }: { post: VideoPost; compact?: boolean; onOpen?: () => void; onOpenPost?: () => void; onOpenCreator?: () => void; onLike: () => void; onSave: () => void; onComment: () => void; onShare: () => void; onReport?: () => void }) {
+function VideoCard({ post, compact = false, onOpen, onOpenPost, onOpenCreator, onLike, onSave, onComment, onShare, onReport, onSaveToPlaylist }: { post: VideoPost; compact?: boolean; onOpen?: () => void; onOpenPost?: () => void; onOpenCreator?: () => void; onLike: () => void; onSave: () => void; onComment: () => void; onShare: () => void; onReport?: () => void; onSaveToPlaylist?: () => void }) {
   const openPost = onOpenPost ?? onOpen ?? (() => {});
   const openCreator = onOpenCreator ?? onOpen ?? openPost;
   return (
@@ -172,6 +202,7 @@ function VideoCard({ post, compact = false, onOpen, onOpenPost, onOpenCreator, o
         <button type="button" onClick={onComment} title="Comments"><MessageCircle size={17} /><span>{post.comments}</span></button>
         <button type="button" className={post.saved ? 'active' : ''} onClick={onSave} title="Save"><Bookmark size={17} fill={post.saved ? 'currentColor' : 'none'} /><span>{post.saves}</span></button>
         <button type="button" onClick={onShare} title="Share"><Share2 size={17} /></button>
+        {onSaveToPlaylist && <button type="button" onClick={onSaveToPlaylist} title="Save to playlist"><ListVideo size={17} /></button>}
         {onReport && <button type="button" onClick={onReport} title="Report"><Flag size={16} /></button>}
       </div>
     </article>
@@ -328,36 +359,309 @@ function CommentsModal({ post, open, onClose, onAdded }: { post: VideoPost | nul
   );
 }
 
-function LegacyCreatorStudio({ posts, loading, onDelete }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void }) {
-  return <section className="creator-studio-view"><div className="creator-studio-hero"><div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review your published work, remove a post, or create the next short and long video.</p></div><LayoutDashboard size={32} /></div>{loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <div className="creator-studio-grid">{posts.map((post) => <article className="creator-studio-card" key={post.id}><div className="creator-studio-card-media">{post.mediaType === 'VIDEO' ? <video controls playsInline poster={post.thumbnailUrl || undefined} src={post.assetUrl || post.externalUrl || undefined} /> : post.mediaType === 'IMAGE' ? <Image src={post.assetUrl || post.externalUrl || ''} alt="" fill unoptimized /> : <div><Sparkles size={18} /><span>{post.description || post.title}</span></div>}</div><div className="creator-studio-card-copy"><div><b>{post.title || 'Untitled post'}</b><small>{post.kind} · {new Date(post.createdAt).toLocaleDateString()}</small></div><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div></article>)}</div>}</section>;
+function SaveToPlaylistModal({ post, open, onClose, onSaved }: { post: VideoPost | null; open: boolean; onClose: () => void; onSaved: () => void }) {
+  const [playlists, setPlaylists] = useState<VideoPlaylistSummary[]>([]);
+  const [name, setName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    api<{ playlists: VideoPlaylistSummary[] }>('/api/video/playlists').then((data) => setPlaylists(data.playlists)).catch(() => setPlaylists([])).finally(() => setLoading(false));
+  }, [open]);
+
+  const addTo = async (playlistId: number) => {
+    if (!post || busy) return;
+    setBusy(true);
+    try {
+      await api('/api/video/playlists', { method: 'PATCH', body: JSON.stringify({ playlistId, action: 'add', postId: post.id }) });
+      toast(`Saved to playlist.`, 'ok');
+      onSaved();
+      onClose();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not save to playlist.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const createAndAdd = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!post || !name.trim() || busy) return;
+    setBusy(true);
+    try {
+      const data = await api<{ playlist: { id: number } }>('/api/video/playlists', { method: 'POST', body: JSON.stringify({ name, postId: post.id }) });
+      setName('');
+      toast('Playlist created with this post.', 'ok');
+      onSaved();
+      onClose();
+      void data;
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not create the playlist.', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open || !post) return null;
+  return (
+    <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={onClose}>
+      <section className="video-comments-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="video-modal-head"><div><div className="hub-kicker">SAVE TO PLAYLIST</div><h2>{post.title || 'Untitled post'}</h2></div><button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button></header>
+        <div className="video-playlist-picker">
+          {loading && <div className="video-modal-loading"><span className="admin-loader" /> Loading playlists…</div>}
+          {!loading && playlists.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>No playlists yet — name one below.</span></div>}
+          {playlists.map((playlist) => (
+            <button type="button" key={playlist.id} className="video-playlist-option" disabled={busy} onClick={() => void addTo(playlist.id)}>
+              <ListVideo size={16} />
+              <span><b>{playlist.name}</b><small>{playlist.count} {playlist.count === 1 ? 'video' : 'videos'}</small></span>
+              <Plus size={15} />
+            </button>
+          ))}
+        </div>
+        <form className="video-comment-form" onSubmit={createAndAdd}>
+          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} placeholder="New playlist name…" />
+          <button type="submit" className="btn-icon violet" disabled={busy || !name.trim()} aria-label="Create playlist"><Plus size={17} /></button>
+        </form>
+      </section>
+    </div>
+  );
 }
 
-function CreatorStudio({ posts, loading, onDelete, onEditProfile }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void; onEditProfile: () => void }) {
-  const likes = posts.reduce((sum, post) => sum + post.likes, 0);
-  const saves = posts.reduce((sum, post) => sum + post.saves, 0);
-  const comments = posts.reduce((sum, post) => sum + post.comments, 0);
-  const interactions = likes + saves + comments;
+function EditPostModal({ post, open, onClose, onSaved }: { post: VideoPost | null; open: boolean; onClose: () => void; onSaved: (post: VideoPost) => void }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [subtitlesUrl, setSubtitlesUrl] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open || !post) return;
+    setTitle(post.title);
+    setDescription(post.description);
+    setThumbnailUrl(post.thumbnailUrl ?? '');
+    setSubtitlesUrl(post.subtitlesUrl ?? '');
+  }, [open, post]);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!post) return;
+    setSaving(true);
+    try {
+      const data = await api<{ post: VideoPost }>(`/api/video/posts/${post.id}`, { method: 'PATCH', body: JSON.stringify({ title, description, thumbnailUrl, subtitlesUrl }) });
+      toast('Post updated.', 'ok');
+      onSaved(data.post);
+      onClose();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not update this post.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open || !post) return null;
+  return (
+    <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={onClose}>
+      <section className="video-create-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="video-modal-head"><div><div className="hub-kicker">EDIT POST</div><h2>{post.title || 'Untitled post'}</h2></div><button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button></header>
+        <form className="video-create-form" onSubmit={submit}>
+          <label><span>Title</span><input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={180} placeholder="Give your post a clear title" /></label>
+          <label><span>Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={5000} rows={4} placeholder="Add context, a caption or a story…" /></label>
+          <div className="video-create-grid">
+            <label><span>Thumbnail URL</span><input type="url" value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder="Optional cover image" /></label>
+            <label><span>Subtitles URL</span><input type="url" value={subtitlesUrl} onChange={(event) => setSubtitlesUrl(event.target.value)} placeholder="Optional .vtt file" /></label>
+          </div>
+          <footer className="video-modal-actions"><span><Sparkles size={13} /> Changes are visible immediately.</span><button type="submit" className="btn btn-violet" disabled={saving}>{saving ? 'Saving…' : <><Send size={14} /> Save changes</>}</button></footer>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+function PlaylistDetailModal({ playlistId, open, onClose, onChanged, onDeleted, onPlayPost }: { playlistId: number | null; open: boolean; onClose: () => void; onChanged: () => void; onDeleted: () => void; onPlayPost: (post: VideoPost) => void }) {
+  const [detail, setDetail] = useState<VideoPlaylistDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+
+  const load = useCallback(() => {
+    if (!playlistId) return;
+    setLoading(true);
+    api<{ playlist: VideoPlaylistDetail }>(`/api/video/playlists?playlistId=${playlistId}`)
+      .then((data) => { setDetail(data.playlist); setName(data.playlist.name); setDescription(data.playlist.description); })
+      .catch((error) => toast(error instanceof Error ? error.message : 'Could not load playlist.', 'error'))
+      .finally(() => setLoading(false));
+  }, [playlistId]);
+
+  useEffect(() => {
+    if (open) load();
+    else setDetail(null);
+  }, [open, load]);
+
+  const removeItem = async (postId: number) => {
+    if (!playlistId) return;
+    try {
+      await api('/api/video/playlists', { method: 'PATCH', body: JSON.stringify({ playlistId, action: 'remove', postId }) });
+      setDetail((current) => current ? { ...current, items: current.items.filter((item) => item.postId !== postId), count: Math.max(0, current.count - 1) } : current);
+      onChanged();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not remove this video.', 'error');
+    }
+  };
+
+  const saveRename = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!playlistId || !name.trim()) return;
+    try {
+      await api('/api/video/playlists', { method: 'PATCH', body: JSON.stringify({ playlistId, action: 'rename', name, description }) });
+      setDetail((current) => current ? { ...current, name, description } : current);
+      setRenaming(false);
+      toast('Playlist updated.', 'ok');
+      onChanged();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not rename the playlist.', 'error');
+    }
+  };
+
+  const deletePlaylist = async () => {
+    if (!playlistId) return;
+    try {
+      await api(`/api/video/playlists?playlistId=${playlistId}`, { method: 'DELETE' });
+      toast('Playlist deleted.', 'ok');
+      onDeleted();
+      onClose();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not delete the playlist.', 'error');
+    }
+  };
+
+  if (!open || !playlistId) return null;
+  const playable = (detail?.items ?? []).filter((item) => item.post);
+  return (
+    <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={onClose}>
+      <section className="video-playlist-detail-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="video-modal-head">
+          <div>
+            <div className="hub-kicker">PLAYLIST</div>
+            {renaming ? (
+              <form className="video-playlist-rename" onSubmit={saveRename}>
+                <input value={name} onChange={(event) => setName(event.target.value)} maxLength={80} autoFocus />
+                <input value={description} onChange={(event) => setDescription(event.target.value)} maxLength={300} placeholder="Optional description" />
+                <button type="submit" className="btn btn-violet pill-sm">Save</button>
+                <button type="button" className="btn btn-ghost pill-sm" onClick={() => setRenaming(false)}>Cancel</button>
+              </form>
+            ) : <h2>{detail?.name ?? 'Playlist'} <button type="button" className="btn-icon" onClick={() => setRenaming(true)} title="Rename playlist"><Pencil size={14} /></button></h2>}
+          </div>
+          <div className="video-playlist-head-actions">
+            <button type="button" className="btn-icon danger" onClick={() => void deletePlaylist()} title="Delete playlist"><Trash2 size={16} /></button>
+            <button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
+          </div>
+        </header>
+        <div className="video-playlist-items">
+          {loading && <div className="video-modal-loading"><span className="admin-loader" /> Loading videos…</div>}
+          {!loading && detail && detail.items.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>Nothing saved here yet. Use the playlist button on any post.</span></div>}
+          {!loading && detail && detail.items.map((item) => item.post && (
+            <div className="video-playlist-item" key={item.id}>
+              <div className="video-playlist-item-media">
+                {item.post.thumbnailUrl ? <Image src={item.post.thumbnailUrl} alt="" fill unoptimized /> : item.post.mediaType === 'TEXT' ? <Sparkles size={16} /> : <Play size={16} />}
+              </div>
+              <button type="button" className="video-playlist-item-body" onClick={() => onPlayPost(item.post!)}>
+                <b>{item.post.title || 'Untitled post'}</b>
+                <small>@{item.post.author.username} · {item.post.kind} · {timeAgo(item.post.createdAt)}</small>
+              </button>
+              <button type="button" className="btn-icon danger" onClick={() => void removeItem(item.postId)} title="Remove from playlist"><X size={14} /></button>
+            </div>
+          ))}
+          {!loading && playable.length > 0 && (
+            <button type="button" className="btn btn-violet video-playlist-play-all" onClick={() => onPlayPost(playable[0].post!)}>
+              <Play size={14} /> Play from the top
+            </button>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CreatorsView({ onOpenCreator }: { onOpenCreator: (id: number) => void }) {
+  const [creators, setCreators] = useState<DiscoverCreator[]>([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback((q: string) => {
+    setLoading(true);
+    api<{ creators: DiscoverCreator[] }>(`/api/video/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`)
+      .then((data) => setCreators(data.creators))
+      .catch(() => setCreators([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(''); }, [load]);
+
+  const search = (event: FormEvent) => {
+    event.preventDefault();
+    load(query.trim());
+  };
+
+  const toggleFollow = async (creator: DiscoverCreator) => {
+    try {
+      const data = await api<{ following: boolean }>(`/api/creators/${creator.id}/follow?hub=VIDEO`, { method: 'POST' });
+      setCreators((current) => current.map((item) => item.id === creator.id ? { ...item, following: data.following, followers: Math.max(0, item.followers + (data.following ? 1 : -1)) } : item));
+      toast(data.following ? `Following @${creator.username}.` : `Unfollowed @${creator.username}.`, 'ok');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not update follow.', 'error');
+    }
+  };
 
   return (
-    <section className="creator-studio-view">
-      <div className="creator-studio-hero">
-        <div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review every post, understand the response and update your public channel profile without leaving the hub.</p></div>
-        <div className="creator-studio-hero-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={onEditProfile}><Pencil size={14} /> Edit channel</button><LayoutDashboard size={32} /></div>
-      </div>
-      <div className="creator-studio-metrics">
-        <div className="creator-studio-metric"><BarChart3 size={17} /><b>{posts.length}</b><span>Published posts</span></div>
-        <div className="creator-studio-metric"><Heart size={17} /><b>{likes}</b><span>Total likes</span></div>
-        <div className="creator-studio-metric"><Bookmark size={17} /><b>{saves}</b><span>Total saves</span></div>
-        <div className="creator-studio-metric"><MessageCircle size={17} /><b>{interactions}</b><span>Audience actions</span></div>
-      </div>
-      {loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <>
-        <div className="creator-studio-toolbar"><p>Per-post analytics from likes, saves and comments.</p><span className="creator-studio-edit"><TrendingUp size={14} /> {interactions} tracked interactions</span></div>
-        <div className="creator-studio-table">
-          <div className="creator-studio-row creator-studio-row-head"><span>Post</span><span>Likes</span><span>Saves</span><span>Comments</span><span>Type</span><span /></div>
-          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || 'Untitled post'}</b><small>{new Date(post.createdAt).toLocaleDateString()}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>likes</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>saves</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>comments</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>format</span><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Flag size={15} /></button></div>)}
+    <section className="video-discover-view">
+      <form className="video-watch-form" onSubmit={search}>
+        <Search size={16} />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search creators by name, handle or topic" maxLength={80} />
+        <button type="submit" className="btn btn-violet pill-sm">Search</button>
+      </form>
+      {loading && <div className="video-loading-grid">{[1, 2, 3].map((item) => <div className="video-skeleton" key={item} />)}</div>}
+      {!loading && creators.length === 0 && (
+        <div className="video-hub-empty large">
+          <Camera size={26} />
+          <b>No creators found{query ? ` for “${query}”` : ''}.</b>
+          <span>Approved Video Hub creators appear here — be the first by applying from Create.</span>
+          <button type="button" className="btn btn-violet pill-sm" onClick={() => load('')}>Show everyone</button>
         </div>
-        <CreatorCollabStudio posts={posts.map((post) => ({ id: post.id, title: post.title, kind: post.kind }))} />
-      </>}
+      )}
+      <div className="video-creators-grid">
+        {creators.map((creator) => (
+          <article className="video-creator-card" key={creator.id}>
+            <header className="video-creator-head">
+              <button type="button" className="video-creator-identity" onClick={() => onOpenCreator(creator.id)}>
+                <JaminoAvatar avatarId={creator.avatarId} size={44} photo={creator.avatarPhoto} name={creator.username} />
+                <span>
+                  <b>{creator.channelName}</b>
+                  <small>@{creator.handle} · {creator.followers} {creator.followers === 1 ? 'follower' : 'followers'}</small>
+                </span>
+              </button>
+              <button type="button" className={`btn ${creator.following ? 'btn-ghost' : 'btn-violet'} pill-sm`} onClick={() => void toggleFollow(creator)}>
+                {creator.following ? <UserRoundCheck size={14} /> : <UserPlus size={14} />}
+                {creator.following ? 'Following' : 'Follow'}
+              </button>
+            </header>
+            {creator.category && <span className="video-creator-category">{creator.category}</span>}
+            {creator.bio && <p>{creator.bio}</p>}
+            {creator.latestPosts.length > 0 && (
+              <div className="video-creator-posts">
+                {creator.latestPosts.map((post) => (
+                  <button type="button" key={post.id} className="video-creator-post-thumb" onClick={() => onOpenCreator(creator.id)} title={post.title || 'Untitled post'}>
+                    {post.thumbnailUrl ? <Image src={post.thumbnailUrl} alt="" fill unoptimized /> : post.mediaType === 'VIDEO' ? <Play size={14} /> : <Sparkles size={14} />}
+                  </button>
+                ))}
+              </div>
+            )}
+            <footer className="video-creator-foot"><Film size={13} /> {creator.postCount} published {creator.postCount === 1 ? 'post' : 'posts'}</footer>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -379,8 +683,16 @@ export function VideoHub() {
   const [studioLoading, setStudioLoading] = useState(false);
   const [watchUrl, setWatchUrl] = useState('');
   const [activeUrl, setActiveUrl] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const [trending, setTrending] = useState(false);
+  // Real server-backed playlists (replaces the old localStorage-only queue).
+  const [playlists, setPlaylists] = useState<VideoPlaylistSummary[]>([]);
   const [playlistName, setPlaylistName] = useState('');
-  const [playlists, setPlaylists] = useState<string[]>([]);
+  const [playlistsLoading, setPlaylistsLoading] = useState(false);
+  const [openPlaylistId, setOpenPlaylistId] = useState<number | null>(null);
+  const [playlistPost, setPlaylistPost] = useState<VideoPost | null>(null);
+  const [editPost, setEditPost] = useState<VideoPost | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const nextCursorRef = useRef<string | null>(null);
@@ -389,7 +701,7 @@ export function VideoHub() {
   const feedKind = useMemo<FeedKind>(() => view === 'shorts' ? 'SHORT' : view === 'long' ? 'LONG' : 'ALL', [view]);
   const feedView = view === 'feed' || view === 'following' || view === 'shorts' || view === 'long' || view === 'watchlist';
 
-  const loadPosts = useCallback(async (kind: FeedKind, reset = false, savedOnly = false, followingOnly = false) => {
+  const loadPosts = useCallback(async (kind: FeedKind, reset = false, savedOnly = false, followingOnly = false, search = '', trendingOnly = false) => {
     if (loadingRef.current || (!reset && !hasMoreRef.current)) return;
     loadingRef.current = true;
     setLoading(true);
@@ -398,6 +710,9 @@ export function VideoHub() {
       if (!reset && nextCursorRef.current) params.set('cursor', nextCursorRef.current);
       if (savedOnly) params.set('saved', '1');
       if (followingOnly) params.set('following', '1');
+      if (search) params.set('q', search);
+      if (trendingOnly) params.set('trending', '1');
+
       const data = await api<{ posts: VideoPost[]; nextCursor: string | null; hasMore: boolean }>(`/api/video/posts?${params}`);
       setPosts((current) => {
         if (reset) return data.posts;
@@ -416,21 +731,16 @@ export function VideoHub() {
     }
   }, []);
 
-  const refreshCurrentFeed = useCallback(() => {
-    nextCursorRef.current = null;
-    hasMoreRef.current = true;
-    setHasMore(true);
-    setPosts([]);
-    if (view === 'watchlist') void loadPosts('ALL', true, true, false);
-    else void loadPosts(view === 'shorts' ? 'SHORT' : view === 'long' ? 'LONG' : 'ALL', true, false, view === 'following');
-  }, [loadPosts, view]);
+  const loadPlaylists = useCallback(() => {
+    setPlaylistsLoading(true);
+    api<{ playlists: VideoPlaylistSummary[] }>('/api/video/playlists')
+      .then((data) => setPlaylists(data.playlists))
+      .catch(() => setPlaylists([]))
+      .finally(() => setPlaylistsLoading(false));
+  }, []);
 
   useEffect(() => {
     api<{ applications: { status: 'PENDING' | 'APPROVED' | 'REJECTED' }[] }>('/api/creator/apply?hub=VIDEO').then((data) => setCreatorStatus(data.applications[0]?.status ?? null)).catch(() => {});
-    try {
-      const stored = JSON.parse(localStorage.getItem('jamino_video_playlists') || '[]');
-      if (Array.isArray(stored)) setPlaylists(stored.filter((item) => typeof item === 'string'));
-    } catch {}
     const params = new URLSearchParams(window.location.search);
     const requestedView = params.get('videoView') as VideoView | null;
     if (requestedView && NAV.some((item) => item.id === requestedView)) setView(requestedView);
@@ -446,18 +756,18 @@ export function VideoHub() {
     hasMoreRef.current = true;
     setHasMore(true);
     setPosts([]);
-    void loadPosts(feedKind, true, view === 'watchlist', view === 'following');
-  }, [feedKind, feedView, loadPosts, view]);
+    void loadPosts(feedKind, true, view === 'watchlist', view === 'following', activeSearch, trending && view === 'feed');
+  }, [feedKind, feedView, loadPosts, view, activeSearch, trending]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !feedView) return;
     const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) void loadPosts(feedKind, false, view === 'watchlist', view === 'following');
+      if (entry.isIntersecting) void loadPosts(feedKind, false, view === 'watchlist', view === 'following', activeSearch, trending && view === 'feed');
     }, { rootMargin: '900px' });
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [feedKind, feedView, loadPosts, view]);
+  }, [feedKind, feedView, loadPosts, view, activeSearch, trending]);
 
   useEffect(() => {
     if (view !== 'studio') return;
@@ -465,8 +775,16 @@ export function VideoHub() {
     api<{ posts: VideoPost[] }>('/api/video/posts?authorId=me&kind=ALL').then((data) => setStudioPosts(data.posts)).catch(() => setStudioPosts([])).finally(() => setStudioLoading(false));
   }, [view]);
 
+  useEffect(() => {
+    if (view !== 'playlists') return;
+    loadPlaylists();
+  }, [view, loadPlaylists]);
+
   const changeView = (nextView: VideoView) => {
     setView(nextView);
+    setActiveSearch('');
+    setSearchQuery('');
+    setTrending(false);
     const suffix = nextView === 'feed' ? '' : `&videoView=${nextView}`;
     window.history.replaceState({}, '', `/?hub=video${suffix}`);
   };
@@ -480,6 +798,7 @@ export function VideoHub() {
     setPosts((current) => current.map((post) => post.id === postId ? { ...post, ...update } : post));
     setActivePost((current) => current?.id === postId ? { ...current, ...update } : current);
     setCommentsPost((current) => current?.id === postId ? { ...current, ...update } : current);
+    setStudioPosts((current) => current.map((post) => post.id === postId ? { ...post, ...update } : post));
   };
 
   const toggleLike = async (post: VideoPost) => {
@@ -506,15 +825,29 @@ export function VideoHub() {
     window.history.replaceState({}, '', `/?hub=video&post=${post.id}`);
   };
 
-  const createPlaylist = (event: FormEvent) => {
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const next = searchQuery.trim();
+    setActiveSearch(next);
+    nextCursorRef.current = null;
+    hasMoreRef.current = true;
+    setHasMore(true);
+    setPosts([]);
+    void loadPosts(feedKind, true, view === 'watchlist', view === 'following', next, trending && view === 'feed');
+  };
+
+  const createPlaylist = async (event: FormEvent) => {
     event.preventDefault();
     const name = playlistName.trim();
     if (!name) return;
-    const updated = [...playlists, name];
-    setPlaylists(updated);
-    setPlaylistName('');
-    localStorage.setItem('jamino_video_playlists', JSON.stringify(updated));
-    toast('Playlist created.', 'ok');
+    try {
+      const data = await api<{ playlist: VideoPlaylistSummary }>('/api/video/playlists', { method: 'POST', body: JSON.stringify({ name }) });
+      setPlaylists((current) => [data.playlist, ...current.filter((item) => item.id !== data.playlist.id)]);
+      setPlaylistName('');
+      toast('Playlist created.', 'ok');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not create the playlist.', 'error');
+    }
   };
 
   const openWatch = (event: FormEvent) => {
@@ -535,6 +868,7 @@ export function VideoHub() {
   };
 
   const pageTitle = view === 'feed' ? 'A living video feed.' : NAV.find((item) => item.id === view)?.label || 'Video Hub';
+  const feedLabel = view === 'watchlist' ? 'Saved for later' : view === 'following' ? 'From creators you follow' : view === 'shorts' ? 'Swipeable shorts' : view === 'long' ? 'Long-form stories' : trending ? 'Trending right now' : activeSearch ? `Results for “${activeSearch}”` : 'Fresh from the community';
 
   return (
     <div className="hub-shell hub-shell-video video-hub-root">
@@ -552,14 +886,46 @@ export function VideoHub() {
             <div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> {creatorStatus === 'APPROVED' ? 'Creator profile' : 'Become a creator'}</button><button type="button" className="btn btn-violet" onClick={openCreate}><Plus size={15} /> Create</button></div>
           </header>
 
-          {view === 'creators' && <section className="creator-hub-panel"><div className="creator-hub-art"><BadgeCheck size={34} /><span /><span /><span /></div><div><div className="hub-kicker">CREATOR SPACE</div><h2>Make a channel people remember.</h2><p>Apply once, publish after approval, and keep your creator identity connected across Jamino hubs.</p><button type="button" className="btn btn-violet" onClick={() => setCreatorOpen(true)}><Sparkles size={15} /> Open creator application</button></div><div className="creator-perks"><div><UploadCloud size={18} /><b>Publish</b><span>Photos, posts and video uploads.</span></div><div><Heart size={18} /><b>Connect</b><span>Likes, saves and comments.</span></div><div><Film size={18} /><b>Grow</b><span>Shorts and long-form in one feed.</span></div></div></section>}
+          {view === 'creators' && <CreatorsView onOpenCreator={setCreatorProfileId} />}
 
-          {view === 'studio' && <CreatorStudio posts={studioPosts} loading={studioLoading} onDelete={(post) => void deleteStudioPost(post)} onEditProfile={() => setCreatorOpen(true)} />}
-          {view === 'playlists' && <section className="video-playlists-view"><div className="video-playlist-hero"><ListVideo size={26} /><div><div className="hub-kicker">YOUR LIBRARY</div><h2>Keep a queue for later.</h2><p>Save a post to Watchlist now; named playlists are ready for the next phase of the hub.</p></div></div><form className="video-create-playlist" onSubmit={createPlaylist}><input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder="New video playlist" maxLength={80} /><button type="submit" className="btn btn-violet pill-sm"><Plus size={14} /> Create</button></form><div className="video-playlist-grid">{playlists.length === 0 && <div className="video-hub-empty"><ListVideo size={22} /><b>No playlists yet.</b><span>Create a place for your next watch session.</span></div>}{playlists.map((playlist) => <div className="video-playlist-card" key={playlist}><ListVideo size={20} /><b>{playlist}</b><span>Ready for saved videos</span></div>)}</div></section>}
+          {view === 'studio' && <CreatorStudio posts={studioPosts} loading={studioLoading} onDelete={(post) => void deleteStudioPost(post)} onEditProfile={() => setCreatorOpen(true)} onEditPost={setEditPost} />}
+          {view === 'playlists' && <section className="video-playlists-view">
+            <div className="video-playlist-hero"><ListVideo size={26} /><div><div className="hub-kicker">YOUR LIBRARY</div><h2>Keep a queue for later.</h2><p>Group posts, shorts and long videos into named playlists that stay with your account.</p></div></div>
+            <form className="video-create-playlist" onSubmit={createPlaylist}><input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder="New video playlist" maxLength={80} /><button type="submit" className="btn btn-violet pill-sm" disabled={!playlistName.trim()}><Plus size={14} /> Create</button></form>
+            {playlistsLoading && <div className="creator-profile-loading"><span className="admin-loader" /> Loading playlists…</div>}
+            {!playlistsLoading && playlists.length === 0 && <div className="video-hub-empty"><ListVideo size={22} /><b>No playlists yet.</b><span>Create one above, or save any post with the playlist button.</span></div>}
+            <div className="video-playlist-grid">
+              {playlists.map((playlist) => (
+                <button type="button" className="video-playlist-card" key={playlist.id} onClick={() => setOpenPlaylistId(playlist.id)}>
+                  <ListVideo size={20} />
+                  <b>{playlist.name}</b>
+                  {playlist.description && <span className="video-playlist-card-desc">{playlist.description}</span>}
+                  <span>{playlist.count} {playlist.count === 1 ? 'video' : 'videos'}</span>
+                </button>
+              ))}
+            </div>
+          </section>}
 
           {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><video controls playsInline src={activeUrl} /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}
 
-          {feedView && <section className={`video-feed-section ${view === 'shorts' ? 'is-shorts' : ''} ${view === 'long' ? 'is-long' : ''}`}><div className="video-feed-toolbar"><div><span className="video-feed-dot" /> {view === 'watchlist' ? 'Saved for later' : view === 'following' ? 'From creators you follow' : view === 'shorts' ? 'Swipeable shorts' : view === 'long' ? 'Long-form stories' : 'Fresh from the community'}</div><button type="button" className="btn btn-ghost pill-sm" onClick={refreshCurrentFeed}><Sparkles size={14} /> Refresh</button></div>{loading && posts.length === 0 && <div className="video-loading-grid">{[1, 2, 3].map((item) => <div className="video-skeleton" key={item} />)}</div>}{!loading && posts.length === 0 && <div className="video-hub-empty large"><Film size={26} /><b>{view === 'watchlist' ? 'Your watchlist is empty.' : view === 'following' ? 'Follow a creator to shape this feed.' : 'The feed is waiting for its first post.'}</b><span>{view === 'watchlist' ? 'Tap the bookmark on anything you want to keep.' : creatorStatus === 'APPROVED' ? 'Publish the first photo, post or video from Create.' : 'Become a creator to start the first channel.'}</span><button type="button" className="btn btn-violet pill-sm" onClick={openCreate}><Plus size={14} /> {creatorStatus === 'APPROVED' ? 'Create a post' : 'Become a creator'}</button></div>}{posts.length > 0 && <div className={view === 'shorts' ? 'video-shorts-feed' : view === 'long' ? 'video-long-grid' : 'video-feed-grid'}>{posts.map((post) => <VideoCard key={post.id} post={post} compact={view === 'shorts'} onOpenPost={() => openPost(post)} onOpenCreator={() => setCreatorProfileId(post.author.id)} onLike={() => toggleLike(post)} onSave={() => toggleSave(post)} onComment={() => setCommentsPost(post)} onShare={() => sharePost(post)} onReport={() => void reportPost(post)} />)}</div>}<div ref={sentinelRef} className="video-feed-sentinel">{loading && posts.length > 0 && <span className="admin-loader" />}{!hasMore && posts.length > 0 && <span>You are all caught up.</span>}</div></section>}
+          {feedView && <section className={`video-feed-section ${view === 'shorts' ? 'is-shorts' : ''} ${view === 'long' ? 'is-long' : ''}`}>
+            <div className="video-feed-toolbar">
+              <div><span className="video-feed-dot" /> {feedLabel}</div>
+              <div className="video-feed-toolbar-actions">
+                {view === 'feed' && !activeSearch && <button type="button" className={`btn btn-ghost pill-sm ${trending ? 'active' : ''}`} onClick={() => setTrending((value) => !value)}><TrendingUp size={14} /> {trending ? 'Newest first' : 'Trending'}</button>}
+                <form className="video-feed-search" onSubmit={submitSearch}>
+                  <Search size={14} />
+                  <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search the feed…" maxLength={120} />
+                  {activeSearch && <button type="button" className="btn-icon" onClick={() => { setSearchQuery(''); setActiveSearch(''); }} title="Clear search"><X size={13} /></button>}
+                </form>
+                <button type="button" className="btn btn-ghost pill-sm" onClick={() => { nextCursorRef.current = null; hasMoreRef.current = true; setHasMore(true); setPosts([]); void loadPosts(feedKind, true, view === 'watchlist', view === 'following', activeSearch, trending && view === 'feed'); }}><Sparkles size={14} /> Refresh</button>
+              </div>
+            </div>
+            {loading && posts.length === 0 && <div className="video-loading-grid">{[1, 2, 3].map((item) => <div className="video-skeleton" key={item} />)}</div>}
+            {!loading && posts.length === 0 && <div className="video-hub-empty large"><Film size={26} /><b>{activeSearch ? `Nothing matched “${activeSearch}”.` : view === 'watchlist' ? 'Your watchlist is empty.' : view === 'following' ? 'Follow a creator to shape this feed.' : 'The feed is waiting for its first post.'}</b><span>{activeSearch ? 'Try a different title, description or @username.' : view === 'watchlist' ? 'Tap the bookmark on anything you want to keep.' : creatorStatus === 'APPROVED' ? 'Publish the first photo, post or video from Create.' : 'Become a creator to start the first channel.'}</span><button type="button" className="btn btn-violet pill-sm" onClick={activeSearch ? () => { setSearchQuery(''); setActiveSearch(''); } : openCreate}><Plus size={14} /> {activeSearch ? 'Clear search' : creatorStatus === 'APPROVED' ? 'Create a post' : 'Become a creator'}</button></div>}
+            {posts.length > 0 && <div className={view === 'shorts' ? 'video-shorts-feed' : view === 'long' ? 'video-long-grid' : 'video-feed-grid'}>{posts.map((post) => <VideoCard key={post.id} post={post} compact={view === 'shorts'} onOpenPost={() => openPost(post)} onOpenCreator={() => setCreatorProfileId(post.author.id)} onLike={() => toggleLike(post)} onSave={() => toggleSave(post)} onComment={() => setCommentsPost(post)} onShare={() => sharePost(post)} onSaveToPlaylist={() => setPlaylistPost(post)} onReport={() => void reportPost(post)} />)}</div>}
+            <div ref={sentinelRef} className="video-feed-sentinel">{loading && posts.length > 0 && <span className="admin-loader" />}{!hasMore && posts.length > 0 && <span>You are all caught up.</span>}</div>
+          </section>}
         </main>
       </div>
 
@@ -567,8 +933,41 @@ export function VideoHub() {
       <CreatorApplyModal hub="VIDEO" open={creatorOpen} onClose={() => setCreatorOpen(false)} onSubmitted={(application) => setCreatorStatus(application.status)} />
       <CreatePostModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={(post) => { setPosts((current) => [post, ...current.filter((item) => item.id !== post.id)]); setView('feed'); }} />
       <CommentsModal post={commentsPost} open={!!commentsPost} onClose={() => setCommentsPost(null)} onAdded={() => { if (commentsPost) updatePost(commentsPost.id, { comments: commentsPost.comments + 1 }); }} />
+      <SaveToPlaylistModal post={playlistPost} open={!!playlistPost} onClose={() => setPlaylistPost(null)} onSaved={loadPlaylists} />
+      <PlaylistDetailModal playlistId={openPlaylistId} open={openPlaylistId !== null} onClose={() => setOpenPlaylistId(null)} onChanged={loadPlaylists} onDeleted={loadPlaylists} onPlayPost={(post) => { setOpenPlaylistId(null); openPost(post); }} />
+      <EditPostModal post={editPost} open={!!editPost} onClose={() => setEditPost(null)} onSaved={(post) => updatePost(post.id, post)} />
       <CreatorProfileModal creatorId={creatorProfileId} open={creatorProfileId !== null} onClose={() => setCreatorProfileId(null)} />
       {activePost && <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => { setActivePost(null); window.history.replaceState({}, '', '/?hub=video'); }}><section className="video-post-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{activePost.kind} · VIDEO HUB</div><h2>{activePost.title || 'Post'}</h2></div><button type="button" className="btn-icon" onClick={() => { setActivePost(null); window.history.replaceState({}, '', '/?hub=video'); }} aria-label="Close"><X size={18} /></button></header><div className="video-post-modal-body"><VideoCard post={activePost} onOpen={() => {}} onLike={() => toggleLike(activePost)} onSave={() => toggleSave(activePost)} onComment={() => setCommentsPost(activePost)} onShare={() => sharePost(activePost)} /></div></section></div>}
     </div>
+  );
+}
+
+function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void; onEditProfile: () => void; onEditPost: (post: VideoPost) => void }) {
+  const likes = posts.reduce((sum, post) => sum + post.likes, 0);
+  const saves = posts.reduce((sum, post) => sum + post.saves, 0);
+  const comments = posts.reduce((sum, post) => sum + post.comments, 0);
+  const interactions = likes + saves + comments;
+
+  return (
+    <section className="creator-studio-view">
+      <div className="creator-studio-hero">
+        <div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review every post, understand the response and update your public channel profile without leaving the hub.</p></div>
+        <div className="creator-studio-hero-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={onEditProfile}><Pencil size={14} /> Edit channel</button><LayoutDashboard size={32} /></div>
+      </div>
+      <div className="creator-studio-metrics">
+        <div className="creator-studio-metric"><BarChart3 size={17} /><b>{posts.length}</b><span>Published posts</span></div>
+        <div className="creator-studio-metric"><Heart size={17} /><b>{likes}</b><span>Total likes</span></div>
+        <div className="creator-studio-metric"><Bookmark size={17} /><b>{saves}</b><span>Total saves</span></div>
+        <div className="creator-studio-metric"><MessageCircle size={17} /><b>{interactions}</b><span>Audience actions</span></div>
+      </div>
+      {loading ? <div className="creator-profile-loading"><span className="admin-loader" /> Loading your posts…</div> : posts.length === 0 ? <div className="video-hub-empty large"><Film size={24} /><b>No published work yet.</b><span>Open Create to publish your first post.</span></div> : <>
+        <div className="creator-studio-toolbar"><p>Per-post analytics from likes, saves and comments.</p><span className="creator-studio-edit"><TrendingUp size={14} /> {interactions} tracked interactions</span></div>
+        <div className="creator-studio-table">
+          <div className="creator-studio-row creator-studio-row-head"><span>Post</span><span>Likes</span><span>Saves</span><span>Comments</span><span>Type</span><span /></div>
+          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || 'Untitled post'}</b><small>{new Date(post.createdAt).toLocaleDateString()}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>likes</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>saves</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>comments</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>format</span><div className="creator-studio-row-actions"><button type="button" className="btn-icon" onClick={() => onEditPost(post)} title="Edit post"><Pencil size={15} /></button><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Trash2 size={15} /></button></div></div>)}
+        </div>
+        <CreatorCollabStudio posts={posts.map((post) => ({ id: post.id, title: post.title, kind: post.kind }))} />
+      </>}
+    </section>
   );
 }

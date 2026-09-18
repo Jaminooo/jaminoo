@@ -33,17 +33,28 @@ export const GET = handle(async (req: Request) => {
   const followingOnly = params.get('following') === '1';
   const authorParam = params.get('authorId') ?? '';
   const authorId = Number(authorParam);
+  const query = (params.get('q') ?? '').trim().slice(0, 120);
+  const trending = params.get('trending') === '1';
   const where: any = { visibility: 'PUBLIC' };
   if (KINDS.has(requestedKind)) where.kind = requestedKind;
-  if (Number.isInteger(cursor) && cursor > 0) where.id = { lt: cursor };
+  if (query) {
+    where.OR = [
+      { title: { contains: query, mode: 'insensitive' } },
+      { description: { contains: query, mode: 'insensitive' } },
+      { author: { is: { username: { contains: query, mode: 'insensitive' } } } },
+    ];
+  }
+  if (Number.isInteger(cursor) && cursor > 0 && !trending && !query) where.id = { lt: cursor };
   if (savedOnly) where.saves = { some: { userId: me.id } };
   if (followingOnly) where.author = { creatorFollowers: { some: { followerId: me.id } } };
+  // Trending sorts by like count, so the cursor pages on rank instead of id;
+  // keep id cursor only for the default newest-first ordering.
   if (Number.isInteger(authorId) && authorId > 0) where.authorId = authorId;
   if (authorParam === 'me') where.authorId = me.id;
 
   const posts = await prisma.videoPost.findMany({
     where,
-    orderBy: { id: 'desc' },
+    orderBy: trending ? [{ likes: { _count: 'desc' } }, { id: 'desc' }] : { id: 'desc' },
     take: 13,
     include: {
       author: { select: { id: true, username: true, avatarId: true, profilePhotoId: true } },

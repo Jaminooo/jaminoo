@@ -64,6 +64,7 @@ model User {
   moments           JamMoment[]
   collabSent        VideoCollabInvite[] @relation("CollabSent")
   collabReceived    VideoCollabInvite[] @relation("CollabReceived")
+  videoPlaylists    VideoPlaylist[]
   tweets            Tweet[] @relation("UserTweets")
   tweetLikes        TweetLike[] @relation("TweetLikes")
   tweetBookmarks    TweetBookmark[] @relation("TweetBookmarks")
@@ -501,9 +502,40 @@ model VideoPost {
   comments VideoComment[]
   reports  MessageReport[]
   collabs  VideoCollabInvite[]
+  playlistItems VideoPlaylistItem[]
 
   @@index([kind, visibility, id])
   @@index([authorId, createdAt])
+}
+
+model VideoPlaylist {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items VideoPlaylistItem[]
+
+  @@unique([userId, name])
+  @@index([userId, createdAt])
+}
+
+model VideoPlaylistItem {
+  id         Int      @id @default(autoincrement())
+  playlistId Int
+  postId     Int
+  note       String   @default("")
+  pos        Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  playlist VideoPlaylist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  post     VideoPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, postId])
+  @@index([playlistId, pos])
+  @@index([postId])
 }
 
 model JamMoment {
