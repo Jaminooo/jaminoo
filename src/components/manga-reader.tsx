@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Keyboard, MousePointer2, X } from 'lucide-react';
 import { mangaBySlug, chapterPages } from '@/data/manga';
+import { MangaFlashlight } from '@/components/manga-flashlight';
 
 function clampv(v: number, a: number, b: number) {
   return Math.min(b, Math.max(a, v));
@@ -41,6 +42,8 @@ export function MangaReader({ slug, chapter }: MangaReaderProps) {
   pageCountRef.current = pageCount;
 
   const [isDesktop, setDesktop] = useState(false);
+  const [gpuOn, setGpuOn] = useState(false);
+  const onGpuActive = useCallback((on: boolean) => setGpuOn(on), []);
   useEffect(() => {
     const mq = window.matchMedia('(pointer: fine) and (min-width: 768px)');
     const upd = () => setDesktop(mq.matches);
@@ -167,8 +170,9 @@ export function MangaReader({ slug, chapter }: MangaReaderProps) {
         </div>
         <div className="manga-reader-shade" aria-hidden="true" />
         <div className="manga-reader-light" ref={lightRef} aria-hidden="true" />
+        {isDesktop && <MangaFlashlight onActive={onGpuActive} />}
         <div className="manga-reader-hint manga-reader-rtl">
-          <MousePointer2 size={13} /> The page lights up where your cursor points — scroll or arrows to flip
+          <MousePointer2 size={13} /> {gpuOn ? 'WebGPU flashlight active' : 'The page lights up where your cursor points'} — scroll or arrows to flip
         </div>
       </div>
     </div>

@@ -49,7 +49,7 @@ export function mangaBySlug(slug: string) {
 
 export function chapterPages(slug: string, chapter: number): string[] {
   if (slug === 'one-piece' && chapter === 1188) {
-    return ['/manga/one-piece/1188/1.jpg', '/manga/one-piece/1188/2.jpg'];
+    return Array.from({ length: 15 }, (_, i) => `/manga/one-piece/1188/${i + 1}${i === 0 ? '.jpg' : '.png'}`);
   }
   return [];
 }
