@@ -1,6 +1,8 @@
 import { handle, json, err, requireAdmin } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { cinemaPayload } from '@/lib/jam-cinema';
+import { pushAdminEvent } from '@/lib/admin';
+import { liveBroadcast } from '@/lib/live-publish';
 
 type Ctx = { params: { id: string } };
 
@@ -29,12 +31,15 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
   if (typeof body.externalUrl === 'string') data.externalUrl = safeUrl(body.externalUrl);
   if (typeof body.thumbnailUrl === 'string') data.thumbnailUrl = safeUrl(body.thumbnailUrl, 1200);
   if (typeof body.subtitlesUrl === 'string') data.subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
+  if (body.visibility === 'PUBLIC' || body.visibility === 'HIDDEN') data.visibility = body.visibility;
   if (body.durationSec !== undefined) {
     const durationSec = Number(body.durationSec);
     if (!Number.isInteger(durationSec) || durationSec < 0 || durationSec > 86400) return err('Invalid duration');
     data.durationSec = durationSec;
   }
   const item = await prisma.cinemaVideo.update({ where: { id }, data });
+  pushAdminEvent('cinema', `${item.kind === 'MOVIE' ? 'Movie' : 'Series'} updated: ${item.title}`, { visible: item.visibility === 'PUBLIC' });
+  liveBroadcast('cinema:update', { action: 'update', id: item.id, visibility: item.visibility });
   return json({ item: cinemaPayload(item) });
 });
 
@@ -42,6 +47,11 @@ export const DELETE = handle(async (_req, { params }: Ctx) => {
   await requireAdmin();
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Invalid cinema item', 400);
+  const existing = await prisma.cinemaVideo.findUnique({ where: { id } }).catch(() => null);
   await prisma.cinemaVideo.delete({ where: { id } }).catch(() => null);
+  if (existing) {
+    pushAdminEvent('cinema', `${existing.kind === 'MOVIE' ? 'Movie' : 'Series'} removed: ${existing.title}`);
+    liveBroadcast('cinema:update', { action: 'remove', id });
+  }
   return json({ ok: true });
 });

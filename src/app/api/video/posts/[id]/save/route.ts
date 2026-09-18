@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { liveBroadcast } from '@/lib/live-publish';
 
 type Ctx = { params: { id: string } };
 
@@ -12,5 +13,7 @@ export const POST = handle(async (_req, { params }: Ctx) => {
   const existing = await prisma.videoSave.findUnique({ where: { postId_userId: { postId, userId: me.id } } });
   if (existing) await prisma.videoSave.delete({ where: { id: existing.id } });
   else await prisma.videoSave.create({ data: { postId, userId: me.id } });
-  return json({ saved: !existing, saves: await prisma.videoSave.count({ where: { postId } }) });
+  const saves = await prisma.videoSave.count({ where: { postId } });
+  liveBroadcast('posts:interact', { postId, saves });
+  return json({ saved: !existing, saves });
 });

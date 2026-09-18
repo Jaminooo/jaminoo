@@ -18,6 +18,7 @@ export function cinemaPayload(video: any) {
     thumbnailUrl: video.thumbnailUrl || null,
     subtitlesUrl: video.subtitlesUrl || null,
     durationSec: video.durationSec,
+    visibility: video.visibility || 'PUBLIC',
   };
 }
 

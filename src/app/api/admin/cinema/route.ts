@@ -1,6 +1,8 @@
 import { handle, json, err, requireAdmin } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { cinemaPayload } from '@/lib/jam-cinema';
+import { pushAdminEvent } from '@/lib/admin';
+import { liveBroadcast } from '@/lib/live-publish';
 
 function safeUrl(value: unknown, max = 1800) {
   if (typeof value !== 'string' || !value.trim()) return '';
@@ -29,8 +31,20 @@ export const POST = handle(async (req) => {
   const subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
   const durationSec = Number(body.durationSec ?? 0);
   if (!title) return err('Title is required');
-  if (!externalUrl) return err('A direct video URL is required');
   if (!Number.isInteger(durationSec) || durationSec < 0 || durationSec > 86400) return err('Invalid duration');
-  const item = await prisma.cinemaVideo.create({ data: { title, kind, description: typeof body.description === 'string' ? body.description.trim().slice(0, 3000) : '', externalUrl, thumbnailUrl, subtitlesUrl, durationSec } });
+  const item = await prisma.cinemaVideo.create({
+    data: {
+      title,
+      kind,
+      description: typeof body.description === 'string' ? body.description.trim().slice(0, 3000) : '',
+      externalUrl,
+      thumbnailUrl,
+      subtitlesUrl,
+      durationSec,
+      visibility: body.visibility === 'HIDDEN' ? 'HIDDEN' : 'PUBLIC',
+    },
+  });
+  pushAdminEvent('cinema', `${kind === 'MOVIE' ? 'Movie' : 'Series'} published: ${title}`);
+  liveBroadcast('cinema:update', { action: 'create', id: item.id });
   return json({ item: cinemaPayload(item) }, 201);
 });

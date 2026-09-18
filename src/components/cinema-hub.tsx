@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Clapperboard, Film, ListPlus, Play, Popcorn, Tv2, UsersRound, X } from 'lucide-react';
+import { Clapperboard, Film, ListPlus, Play, Popcorn, Tv2, UsersRound, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
+import { connectLive, onLive } from '@/lib/live';
 
 type CinemaTab = 'home' | 'movies' | 'series' | 'my-list';
 
@@ -66,6 +67,11 @@ export function CinemaHub() {
 
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    connectLive();
+    return onLive('cinema:update', () => void load());
+  }, [load]);
+
   const catalogueItems = items.length || tab === 'my-list' ? items : CINEMA_SAMPLES.filter((item) => tab === 'home' || item.kind === (tab === 'movies' ? 'MOVIE' : 'SERIES'));
   const visibleItems = useMemo(() => tab === 'my-list' ? catalogueItems.filter((item) => savedIds.includes(item.id)) : catalogueItems, [catalogueItems, savedIds, tab]);
 
@@ -107,10 +113,10 @@ export function CinemaHub() {
         {loading ? <div className="cinema-loading"><span className="admin-loader" /> Loading the catalogue…</div> : visibleItems.length === 0 ? (
           <section className="cinema-coming-soon"><div className="cinema-art"><Popcorn size={38} /><span className="cinema-orbit cinema-orbit-one" /><span className="cinema-orbit cinema-orbit-two" /></div><div className="hub-kicker">CINEMA HUB · {tab.replace('-', ' ').toUpperCase()}</div><h2>Your next screen is coming soon.</h2><p>The Cinema catalogue is separate from Video Hub and is ready for admin releases. Once a title is live, it can be watched here or synced with a Movie Jam.</p><span className="coming-soon-pill"><Clapperboard size={14} /> Coming soon</span></section>
         ) : (
-          <section className="cinema-catalogue"><div className="cinema-feature-strip"><div><span className="hub-kicker">NOW SHOWING</span><h2>{tab === 'home' ? 'Pick a title, then invite the room.' : tab === 'my-list' ? 'Your saved screen time.' : `Browse ${tab}.`}</h2></div><span className="cinema-catalogue-count">{visibleItems.length} titles</span></div><div className="cinema-card-grid">{visibleItems.map((item) => <article className="cinema-card" key={item.id}><button type="button" className="cinema-card-art" onClick={() => setSelected(item)}>{item.thumbnailUrl ? <Image src={item.thumbnailUrl} alt="" fill unoptimized /> : <span><Film size={28} /></span>}<i><Play size={16} fill="currentColor" /></i></button><div className="cinema-card-copy"><div><b>{item.title}</b><small>{item.kind} {item.durationSec ? `· ${durationLabel(item.durationSec)}` : ''}</small></div><button type="button" className={`btn-icon ${savedIds.includes(item.id) ? 'violet' : ''}`} onClick={() => toggleSaved(item)} title="Save"><ListPlus size={16} /></button></div><p>{item.description || 'A new story for the Cinema Hub.'}</p></article>)}</div></section>
+          <section className="cinema-catalogue"><div className="cinema-feature-strip"><div><span className="hub-kicker">NOW SHOWING</span><h2>{tab === 'home' ? 'Pick a title, then invite the room.' : tab === 'my-list' ? 'Your saved screen time.' : `Browse ${tab}.`}</h2></div><span className="cinema-catalogue-count">{visibleItems.length} titles</span></div><div className="cinema-card-grid">{visibleItems.map((item) => <article className={`cinema-card${item.externalUrl ? '' : ' cinema-card-soon'}`} key={item.id}><button type="button" className="cinema-card-art" onClick={() => setSelected(item)}>{item.thumbnailUrl ? <Image src={item.thumbnailUrl} alt="" fill unoptimized /> : <span><Film size={28} /></span>}<i>{item.externalUrl ? <Play size={16} fill="currentColor" /> : <span className="soon-pill">Soon</span>}</i></button><div className="cinema-card-copy"><div><b>{item.title}</b><small>{item.kind} {item.durationSec ? `· ${durationLabel(item.durationSec)}` : ''}</small></div><button type="button" className={`btn-icon ${savedIds.includes(item.id) ? 'violet' : ''}`} onClick={() => toggleSaved(item)} title="Save"><ListPlus size={16} /></button></div><p>{item.description || 'A new story for the Cinema Hub.'}</p></article>)}</div></section>
         )}
       </main>
-      {selected && <div className="cinema-player-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => setSelected(null)}><section className="cinema-player-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{selected.kind} · CINEMA HUB</div><h2>{selected.title}</h2></div><button type="button" className="btn-icon" onClick={() => setSelected(null)} aria-label="Close"><X size={18} /></button></header><div className="cinema-player-body"><video controls playsInline poster={selected.thumbnailUrl || undefined} src={selected.externalUrl || undefined}>{selected.subtitlesUrl && <track kind="subtitles" src={selected.subtitlesUrl} srcLang="en" label="English" default />}</video><p>{selected.description}</p><div className="cinema-player-actions"><button type="button" className="btn btn-violet" onClick={() => void createJam(selected)}><UsersRound size={15} /> Start Movie Jam</button><button type="button" className="btn btn-ghost" onClick={() => toggleSaved(selected)}><ListPlus size={15} /> {savedIds.includes(selected.id) ? 'Remove from list' : 'Save for later'}</button></div></div></section></div>}
+      {selected && <div className="cinema-player-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => setSelected(null)}><section className="cinema-player-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{selected.kind} · CINEMA HUB</div><h2>{selected.title}</h2></div><button type="button" className="btn-icon" onClick={() => setSelected(null)} aria-label="Close"><X size={18} /></button></header><div className="cinema-player-body">{selected.externalUrl ? <video controls playsInline poster={selected.thumbnailUrl || undefined} src={selected.externalUrl}>{selected.subtitlesUrl && <track kind="subtitles" src={selected.subtitlesUrl} srcLang="en" label="English" default />}</video> : <section className="cinema-soon-block"><div className="cinema-soon-art"><Clapperboard size={30} /></div><h4>{selected.kind === 'SERIES' ? 'Episodes are on the way.' : 'A dedicated player is on the way.'}</h4><p>This title was released by the admin as part of a new brand. The custom Cinema player launches here soon — for now, save it to your list.</p></section>}<p>{selected.description}</p><div className="cinema-player-actions"><button type="button" className="btn btn-violet" disabled={!selected.externalUrl} onClick={() => void createJam(selected)}><UsersRound size={15} /> Start Movie Jam</button><button type="button" className="btn btn-ghost" onClick={() => toggleSaved(selected)}><ListPlus size={15} /> {savedIds.includes(selected.id) ? 'Remove from list' : 'Save for later'}</button></div></div></section></div>}
     </div>
   );
 }

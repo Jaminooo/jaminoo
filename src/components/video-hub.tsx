@@ -45,6 +45,7 @@ import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
 import { CreatorCollabStudio } from '@/components/creator-collab-studio';
+import { connectLive, onLive } from '@/lib/live';
 
 type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists';
 type FeedKind = 'ALL' | 'SHORT' | 'LONG';
@@ -779,6 +780,18 @@ export function VideoHub() {
     if (view !== 'playlists') return;
     loadPlaylists();
   }, [view, loadPlaylists]);
+
+  useEffect(() => {
+    connectLive();
+    return onLive('posts:interact', (data: { postId: number; likes?: number; saves?: number; comments?: number }) => {
+      updatePost(data.postId, {
+        ...(data.likes !== undefined && data.likes !== null ? { likes: data.likes } : {}),
+        ...(data.saves !== undefined && data.saves !== null ? { saves: data.saves } : {}),
+        ...(data.comments !== undefined && data.comments !== null ? { comments: data.comments } : {}),
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const changeView = (nextView: VideoView) => {
     setView(nextView);
