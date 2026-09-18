@@ -29,7 +29,7 @@ export interface MangaReaderProps {
 export function MangaReader({ slug, chapter }: MangaReaderProps) {
   const router = useRouter();
   const stripRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
+  const lightRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const pageRef = useRef(0);
   pageRef.current = page;
@@ -49,6 +49,15 @@ export function MangaReader({ slug, chapter }: MangaReaderProps) {
     return () => mq.removeEventListener('change', upd);
   }, []);
 
+  const onMove = useCallback((e: PointerEvent) => {
+    const light = lightRef.current;
+    const stage = light?.parentElement;
+    if (!light || !stage) return;
+    const r = stage.getBoundingClientRect();
+    light.style.setProperty('--lx', `${e.clientX - r.left}px`);
+    light.style.setProperty('--ly', `${e.clientY - r.top}px`);
+  }, []);
+
   const go = useCallback((i: number) => {
     const next = clampv(i, 0, pageCountRef.current - 1);
     setPage(next);
@@ -57,12 +66,6 @@ export function MangaReader({ slug, chapter }: MangaReaderProps) {
       const item = stripRef.current?.children[next] as HTMLElement | undefined;
       item?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
-  }, []);
-
-  const onMove = useCallback((e: PointerEvent) => {
-    const glow = glowRef.current;
-    if (!glow) return;
-    glow.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
   }, []);
 
   useEffect(() => {
@@ -162,7 +165,8 @@ export function MangaReader({ slug, chapter }: MangaReaderProps) {
             </figure>
           ))}
         </div>
-        <div className="manga-reader-glow" ref={glowRef} aria-hidden="true" />
+        <div className="manga-reader-shade" aria-hidden="true" />
+        <div className="manga-reader-light" ref={lightRef} aria-hidden="true" />
         <div className="manga-reader-hint manga-reader-rtl">
           <MousePointer2 size={13} /> The page lights up where your cursor points — scroll or arrows to flip
         </div>
