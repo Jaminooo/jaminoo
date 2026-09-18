@@ -578,5 +578,51 @@
       "ok": "Success",
       "nothing": "No events yet."
     }
+  },
+  "ctx": {
+    "openNewTab": "Open in new tab",
+    "copyLink": "Copy link address",
+    "openImage": "Open image in new tab",
+    "copyImage": "Copy image address",
+    "openVideo": "Open video in new tab",
+    "copyVideo": "Copy video address",
+    "copy": "Copy",
+    "cut": "Cut",
+    "paste": "Paste",
+    "selectAll": "Select all",
+    "copySelection": "Copy selection",
+    "refresh": "Refresh page",
+    "copyUrl": "Copy page URL",
+    "goBack": "Go back",
+    "goForward": "Go forward",
+    "saveImage": "Save image"
+  },
+  "guard": {
+    "devtoolsBlocked": "Developer tools are disabled in this app.",
+    "inspectBlocked": "Inspection tools are disabled."
+  },
+  "anime": {
+    "title": "Anime Hub",
+    "kicker": "ANIME WATCHLIST",
+    "tagline": "A handpicked catalogue of classic and modern anime.",
+    "searchPlaceholder": "Search anime…",
+    "all": "All",
+    "favorites": "Favourites",
+    "addedToFavs": "Added to favourites.",
+    "removedFromFavs": "Removed from favourites.",
+    "noFavs": "No favourites yet — tap the heart on any title.",
+    "noResults": "No anime matched that search.",
+    "episodes": "episodes",
+    "type": "Type",
+    "year": "Year",
+    "status": "Status",
+    "statusFinished": "Finished",
+    "statusAiring": "Airing",
+    "genres": "Genres",
+    "overview": "Overview",
+    "watch": "Watch",
+    "backToHub": "Back to Anime Hub",
+    "favoritesOnly": "Favourites",
+    "clearSearch": "Clear search"
   }
 }

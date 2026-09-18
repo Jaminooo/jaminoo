@@ -3,6 +3,8 @@ import '@/app/globals.css';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { I18nProvider } from '@/providers/i18n-provider';
 import { PwaRegister } from '@/components/pwa-register';
+import { SiteGuard } from '@/components/site-guard';
+import { ContextMenuHost } from '@/components/context-menu';
 
 export const metadata: Metadata = {
   title: 'Jamino — Social rooms, music, video and cinema together',
@@ -28,7 +30,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <I18nProvider><PwaRegister />{children}</I18nProvider>
+          <I18nProvider>
+            <PwaRegister />
+            <SiteGuard />
+            <ContextMenuHost />
+            {children}
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

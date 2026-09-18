@@ -8,7 +8,7 @@ import { EmojiText } from '@/components/emoji-text';
 import { VoicePlayer } from '@/components/voice-player';
 import { MessageComposer } from '@/components/message-composer';
 import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/message-reactions';
-import { useContextMenu, ContextMenu, type CmItem } from '@/components/context-menu';
+import { useContextMenu, type CmItem } from '@/components/context-menu';
 import { api } from '@/lib/client-api';
 import { connectLive, emitLive, onLive, liveSocketId, liveConnected } from '@/lib/live';
 import { toast } from '@/components/toast';
@@ -281,7 +281,6 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
         busy={sendingVoice || sendingText}
       />
 
-      {menu && <ContextMenu menu={menu} onClose={closeCm} />}
       {reportMessageId != null && <ReportMessageModal target={{ dmMessageId: reportMessageId }} onClose={() => setReportMessageId(null)} />}
     </div>
   );

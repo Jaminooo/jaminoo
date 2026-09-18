@@ -9,7 +9,7 @@ import { VoicePlayer } from '@/components/voice-player';
 import { RoomVoiceChat } from '@/components/room-voice-chat';
 import { MessageComposer } from '@/components/message-composer';
 import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/message-reactions';
-import { useContextMenu, ContextMenu, type CmItem } from '@/components/context-menu';
+import { useContextMenu, type CmItem } from '@/components/context-menu';
 import { MusicPlayer } from '@/components/music-player';
 import { CinemaPlayer } from '@/components/cinema-player';
 import { usePanelResize } from '@/lib/use-panel-resize';
@@ -566,7 +566,6 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         </div>
       )}
 
-      {menu && <ContextMenu menu={menu} onClose={closeCm} />}
       {reportMessageId != null && <ReportMessageModal target={{ jamMessageId: reportMessageId }} onClose={() => setReportMessageId(null)} />}
     </div>
   );
