@@ -107,6 +107,7 @@ interface SugUser {
   bio: string;
   tweets: number;
   followers: number;
+  following?: boolean;
 }
 
 interface TweetEvent {
@@ -445,17 +446,17 @@ function Composer({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const mentionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const urlsRef = useRef<string[]>([]);
   const remaining = MAX_TEXT - text.length;
   const isReply = !!replyToId;
 
-  useEffect(() => {
-    return () => files.forEach((f) => URL.revokeObjectURL(f.url));
-  }, [files]);
+  useEffect(() => () => urlsRef.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
   const pickFiles = (next: FileList | null) => {
     if (!next) return;
     const added = Array.from(next).slice(0, MAX_MEDIA - files.length)
       .map((file) => ({ file, url: URL.createObjectURL(file) }));
+    urlsRef.current.push(...added.map((a) => a.url));
     setFiles((current) => [...current, ...added]);
   };
 
@@ -772,9 +773,10 @@ function EditProfileModal({ profile, onClose, onSaved }: {
   );
 }
 
-function ConfirmModal({ title, message, onCancel, onConfirm }: {
+function ConfirmModal({ title, message, confirmLabel = 'Delete', onCancel, onConfirm }: {
   title: string;
   message: string;
+  confirmLabel?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -786,7 +788,7 @@ function ConfirmModal({ title, message, onCancel, onConfirm }: {
           <p className="tweet-confirm-copy">{message}</p>
           <div className="tweet-edit-actions">
             <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-            <button type="button" className="btn btn-danger" onClick={onConfirm}><Trash2 size={14} /> Delete</button>
+            <button type="button" className="btn btn-danger" onClick={onConfirm}><Trash2 size={14} /> {confirmLabel}</button>
           </div>
         </div>
       </section>
@@ -922,6 +924,8 @@ export function TweetHub() {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Tweet | null>(null);
   const [reportTarget, setReportTarget] = useState<Tweet | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [blockConfirm, setBlockConfirm] = useState<Tweet | null>(null);
   const [notifBadge, setNotifBadge] = useState(0);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -956,12 +960,12 @@ export function TweetHub() {
     } catch (error) {
       setFeedError(true);
       if (reset) setFeed([]);
-      if (feed.length > 0 && !reset) toast(error instanceof Error ? error.message : 'Could not load the feed.', 'error');
+      if (!reset) toast(error instanceof Error ? error.message : 'Could not load the feed.', 'error');
     } finally {
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [profileName, profileTab, searchQuery, view, feed.length]);
+  }, [profileName, profileTab, searchQuery, view]);
 
   const reload = useCallback(() => {
     cursorRef.current = null;
@@ -979,6 +983,7 @@ export function TweetHub() {
   useEffect(() => {
     loadSidebar();
     setRecentSearches((JSON.parse(localStorage.getItem(RECENTS_KEY) ?? '[]') as string[]).slice(0, 8));
+    api<{ unread: number }>('/api/tweets/notifications').then((data) => setNotifBadge(data.unread)).catch(() => {});
     try {
       const params = new URLSearchParams(window.location.search);
       const requested = params.get('tweetView') as TweetView | null;
@@ -1005,13 +1010,19 @@ export function TweetHub() {
     void loadFeed(true);
   }, [loadFeed, view]);
 
+  const refreshProfile = useCallback((username?: string) => {
+    const name = username ?? profileName;
+    if (!name) return;
+    api<{ user: TweetProfile['user']; stats: TweetProfile['stats']; following: boolean; blocked: boolean; blockedBy: boolean; muted: boolean; isMe: boolean }>(`/api/tweets/profile?username=${encodeURIComponent(name)}`)
+      .then((data) => setProfile({ user: data.user, stats: data.stats, following: data.following, blocked: data.blocked, blockedBy: data.blockedBy, muted: data.muted, isMe: data.isMe }))
+      .catch(() => setProfile(null));
+  }, [profileName]);
+
   useEffect(() => {
     if (view !== 'profile') { setProfile(null); return; }
     if (!profileName) return;
-    api<{ user: TweetProfile['user']; stats: TweetProfile['stats']; following: boolean; blocked: boolean; blockedBy: boolean; muted: boolean; isMe: boolean }>(`/api/tweets/profile?username=${encodeURIComponent(profileName)}`)
-      .then((data) => setProfile({ user: data.user, stats: data.stats, following: data.following, blocked: data.blocked, blockedBy: data.blockedBy, muted: data.muted, isMe: data.isMe }))
-      .catch(() => setProfile(null));
-  }, [profileName, view]);
+    refreshProfile();
+  }, [profileName, view, refreshProfile]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -1065,6 +1076,8 @@ export function TweetHub() {
     setReplies([]);
     setRepliesLoading(true);
     try {
+      const data = await api<{ replyParent: Tweet | null }>(`/api/tweets/${tweet.id}`);
+      setReplyParent(data.replyParent);
       const replyData = await api<{ replies: Tweet[] }>(`/api/tweets/${tweet.id}/replies`);
       setReplies(replyData.replies);
     } catch {
@@ -1076,6 +1089,9 @@ export function TweetHub() {
 
   const openTweet = (tweet: Tweet) => {
     setActiveTweet(tweet);
+    setReplyParent(null);
+    setReplies([]);
+    setRepliesLoading(true);
     setQuote(null);
     setEditTarget(null);
     window.history.replaceState({}, '', `/?hub=tweet&tweetView=status&id=${tweet.id}`);
@@ -1163,6 +1179,7 @@ export function TweetHub() {
       const next = !prevProfile.following;
       setProfile({ ...prevProfile, following: next, stats: { ...prevProfile.stats, followers: Math.max(0, prevProfile.stats.followers + (next ? 1 : -1)) } });
     }
+    setUsers((current) => current.map((user) => user.id === userId ? { ...user, following: !user.following } : user));
     try {
       const data = await api<{ following: boolean }>(`/api/tweets/${userId}/follow`, { method: 'POST' });
       if (prevProfile && prevProfile.user.id === userId) {
@@ -1170,10 +1187,12 @@ export function TweetHub() {
           ? { ...current, following: data.following, stats: { ...current.stats, followers: Math.max(0, prevProfile.stats.followers + (data.following ? 1 : 0)) } }
           : current);
       }
+      setUsers((current) => current.map((user) => user.id === userId ? { ...user, following: data.following } : user));
       setSuggestions((current) => data.following ? current.filter((user) => user.id !== userId) : current);
       toast(data.following ? 'Following.' : 'Unfollowed.', 'ok');
     } catch (error) {
       if (prevProfile && prevProfile.user.id === userId) setProfile(prevProfile);
+      setUsers((current) => current.map((user) => user.id === userId ? { ...user, following: !user.following } : user));
       toast(error instanceof Error ? error.message : 'Could not update follow.', 'error');
     }
   };
@@ -1204,7 +1223,10 @@ export function TweetHub() {
   const muteUser = async (tweet: Tweet) => {
     try {
       await api(`/api/tweets/${tweet.author.id}/mute`, { method: 'POST' });
+      if (profile && profile.user.id === tweet.author.id) setProfile({ ...profile, muted: true });
       setFeed((current) => current.filter((item) => item.author.id !== tweet.author.id));
+      setReplies((current) => current.filter((item) => item.author.id !== tweet.author.id));
+      if (activeTweet?.author.id === tweet.author.id) closeTweet();
       toast(`Muted @${tweet.author.username}. Their posts are hidden from your feeds.`, 'ok');
     } catch (error) {
       toast(error instanceof Error ? error.message : 'Could not mute this user.', 'error');
@@ -1212,9 +1234,11 @@ export function TweetHub() {
   };
 
   const blockUser = async (tweet: Tweet) => {
+    setBlockConfirm(null);
     try {
       await api(`/api/tweets/${tweet.author.id}/block`, { method: 'POST' });
       if (profile && profile.user.id === tweet.author.id) setProfile({ ...profile, blocked: true, following: false });
+      setSuggestions((current) => current.filter((user) => user.id !== tweet.author.id));
       setFeed((current) => current.filter((item) => item.author.id !== tweet.author.id));
       setReplies((current) => current.filter((item) => item.author.id !== tweet.author.id));
       if (activeTweet?.author.id === tweet.author.id) closeTweet();
@@ -1224,23 +1248,52 @@ export function TweetHub() {
     }
   };
 
+  const unblockUser = async (userId: number) => {
+    const prev = profile;
+    if (prev) setProfile({ ...prev, blocked: false });
+    try {
+      await api(`/api/tweets/${userId}/block`, { method: 'DELETE' });
+      toast('User unblocked.', 'ok');
+    } catch (error) {
+      if (prev) setProfile(prev);
+      toast(error instanceof Error ? error.message : 'Could not unblock this user.', 'error');
+    }
+  };
+
+  const unmuteUser = async (userId: number) => {
+    const prev = profile;
+    if (prev) setProfile({ ...prev, muted: false });
+    try {
+      await api(`/api/tweets/${userId}/mute`, { method: 'DELETE' });
+      toast('User unmuted.', 'ok');
+    } catch (error) {
+      if (prev) setProfile(prev);
+      toast(error instanceof Error ? error.message : 'Could not unmute this user.', 'error');
+    }
+  };
+
   const submitReport = async (category: string) => {
-    if (!reportTarget) return;
+    if (!reportTarget || reportBusy) return;
+    setReportBusy(true);
     try {
       await api(`/api/tweets/${reportTarget.id}/report`, { method: 'POST', body: JSON.stringify({ reason: category }) });
       toast('Thanks — our team will review this report.', 'ok');
       setReportTarget(null);
     } catch (error) {
       toast(error instanceof Error ? error.message : 'Could not submit the report.', 'error');
+    } finally {
+      setReportBusy(false);
     }
   };
 
   const openQuote = (tweet: Tweet) => {
+    if (view !== 'home') { setView('home'); setSearchQuery(''); setSearchInput(''); window.history.replaceState({}, '', '/?hub=tweet'); }
     setQuote(tweet);
     setEditTarget(null);
   };
 
   const startEdit = (tweet: Tweet) => {
+    if (view !== 'home') { setView('home'); setSearchQuery(''); setSearchInput(''); window.history.replaceState({}, '', '/?hub=tweet'); }
     setEditTarget(tweet);
     setQuote(null);
   };
@@ -1372,9 +1425,17 @@ export function TweetHub() {
                   ) : profile.blockedBy ? (
                     <span className="tweet-block-note"><Ban size={13} /> You are blocked</span>
                   ) : (
-                    <button type="button" className={`btn ${profile.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(profile.user.id)}>
-                      {profile.following ? 'Following' : <><BadgeCheck size={14} /> Follow</>}
-                    </button>
+                    <>
+                      {profile.blocked && (
+                        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void unblockUser(profile.user.id)}><Ban size={13} /> Unblock</button>
+                      )}
+                      {profile.muted && (
+                        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void unmuteUser(profile.user.id)}><VolumeX size={13} /> Unmute</button>
+                      )}
+                      <button type="button" className={`btn ${profile.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(profile.user.id)}>
+                        {profile.following ? 'Following' : <><BadgeCheck size={14} /> Follow</>}
+                      </button>
+                    </>
                   )}
                 </div>
                 <div className="tweet-profile-name">
@@ -1430,7 +1491,9 @@ export function TweetHub() {
                         <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} · {user.followers} {user.followers === 1 ? 'follower' : 'followers'}</small></span>
                       </button>
                       {me?.id !== user.id && (
-                        <button type="button" className="btn btn-tweet pill-sm" onClick={() => null}>Follow</button>
+                        <button type="button" className={`btn ${user.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(user.id)}>
+                          {user.following ? 'Following' : 'Follow'}
+                        </button>
                       )}
                     </div>
                   ))}
@@ -1478,7 +1541,7 @@ export function TweetHub() {
                   onReply={() => openTweet(tweet)}
                   onEdit={() => startEdit(tweet)}
                   onMute={() => void muteUser(tweet)}
-                  onBlock={() => void blockUser(tweet)}
+                  onBlock={() => setBlockConfirm(tweet)}
                   onReport={() => setReportTarget(tweet)}
                   onMedia={(index) => setLightbox({ media: tweet.media, index })}
                 />
@@ -1571,11 +1634,6 @@ export function TweetHub() {
                   <p>{renderText(replyParent.text, searchTag, openProfile)}</p>
                 </div>
               )}
-              {quote && (
-                <div className="tweet-quote-box-static">
-                  <QuotedCard tweet={quote} onOpen={() => {}} onAuthor={() => {}} onTag={searchTag} onMention={openProfile} />
-                </div>
-              )}
               <div className="tweet-modal-primary">
                 <div className="tweet-card-head">
                   <button type="button" className="tweet-identity" onClick={() => openProfile(activeTweet.author.username, activeTweet.author.id)}>
@@ -1587,10 +1645,10 @@ export function TweetHub() {
                     tweet={activeTweet}
                     isOwner={me?.id === activeTweet.author.id}
                     onCopy={() => void copyLink(activeTweet)}
-                    onEdit={() => { startEdit(activeTweet); closeTweet(); }}
+                    onEdit={() => { closeTweet(); startEdit(activeTweet); }}
                     onDelete={() => setConfirmDelete(activeTweet)}
                     onMute={() => void muteUser(activeTweet)}
-                    onBlock={() => void blockUser(activeTweet)}
+                    onBlock={() => setBlockConfirm(activeTweet)}
                     onReport={() => setReportTarget(activeTweet)}
                   />
                 </div>
@@ -1599,7 +1657,7 @@ export function TweetHub() {
                 {activeTweet.quoted && (
                   <QuotedCard tweet={activeTweet.quoted} onOpen={() => openTweet(activeTweet.quoted!)} onAuthor={() => openProfile(activeTweet.quoted!.author.username, activeTweet.quoted!.author.id)} onTag={searchTag} onMention={openProfile} />
                 )}
-                <TweetActions tweet={activeTweet} onLike={() => void toggleLike(activeTweet)} onRetweet={() => void toggleRetweet(activeTweet)} onQuote={() => openQuote(activeTweet)} onBookmark={() => void toggleBookmark(activeTweet)} onReply={() => {}} onShare={() => void copyLink(activeTweet)} />
+                <TweetActions tweet={activeTweet} onLike={() => void toggleLike(activeTweet)} onRetweet={() => void toggleRetweet(activeTweet)} onQuote={() => { closeTweet(); openQuote(activeTweet); }} onBookmark={() => void toggleBookmark(activeTweet)} onReply={() => {}} onShare={() => void copyLink(activeTweet)} />
                 <div className="tweet-modal-meta">
                   <span>{new Date(activeTweet.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 </div>
@@ -1627,7 +1685,7 @@ export function TweetHub() {
                     onReply={() => openTweet(reply)}
                     onEdit={() => startEdit(reply)}
                     onMute={() => void muteUser(reply)}
-                    onBlock={() => void blockUser(reply)}
+                    onBlock={() => setBlockConfirm(reply)}
                     onReport={() => setReportTarget(reply)}
                     onMedia={(index) => setLightbox({ media: reply.media, index })}
                   />
@@ -1646,7 +1704,7 @@ export function TweetHub() {
           avatarPhoto={listModal.user.avatarPhoto}
           user={listModal.user}
           onClose={() => setListModal(null)}
-          onFollowChange={() => { if (view === 'profile' && profileName) { /* refresh profile counts */ } }}
+          onFollowChange={() => { if (view === 'profile') refreshProfile(); }}
         />
       )}
 
@@ -1663,6 +1721,16 @@ export function TweetHub() {
         />
       )}
 
+      {blockConfirm && (
+        <ConfirmModal
+          title={`Block @${blockConfirm.author.username}?`}
+          message="They will not be able to follow you, mention you, or interact with your content, and their posts will be hidden across the app. You can unblock them later from their profile."
+          confirmLabel="Block"
+          onCancel={() => setBlockConfirm(null)}
+          onConfirm={() => void blockUser(blockConfirm)}
+        />
+      )}
+
       {reportTarget && (
         <div className="tweet-modal-backdrop" onMouseDown={() => setReportTarget(null)}>
           <section className="tweet-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
@@ -1672,7 +1740,8 @@ export function TweetHub() {
             </header>
             <div className="tweet-modal-scroll">
               <p className="tweet-report-copy">Why are you reporting this tweet? Our moderation team will review it.</p>
-              {REPORT_REASONS.map((reason) => (
+              {reportBusy && <div className="tweet-empty"><span className="admin-loader" /> Sending report…</div>}
+              {!reportBusy && REPORT_REASONS.map((reason) => (
                 <button type="button" className="tweet-report-reason" key={reason.id} onClick={() => void submitReport(reason.id)}>
                   <Flag size={14} /> {reason.label}
                 </button>

@@ -32,8 +32,8 @@ export const GET = handle(async (req) => {
         },
         take: 6,
         include: {
-          _count: { select: { tweets: true } },
-          tweetFollowers: { select: { id: true } },
+          _count: { select: { tweets: true, tweetFollowers: true } },
+          tweetFollowing: { where: { followerId: me.id }, take: 1, select: { id: true } },
         },
       });
       users = rows.map((u) => ({
@@ -44,7 +44,8 @@ export const GET = handle(async (req) => {
         avatarPhoto: u.profilePhotoId ? `/api/media/${u.profilePhotoId}` : null,
         bio: u.bio,
         tweets: u._count.tweets,
-        followers: u.tweetFollowers.length,
+        followers: u._count.tweetFollowers,
+        following: u.tweetFollowing.length > 0,
       }));
     }
   }
