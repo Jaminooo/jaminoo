@@ -624,5 +624,19 @@
     "backToHub": "Back to Anime Hub",
     "favoritesOnly": "Favourites",
     "clearSearch": "Clear search"
+  },
+  "manga": {
+    "tab": "Manga",
+    "tabAnime": "Anime",
+    "kicker": "MANGA LIBRARY",
+    "tagline": "Read chapters of your favourite series, chapter by chapter.",
+    "chapters": "chapters",
+    "chapterLabel": "Chapter",
+    "read": "Read",
+    "noManga": "No manga found.",
+    "backToAnime": "Back to Anime Hub",
+    "timeline": "Chapter timeline",
+    "chapterProgress": "Chapter {no}",
+    "opener": "Tap a chapter to start reading — desktop readers light the page under your cursor."
   }
 }

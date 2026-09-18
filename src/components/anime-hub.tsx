@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Bookmark, Ghost, Heart, Play, Search, Shuffle, Star, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Bookmark, Ghost, Heart, Play, Search, Shuffle, Star, X, BookOpen } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
 import { toast } from '@/components/toast';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { MANGA } from '@/data/manga';
 
 export type AnimeType = 'Series' | 'Movie' | 'OVA';
 export type AnimeStatus = 'finished' | 'airing';
@@ -53,9 +55,11 @@ const GENRE_SET = Array.from(new Set(CATALOGUE.flatMap((a) => a.genres))).sort()
 
 const FAV_KEY = 'anime_favs';
 
-export function AnimeHub() {
+export function AnimeHub({ initialTab = 'anime' }: { initialTab?: 'anime' | 'manga' }) {
   const t = useTranslations();
+  const router = useRouter();
   const setProduct = useAppStore((state) => state.setProduct);
+  const [tab, setTab] = useState<'anime' | 'manga'>(initialTab);
   const [search, setSearch] = useState('');
   const [genre, setGenre] = useState<string | null>(null);
   const [favsOnly, setFavsOnly] = useState(false);
@@ -87,19 +91,43 @@ export function AnimeHub() {
     });
   }, [search, genre, favsOnly, favs]);
 
+  const mangaResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return MANGA.filter((m) => {
+      if (genre && !m.genres.includes(genre)) return false;
+      if (q && !`${m.title} ${m.original} ${m.studio} ${m.stage}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [search, genre]);
+
+  const switchTab = (next: 'anime' | 'manga') => {
+    setTab(next);
+    setOpen(null);
+    router.replace(`/anime?tab=${next}`, { scroll: false });
+  };
+
   return (
     <div className="hub-shell anime-hub-shell">
-      <WorkspaceTopbar onHome={() => setProduct('home')} product={t('anime.title')} />
+      <WorkspaceTopbar onHome={() => setProduct('home')} product={tab === 'manga' ? t('manga.tab') : t('anime.title')} />
       <main className="anime-hub-content">
         <button type="button" className="hub-back" onClick={() => setProduct('home')}>
           <ArrowLeft size={15} /> {t('anime.backToHub')}
         </button>
 
         <header className="anime-hero">
-          <div className="hub-kicker">{t('anime.kicker')}</div>
-          <h1>{t('anime.title')}</h1>
-          <p>{t('anime.tagline')}</p>
+          <div className="hub-kicker">{tab === 'manga' ? t('manga.kicker') : t('anime.kicker')}</div>
+          <h1>{tab === 'manga' ? t('manga.tab') : t('anime.title')}</h1>
+          <p>{tab === 'manga' ? t('manga.tagline') : t('anime.tagline')}</p>
         </header>
+
+        <div className="anime-tabs">
+          <button type="button" className={`anime-tab ${tab === 'anime' ? 'active' : ''}`} onClick={() => switchTab('anime')}>
+            {t('manga.tabAnime')} <span className="anime-tab-count">{CATALOGUE.length}</span>
+          </button>
+          <button type="button" className={`anime-tab ${tab === 'manga' ? 'active' : ''}`} onClick={() => switchTab('manga')}>
+            {t('manga.tab')} <span className="anime-tab-count">{MANGA.length}</span>
+          </button>
+        </div>
 
         <div className="anime-toolbar">
           <div className="anime-search">
@@ -111,9 +139,11 @@ export function AnimeHub() {
               </button>
             )}
           </div>
-          <button type="button" className={`anime-fav-toggle ${favsOnly ? 'active' : ''}`} onClick={() => setFavsOnly((v) => !v)}>
-            <Heart size={15} fill={favsOnly ? 'currentColor' : 'none'} /> {t('anime.favoritesOnly')}
-          </button>
+          {tab === 'anime' && (
+            <button type="button" className={`anime-fav-toggle ${favsOnly ? 'active' : ''}`} onClick={() => setFavsOnly((v) => !v)}>
+              <Heart size={15} fill={favsOnly ? 'currentColor' : 'none'} /> {t('anime.favoritesOnly')}
+            </button>
+          )}
         </div>
 
         <div className="anime-genres">
@@ -127,7 +157,20 @@ export function AnimeHub() {
           ))}
         </div>
 
-        {results.length === 0 ? (
+        {tab === 'manga' ? (
+          mangaResults.length === 0 ? (
+            <div className="anime-empty">
+              <Ghost size={30} />
+              <p>{t('manga.noManga')}</p>
+            </div>
+          ) : (
+            <div className="manga-grid">
+              {mangaResults.map((m) => (
+                <MangaTile key={m.slug} manga={m} onOpen={() => router.push(`/manga/${m.slug}`)} />
+              ))}
+            </div>
+          )
+        ) : results.length === 0 ? (
           <div className="anime-empty">
             <Ghost size={30} />
             <p>{favsOnly ? t('anime.noFavs') : t('anime.noResults')}</p>
@@ -144,10 +187,58 @@ export function AnimeHub() {
         )}
 
         <AnimatePresence>
-          {open && <AnimeDetail title={open} fav={favs.includes(open.id)} onClose={() => setOpen(null)} onToggleFav={() => toggleFav(open.id)} />}
+          {tab === 'anime' && open && <AnimeDetail title={open} fav={favs.includes(open.id)} onClose={() => setOpen(null)} onToggleFav={() => toggleFav(open.id)} />}
         </AnimatePresence>
       </main>
     </div>
+  );
+}
+
+function MangaTile({ manga, onOpen }: { manga: typeof MANGA[number]; onOpen: () => void }) {
+  const t = useTranslations();
+  const [h1, h2] = manga.hue;
+  const ref = useRef<HTMLButtonElement>(null);
+  const [spin, setSpin] = useState<{ rx: number; ry: number; lx: number; ly: number } | null>(null);
+  const [leave, setLeave] = useState(false);
+
+  const onMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    const y = ((e.clientY - r.top) / r.height) * 2 - 1;
+    setSpin({ rx: -y * 18, ry: x * 18, lx: (x + 1) / 2, ly: (y + 1) / 2 });
+    if (leave) setLeave(false);
+  };
+
+  return (
+    <button
+      type="button"
+      ref={ref}
+      className="manga-tile"
+      onClick={onOpen}
+      onMouseMove={onMove}
+      onMouseLeave={() => { setSpin(null); setLeave(true); }}
+      style={{
+        transform: spin ? `rotateX(${spin.rx}deg) rotateY(${spin.ry}deg) scale3d(1.04, 1.04, 1)` : 'rotateX(0) rotateY(0)',
+        transition: leave ? 'transform .6s ease' : 'transform .08s linear',
+        background: `linear-gradient(160deg, hsl(${h1} 70% 32%), hsl(${h2} 80% 22%))`,
+      }}
+    >
+      <span className="manga-tile-shade"
+        style={spin ? { background: `radial-gradient(600px circle at ${spin.lx * 100}% ${spin.ly * 100}%, rgba(255,255,255,.25), transparent 40%)` } : undefined} />
+      <span className="manga-tile-no">#{String(manga.chapters).padStart(4, '0')}</span>
+      <span className="manga-tile-wordmark">
+        <BookOpen size={16} /> {manga.studio}
+      </span>
+      <span className="manga-tile-chapters">
+        <BookOpen size={12} /> {manga.chapters} {t('manga.chapters')}
+      </span>
+      <span className="manga-tile-copy">
+        <strong>{manga.title}</strong>
+        <em>{manga.original}</em>
+      </span>
+    </button>
   );
 }
 
