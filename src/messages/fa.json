@@ -279,7 +279,39 @@
     "dark": "تاریک",
     "light": "روشن",
     "system": "سیستم",
-    "anime": "انیمه"
+    "anime": "انیمه",
+    "ocean": "اقیانوس",
+    "forest": "جنگل"
+  },
+  "notifications": {
+    "title": "مرکز اعلان‌ها",
+    "unreadCount": "{n} اعلان خوانده‌نشده",
+    "allCaughtUp": "همه اعلان‌ها را دیدی",
+    "markAll": "همه را خوانده‌شده کن",
+    "close": "بستن",
+    "loading": "در حال بارگذاری اعلان‌ها…",
+    "empty": "اعلانی در این بخش وجود ندارد.",
+    "someone": "یک نفر",
+    "like": "{user} محتوای تو را پسندید",
+    "comment": "{user} روی محتوای تو نظر داد",
+    "follow": "{user} تو را دنبال کرد",
+    "friend": "{user} درخواست دوستی فرستاد",
+    "collab": "{user} دعوت همکاری فرستاد",
+    "update": "یک به‌روزرسانی جدید داری.",
+    "filterAll": "همه",
+    "filterSocial": "اجتماعی",
+    "filterContent": "محتوا",
+    "filterSystem": "سیستم"
+  },
+  "search": {
+    "open": "باز کردن جست‌وجو",
+    "placeholder": "جست‌وجوی افراد و موسیقی…",
+    "hint": "در همهٔ بخش‌های متصل Jamino جست‌وجو کن.",
+    "people": "افراد",
+    "music": "موسیقی",
+    "member": "عضو Jamino",
+    "unknownArtist": "هنرمند ناشناس",
+    "empty": "نتیجه‌ای پیدا نشد."
   },
   "media": {
     "profilePhotos": "عکس‌های پروفایل",

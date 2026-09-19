@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-export type ThemeName = 'dark' | 'light' | 'system' | 'anime';
+export type ThemeName = 'dark' | 'light' | 'system' | 'anime' | 'ocean' | 'forest';
 
 const STORAGE_KEY = 'jam_theme';
 
@@ -25,7 +25,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) as ThemeName | null;
-      if (saved === 'dark' || saved === 'light' || saved === 'system' || saved === 'anime') {
+      if (saved === 'dark' || saved === 'light' || saved === 'system' || saved === 'anime' || saved === 'ocean' || saved === 'forest') {
         setThemeState(saved);
       }
     } catch {}
@@ -44,6 +44,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setResolved(dark ? 'dark' : 'light');
     } else if (t === 'anime') {
       root.dataset.theme = 'anime';
+      root.dataset.resolved = 'dark';
+      setResolved('dark');
+    } else if (t === 'ocean' || t === 'forest') {
+      root.dataset.theme = t;
       root.dataset.resolved = 'dark';
       setResolved('dark');
     } else {

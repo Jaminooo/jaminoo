@@ -279,7 +279,39 @@
     "dark": "Dark",
     "light": "Light",
     "system": "System",
-    "anime": "Anime"
+    "anime": "Anime",
+    "ocean": "Ocean",
+    "forest": "Forest"
+  },
+  "notifications": {
+    "title": "Notification center",
+    "unreadCount": "{n} unread",
+    "allCaughtUp": "You are all caught up",
+    "markAll": "Mark all as read",
+    "close": "Close",
+    "loading": "Loading updates…",
+    "empty": "No notifications in this view.",
+    "someone": "Someone",
+    "like": "{user} liked your content",
+    "comment": "{user} commented on your content",
+    "follow": "{user} started following you",
+    "friend": "{user} sent you a friend request",
+    "collab": "{user} sent you a collaboration invite",
+    "update": "You have a new update.",
+    "filterAll": "All",
+    "filterSocial": "Social",
+    "filterContent": "Content",
+    "filterSystem": "System"
+  },
+  "search": {
+    "open": "Open search",
+    "placeholder": "Search people, music…",
+    "hint": "Search across your connected Jamino services.",
+    "people": "People",
+    "music": "Music",
+    "member": "Jamino member",
+    "unknownArtist": "Unknown artist",
+    "empty": "No results yet."
   },
   "media": {
     "profilePhotos": "Profile photos",
