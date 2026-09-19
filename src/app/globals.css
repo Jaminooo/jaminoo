@@ -9111,3 +9111,23 @@ body {
 @media (max-width: 640px) {
   .video-post-card { width: 100%; }
 }
+
+/* Shared live state + scroll contract for every workspace hub. */
+.live-status { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 0 9px; border: 1px solid rgba(186, 215, 247, .14); border-radius: 999px; color: var(--muted); font-size: 10px; letter-spacing: .02em; white-space: nowrap; }
+.live-status-connected { color: #86efac; border-color: rgba(74, 222, 128, .24); background: rgba(34, 197, 94, .08); }
+.live-status-reconnecting, .live-status-connecting { color: #fbbf24; border-color: rgba(251, 191, 36, .24); background: rgba(251, 191, 36, .07); }
+.live-status-offline, .live-status-error { color: #fb7185; border-color: rgba(251, 113, 133, .24); background: rgba(251, 113, 133, .07); }
+.live-status-spin { animation: live-status-spin 1s linear infinite; }
+@keyframes live-status-spin { to { transform: rotate(360deg); } }
+.anime-hub-content { scroll-padding-top: 84px; }
+.anime-hero, .anime-tabs, .anime-toolbar, .anime-genres, .anime-grid, .manga-grid { content-visibility: auto; contain-intrinsic-size: 1px 420px; }
+.anime-genres { position: sticky; top: 64px; z-index: 8; padding: 8px 0; background: linear-gradient(var(--bg) 68%, transparent); overflow-x: auto; scrollbar-width: none; }
+.anime-genres::-webkit-scrollbar { display: none; }
+.anime-grid, .manga-grid { scroll-margin-top: 116px; }
+@media (max-width: 720px) {
+  .live-status { padding: 0 7px; }
+  .live-status-label { display: none; }
+  .anime-hub-content { width: min(100% - 24px, 1120px); padding-bottom: 110px; }
+  .anime-genres { top: 56px; margin-inline: -6px; padding-inline: 6px; }
+  .anime-grid, .manga-grid { gap: 12px; }
+}

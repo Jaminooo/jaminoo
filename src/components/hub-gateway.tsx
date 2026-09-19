@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Bird, House, Music2, PlaySquare, UsersRound, Cla
 import type { ReactNode } from 'react';
 import { GlobalSearch } from '@/components/global-search';
 import { NowFeed } from '@/components/now-feed';
+import { LiveStatus } from '@/components/live-status';
 
 const HUBS: { id: Exclude<HubProduct, 'home'>; icon: typeof Music2; title: string; description: string; tone: string }[] = [
   { id: 'community', icon: UsersRound, title: 'Community Hub', description: 'Friends, Jams, chat and your account workspace.', tone: 'community' },
@@ -30,6 +31,7 @@ export function WorkspaceTopbar({ onHome, product, children }: { onHome?: () => 
       <div className="hub-topbar-center">{product ?? 'Choose a workspace'}</div>
       <div className="tb-right">
         <GlobalSearch />
+        <LiveStatus />
         {children}
         <TopRightControls inline />
         <div className="user-chip">
