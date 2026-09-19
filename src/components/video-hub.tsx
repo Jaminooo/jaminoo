@@ -37,7 +37,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { api } from '@/lib/client-api';
+import { api, uploadWithProgress } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useAppStore } from '@/store/app-store';
@@ -45,6 +45,7 @@ import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
 import { CreatorCollabStudio } from '@/components/creator-collab-studio';
+import { CreatorInsights } from '@/components/creator-insights';
 import { connectLive, onLive } from '@/lib/live';
 
 type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists';
@@ -222,6 +223,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
   const [file, setFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -235,6 +237,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
     setDurationSec('');
     setFile(null);
     setThumbnailFile(null);
+    setUploadProgress(0);
   }, [open]);
 
   const inspectVideo = async (nextFile: File) => {
@@ -275,14 +278,14 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
       if (file) {
         const form = new FormData();
         form.append('file', file);
-        const uploaded = await api<{ asset: { id: string } }>('/api/video/assets', { method: 'POST', body: form });
+        const uploaded = await uploadWithProgress<{ asset: { id: string } }>('/api/video/assets', form, (percent) => setUploadProgress(Math.round(percent * (thumbnailFile ? .7 : 1))));
         assetId = uploaded.asset.id;
       }
       let thumbnailAssetId = '';
       if (thumbnailFile) {
         const form = new FormData();
         form.append('file', thumbnailFile);
-        const uploaded = await api<{ asset: { id: string } }>('/api/video/assets', { method: 'POST', body: form });
+        const uploaded = await uploadWithProgress<{ asset: { id: string } }>('/api/video/assets', form, (percent) => setUploadProgress(70 + Math.round(percent * .3)));
         thumbnailAssetId = uploaded.asset.id;
       }
       const data = await api<{ post: VideoPost }>('/api/video/posts', {
@@ -313,7 +316,8 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
           {mediaType !== 'TEXT' && <div className="video-upload-box"><UploadCloud size={22} /><div><b>{file ? file.name : 'Choose a photo or video'}</b><span>{mediaType === 'IMAGE' ? 'PNG, JPG or WEBP · up to 15 MB' : 'MP4, MOV or WEBM · up to 100 MB · thumbnail is generated automatically'}</span></div><label className="btn btn-ghost pill-sm"><ImageIcon size={14} /> Browse<input type="file" hidden accept={mediaType === 'IMAGE' ? 'image/png,image/jpeg,image/webp' : 'video/mp4,video/webm,video/quicktime'} onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setThumbnailFile(null); if (nextFile?.type.startsWith('video/')) void inspectVideo(nextFile); }} /></label></div>}
           {mediaType !== 'TEXT' && <label><span>Or paste a direct media URL</span><input type="url" value={externalUrl} onChange={(event) => setExternalUrl(event.target.value)} placeholder="https://…/video.mp4" /></label>}
           {needsVideo && <div className="video-create-grid"><label><span>Duration in seconds</span><input type="number" min={0} max={86400} value={durationSec} onChange={(event) => setDurationSec(event.target.value)} placeholder="Auto detected from upload" /></label><label><span>Thumbnail URL</span><input type="url" value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder={thumbnailFile ? 'Auto thumbnail ready' : 'Optional cover image'} /></label><label><span>Subtitles URL</span><input type="url" value={subtitlesUrl} onChange={(event) => setSubtitlesUrl(event.target.value)} placeholder="Optional .vtt file" /></label></div>}
-          <footer className="video-modal-actions"><span><Sparkles size={13} /> Your post appears in the infinite feed after publishing.</span><button type="submit" className="btn btn-violet" disabled={saving}>{saving ? 'Publishing…' : <><Send size={14} /> Publish</>}</button></footer>
+          {saving && (file || thumbnailFile) && <div className="creator-upload-progress"><span style={{ width: `${uploadProgress}%` }} /><small>{uploadProgress}% uploaded</small></div>}
+          <footer className="video-modal-actions"><span><Sparkles size={13} /> Your post appears in the infinite feed after publishing.</span><button type="submit" className="btn btn-violet" disabled={saving}>{saving ? `Publishing ${uploadProgress}%…` : <><Send size={14} /> Publish</>}</button></footer>
         </form>
       </section>
     </div>
@@ -967,6 +971,7 @@ function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost }: 
         <div><div className="hub-kicker">CREATOR STUDIO</div><h2>Your publishing desk.</h2><p>Review every post, understand the response and update your public channel profile without leaving the hub.</p></div>
         <div className="creator-studio-hero-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={onEditProfile}><Pencil size={14} /> Edit channel</button><LayoutDashboard size={32} /></div>
       </div>
+      <CreatorInsights />
       <div className="creator-studio-metrics">
         <div className="creator-studio-metric"><BarChart3 size={17} /><b>{posts.length}</b><span>Published posts</span></div>
         <div className="creator-studio-metric"><Heart size={17} /><b>{likes}</b><span>Total likes</span></div>
