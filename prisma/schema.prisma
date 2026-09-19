@@ -491,6 +491,8 @@ model VideoPost {
   subtitlesUrl String   @default("")
   durationSec  Int      @default(0)
   visibility   String   @default("PUBLIC")
+  workflowStatus String  @default("PUBLISHED") // DRAFT | SCHEDULED | PUBLISHED
+  publishAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

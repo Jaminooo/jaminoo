@@ -666,5 +666,16 @@ app.prepare().then(async () => {
  server.listen(port, '0.0.0.0', () => {
   console.log(`> Jamino live server ready on http://0.0.0.0:${port}`);
 });
+  const publishDuePosts = async () => {
+    try {
+      const result = await prisma.videoPost.updateMany({ where: { workflowStatus: 'SCHEDULED', publishAt: { lte: new Date() } }, data: { workflowStatus: 'PUBLISHED', visibility: 'PUBLIC', publishAt: null } });
+      if (result.count > 0) console.log(`> Published ${result.count} scheduled creator post(s)`);
+    } catch (error) {
+      console.error('scheduled post worker error:', error && error.message);
+    }
+  };
+  const scheduleTimer = setInterval(publishDuePosts, 30000);
+  scheduleTimer.unref?.();
+  void publishDuePosts();
   
 });

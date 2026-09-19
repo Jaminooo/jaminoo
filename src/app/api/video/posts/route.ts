@@ -84,6 +84,7 @@ export const POST = handle(async (req: Request) => {
   const thumbnailUrl = safeUrl(body.thumbnailUrl, 1200);
   const subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
   const durationSec = Number(body.durationSec ?? 0);
+  const workflowStatus = body.workflowStatus === 'DRAFT' ? 'DRAFT' : 'PUBLISHED';
 
   if (!KINDS.has(kind)) return err('Invalid post type');
   if (!MEDIA_TYPES.has(mediaType)) return err('Invalid media type');
@@ -121,6 +122,8 @@ export const POST = handle(async (req: Request) => {
       thumbnailUrl,
       subtitlesUrl,
       durationSec,
+      visibility: workflowStatus === 'PUBLISHED' ? 'PUBLIC' : 'PRIVATE',
+      workflowStatus,
     },
     include: {
       author: { select: { id: true, username: true, avatarId: true, profilePhotoId: true } },

@@ -79,6 +79,8 @@ export interface VideoPost {
   comments: number;
   liked: boolean;
   saved: boolean;
+  workflowStatus?: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED';
+  publishAt?: string | null;
 }
 
 interface VideoComment {
@@ -224,6 +226,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [workflowStatus, setWorkflowStatus] = useState<'DRAFT' | 'PUBLISHED'>('PUBLISHED');
 
   useEffect(() => {
     if (!open) return;
@@ -238,6 +241,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
     setFile(null);
     setThumbnailFile(null);
     setUploadProgress(0);
+    setWorkflowStatus('PUBLISHED');
   }, [open]);
 
   const inspectVideo = async (nextFile: File) => {
@@ -290,7 +294,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
       }
       const data = await api<{ post: VideoPost }>('/api/video/posts', {
         method: 'POST',
-        body: JSON.stringify({ kind, mediaType, title, description, thumbnailUrl, subtitlesUrl, externalUrl, durationSec: Number(durationSec || 0), assetId, thumbnailAssetId }),
+        body: JSON.stringify({ kind, mediaType, title, description, thumbnailUrl, subtitlesUrl, externalUrl, durationSec: Number(durationSec || 0), assetId, thumbnailAssetId, workflowStatus }),
       });
       toast('Published to Video Hub.', 'ok');
       onCreated(data.post);
@@ -317,7 +321,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
           {mediaType !== 'TEXT' && <label><span>Or paste a direct media URL</span><input type="url" value={externalUrl} onChange={(event) => setExternalUrl(event.target.value)} placeholder="https://…/video.mp4" /></label>}
           {needsVideo && <div className="video-create-grid"><label><span>Duration in seconds</span><input type="number" min={0} max={86400} value={durationSec} onChange={(event) => setDurationSec(event.target.value)} placeholder="Auto detected from upload" /></label><label><span>Thumbnail URL</span><input type="url" value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder={thumbnailFile ? 'Auto thumbnail ready' : 'Optional cover image'} /></label><label><span>Subtitles URL</span><input type="url" value={subtitlesUrl} onChange={(event) => setSubtitlesUrl(event.target.value)} placeholder="Optional .vtt file" /></label></div>}
           {saving && (file || thumbnailFile) && <div className="creator-upload-progress"><span style={{ width: `${uploadProgress}%` }} /><small>{uploadProgress}% uploaded</small></div>}
-          <footer className="video-modal-actions"><span><Sparkles size={13} /> Your post appears in the infinite feed after publishing.</span><button type="submit" className="btn btn-violet" disabled={saving}>{saving ? `Publishing ${uploadProgress}%…` : <><Send size={14} /> Publish</>}</button></footer>
+          <footer className="video-modal-actions"><span><Sparkles size={13} /> {workflowStatus === 'DRAFT' ? 'Keep it private and finish it later.' : 'Your post appears in the infinite feed after publishing.'}</span><div className="video-modal-actions-buttons"><button type="submit" className="btn btn-ghost" disabled={saving} onClick={() => setWorkflowStatus('DRAFT')}>Save draft</button><button type="submit" className="btn btn-violet" disabled={saving} onClick={() => setWorkflowStatus('PUBLISHED')}>{saving ? `Publishing ${uploadProgress}%…` : <><Send size={14} /> Publish</>}</button></div></footer>
         </form>
       </section>
     </div>
@@ -777,7 +781,7 @@ export function VideoHub() {
   useEffect(() => {
     if (view !== 'studio') return;
     setStudioLoading(true);
-    api<{ posts: VideoPost[] }>('/api/video/posts?authorId=me&kind=ALL').then((data) => setStudioPosts(data.posts)).catch(() => setStudioPosts([])).finally(() => setStudioLoading(false));
+    api<{ posts: VideoPost[] }>('/api/video/studio').then((data) => setStudioPosts(data.posts)).catch(() => setStudioPosts([])).finally(() => setStudioLoading(false));
   }, [view]);
 
   useEffect(() => {
@@ -964,6 +968,14 @@ function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost }: 
   const saves = posts.reduce((sum, post) => sum + post.saves, 0);
   const comments = posts.reduce((sum, post) => sum + post.comments, 0);
   const interactions = likes + saves + comments;
+  const updateWorkflow = async (post: VideoPost, workflowStatus: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED') => {
+    const publishAt = workflowStatus === 'SCHEDULED' ? window.prompt('Publish at (ISO date, e.g. 2026-09-20T18:00:00Z)') : null;
+    try {
+      const data = await api<{ post: VideoPost }>('/api/video/studio', { method: 'PATCH', body: JSON.stringify({ id: post.id, workflowStatus, publishAt }) });
+      window.location.reload();
+      void data;
+    } catch (error) { toast(error instanceof Error ? error.message : 'Could not update workflow.', 'error'); }
+  };
 
   return (
     <section className="creator-studio-view">
@@ -982,7 +994,7 @@ function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost }: 
         <div className="creator-studio-toolbar"><p>Per-post analytics from likes, saves and comments.</p><span className="creator-studio-edit"><TrendingUp size={14} /> {interactions} tracked interactions</span></div>
         <div className="creator-studio-table">
           <div className="creator-studio-row creator-studio-row-head"><span>Post</span><span>Likes</span><span>Saves</span><span>Comments</span><span>Type</span><span /></div>
-          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || 'Untitled post'}</b><small>{new Date(post.createdAt).toLocaleDateString()}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>likes</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>saves</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>comments</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>format</span><div className="creator-studio-row-actions"><button type="button" className="btn-icon" onClick={() => onEditPost(post)} title="Edit post"><Pencil size={15} /></button><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Trash2 size={15} /></button></div></div>)}
+          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || 'Untitled post'}</b><small>{new Date(post.createdAt).toLocaleDateString()} · {post.workflowStatus ?? 'PUBLISHED'}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>likes</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>saves</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>comments</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>format</span><div className="creator-studio-row-actions"><button type="button" className="btn-icon" onClick={() => onEditPost(post)} title="Edit post"><Pencil size={15} /></button><button type="button" className="btn btn-ghost pill-sm" onClick={() => void updateWorkflow(post, post.workflowStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}>{post.workflowStatus === 'PUBLISHED' ? 'Draft' : 'Publish'}</button><button type="button" className="btn btn-ghost pill-sm" onClick={() => void updateWorkflow(post, 'SCHEDULED')}>Schedule</button><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title="Delete post"><Trash2 size={15} /></button></div></div>)}
         </div>
         <CreatorCollabStudio posts={posts.map((post) => ({ id: post.id, title: post.title, kind: post.kind }))} />
       </>}
