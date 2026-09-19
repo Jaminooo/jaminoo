@@ -47,7 +47,8 @@
     "newJam": "جم جدید",
     "logout": "خروج",
     "security": "امنیت",
-    "messages": "پیام‌ها"
+    "messages": "پیام‌ها",
+    "notifications": "اعلان‌ها"
   },
   "status": {
     "online": "آنلاین",
@@ -676,6 +677,45 @@
       "error": "اقدام",
       "ok": "موفق",
       "nothing": "هنوز رویدادی نیست."
+    },
+    "notifications": "اعلان‌ها",
+    "notif": {
+      "send": "ارسال اطلاعیه",
+      "compose": "نوشتن اطلاعیه",
+      "title": "عنوان (اختیاری)",
+      "titlePlaceholder": "تیتر کوتاه که بالای پیام نمایش داده می‌شود",
+      "messageFa": "متن پیام (فارسی)",
+      "messageEn": "متن پیام (English)",
+      "audience": "مخاطبان",
+      "audienceAll": "همه کاربران",
+      "audienceUsers": "کاربران مشخص",
+      "audienceFilter": "با فیلتر",
+      "selectUsers": "انتخاب کاربران",
+      "searchUsers": "جستجوی نام‌کاربری…",
+      "selectedUsers": "{n} انتخاب‌شده",
+      "filters": "فیلترها",
+      "filterOnline": "فقط آنلاین‌ها",
+      "filterAdmins": "فقط مدیران",
+      "filterBanned": "شامل مسدودشده‌ها",
+      "filterCountry": "کشور",
+      "estRecipients": "دریافت‌کنندگان",
+      "preview": "پیش‌نمایش",
+      "previewEmpty": "پیام شما اینجا نمایش داده می‌شود.",
+      "sendConfirm": "ارسال به {n} کاربر؟",
+      "sendConfirmBody": "این اطلاعیه به صندوق اعلان هر کاربر انتخاب‌شده تحویل داده می‌شود.",
+      "sent": "اطلاعیه به {n} کاربر ارسال شد.",
+      "sendError": "ارسال اطلاعیه ممکن نشد.",
+      "msgRequired": "حداقل در یک زبان پیام بنویسید.",
+      "noAudience": "هیچ کاربری با این مخاطب‌ها یافت نشد.",
+      "history": "تاریخچه",
+      "announcement": "اطلاعیه",
+      "sentCount": "ارسال",
+      "readCount": "خوانده",
+      "readRate": "نرخ خواندن",
+      "dateCol": "زمان ارسال",
+      "deleteBatch": "حذف اطلاعیه",
+      "deleteBatchConfirm": "این اطلاعیه و اعلان‌های آن برای همه کاربران حذف شود؟",
+      "empty": "هنوز اطلاعیه‌ای ارسال نشده است."
     }
   },
   "ctx": {
@@ -831,7 +871,12 @@
     "kicker": "هاب توییت · متصل به جامینو",
     "refresh": "تازه‌سازی",
     "searchPlaceholder": "جست‌وجوی توییت، @افراد و #موضوع‌ها",
-    "search": "جست‌وجو",
+    "search": {
+      "people": "افراد",
+      "noResults": "توییتی با جست‌وجوی شما مطابقت ندارد.",
+      "oneFollower": "۱ دنبال‌کننده",
+      "followersCount": "{count} دنبال‌کننده"
+    },
     "composerPlaceholder": "چه خبر است؟",
     "quotePlaceholder": "یک نظر اضافه کن…",
     "editingNote": "در حال ویرایش توییت — تغییرات فوراً اعمال می‌شود.",
@@ -954,12 +999,6 @@
       "profile": "پروفایل",
       "hub": "هاب توییت"
     },
-    "search": {
-      "people": "افراد",
-      "noResults": "توییتی با جست‌وجوی شما مطابقت ندارد.",
-      "oneFollower": "۱ دنبال‌کننده",
-      "followersCount": "{count} دنبال‌کننده"
-    },
     "recent": {
       "title": "جست‌وجوهای اخیر",
       "clear": "پاک‌کردن",
@@ -1026,5 +1065,39 @@
       "prev": "قبلی",
       "next": "بعدی"
     }
+  },
+  "notif": {
+    "title": "اعلان‌ها",
+    "all": "همه",
+    "unread": "خوانده‌نشده",
+    "empty": "هنوز اعلانی ندارید.",
+    "noUnread": "همه‌چیز خوانده شد.",
+    "markAllRead": "علامت‌گذاری همه به‌عنوان خوانده‌شده",
+    "markRead": "خوانده‌شده",
+    "delete": "حذف",
+    "close": "بستن",
+    "more": "نمایش بیشتر",
+    "now": "هم‌اکنون",
+    "minAgo": "{n} دقیقه پیش",
+    "hourAgo": "{n} ساعت پیش",
+    "dayAgo": "{n} روز پیش",
+    "friendRequest": "{user} برای شما درخواست دوستی فرستاد",
+    "friendAccepted": "{user} درخواست دوستی شما را پذیرفت",
+    "creatorFollow": "{user} کانال {hub} شما را دنبال کرد",
+    "creatorReview": "وضعیت درخواست سازنده {hub} شما: {status}",
+    "videoCollab": "{user} شما را به همکاری در «{title}» دعوت کرد",
+    "videoCollabResponse": "{user} همکاری «{title}» را {status} کرد",
+    "videoLike": "{user} پست شما «{title}» را پسندید",
+    "videoComment": "{user} روی «{title}» دیدگاه گذاشت",
+    "jamInvite": "{user} شما را به {jam} دعوت کرد",
+    "jamInviteAccepted": "{user} دعوت شما به {jam} را پذیرفت",
+    "tweetLike": "{user} توئیت شما را پسندید",
+    "tweetRetweet": "{user} توئیت شما را بازنشر کرد",
+    "tweetReply": "{user} به توئیت شما پاسخ داد",
+    "tweetFollow": "{user} شما را دنبال کرد",
+    "tweetQuote": "{user} به توئیت شما نقل‌قول داد",
+    "tweetMention": "{user} به شما اشاره کرد",
+    "broadcastTitle": "اطلاعیه از جیمینو",
+    "other": "{kind}"
   }
 }

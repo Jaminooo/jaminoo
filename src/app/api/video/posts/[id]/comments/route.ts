@@ -1,6 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { liveBroadcast } from '@/lib/live-publish';
+import { pushNotification } from '@/lib/notifications';
 
 type Ctx = { params: { id: string } };
 
@@ -40,7 +41,7 @@ export const POST = handle(async (req: Request, { params }: Ctx) => {
     data: { postId, userId: me.id, text },
     include: { user: { select: { id: true, username: true, avatarId: true, profilePhotoId: true } } },
   });
-  if (post.authorId !== me.id) await prisma.notification.create({ data: { userId: post.authorId, kind: 'VIDEO_COMMENT', payload: JSON.stringify({ postId, title: post.title, userId: me.id, username: me.username }) } });
+  if (post.authorId !== me.id) await pushNotification(post.authorId, 'VIDEO_COMMENT', { postId, title: post.title, fromId: me.id, username: me.username });
   const comments = await prisma.videoComment.count({ where: { postId } });
   liveBroadcast('posts:interact', { postId, comments });
   return json({ comment: {

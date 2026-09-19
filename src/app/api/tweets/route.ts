@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 import { serializeTweet, extractMentions } from '@/lib/tweet';
 import { tweetIncludes, hiddenAuthorIds } from '@/lib/tweet-db';
+import { pushNotification } from '@/lib/notifications';
 
 const MAX_TEXT = 280;
 const MAX_MEDIA = 4;
@@ -182,12 +183,12 @@ export const POST = handle(async (req) => {
       ? await prisma.tweet.findUnique({ where: { id: tweet.id }, include: tweetIncludes(me.id) })
       : null;
 
-  const notifyQueue: { userId: number; kind: string; payload: string }[] = [];
+  const notifyQueue: { userId: number; kind: string; payload: Record<string, unknown> }[] = [];
   if (parentTweet && parentTweet.authorId !== me.id) {
-    notifyQueue.push({ userId: parentTweet.authorId, kind: 'TWEET_REPLY', payload: JSON.stringify({ fromId: me.id, tweetId: tweet.id, parentId: parentTweet.id, text: text.slice(0, 120) }) });
+    notifyQueue.push({ userId: parentTweet.authorId, kind: 'TWEET_REPLY', payload: { fromId: me.id, tweetId: tweet.id, parentId: parentTweet.id, text: text.slice(0, 120) } });
   }
   if (quoted && quoted.authorId !== me.id) {
-    notifyQueue.push({ userId: quoted.authorId, kind: 'TWEET_QUOTE', payload: JSON.stringify({ fromId: me.id, tweetId: tweet.id, quotedId: quoted.id, text: text.slice(0, 120) }) });
+    notifyQueue.push({ userId: quoted.authorId, kind: 'TWEET_QUOTE', payload: { fromId: me.id, tweetId: tweet.id, quotedId: quoted.id, text: text.slice(0, 120) } });
   }
   if (text) {
     const mentionNames = extractMentions(text).filter((name) => name.toLowerCase() !== me.username.toLowerCase());
@@ -196,12 +197,12 @@ export const POST = handle(async (req) => {
       for (const target of mentioned) {
         if (target.id === me.id) continue;
         if (parentTweet && target.id === parentTweet.authorId) continue;
-        notifyQueue.push({ userId: target.id, kind: 'TWEET_MENTION', payload: JSON.stringify({ fromId: me.id, tweetId: tweet.id, username: target.username, text: text.slice(0, 120) }) });
+        notifyQueue.push({ userId: target.id, kind: 'TWEET_MENTION', payload: { fromId: me.id, tweetId: tweet.id, username: target.username, text: text.slice(0, 120) } });
       }
     }
   }
   for (const item of notifyQueue) {
-    await prisma.notification.create({ data: { userId: item.userId, kind: item.kind, payload: item.payload } });
+    await pushNotification(item.userId, item.kind, item.payload);
   }
 
   const result = fresh ?? tweet;

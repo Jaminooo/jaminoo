@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { pushNotification } from '@/lib/notifications';
 
 type Ctx = { params: { id: string } };
 
@@ -17,6 +18,6 @@ export const POST = handle(async (req, { params }: Ctx) => {
     return json({ following: false });
   }
   await prisma.creatorFollow.create({ data: { followerId: me.id, creatorId } });
-  await prisma.notification.create({ data: { userId: creatorId, kind: 'CREATOR_FOLLOW', payload: JSON.stringify({ followerId: me.id, username: me.username, hub }) } });
+  await pushNotification(creatorId, 'CREATOR_FOLLOW', { followerId: me.id, username: me.username, hub });
   return json({ following: true });
 });

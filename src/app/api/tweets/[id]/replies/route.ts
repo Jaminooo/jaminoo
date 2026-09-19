@@ -2,6 +2,7 @@ import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { serializeTweet, extractMentions } from '@/lib/tweet';
 import { tweetIncludes, hiddenAuthorIds } from '@/lib/tweet-db';
+import { pushNotification } from '@/lib/notifications';
 
 type Ctx = { params: { id: string } };
 
@@ -79,9 +80,9 @@ export const POST = handle(async (req, { params }: Ctx) => {
     });
   }
 
-  const notifyQueue: { userId: number; kind: string; payload: string }[] = [];
+  const notifyQueue: { userId: number; kind: string; payload: Record<string, unknown> }[] = [];
   if (parent.authorId !== me.id) {
-    notifyQueue.push({ userId: parent.authorId, kind: 'TWEET_REPLY', payload: JSON.stringify({ fromId: me.id, tweetId: reply.id, parentId: parent.id, text: text.slice(0, 120) }) });
+    notifyQueue.push({ userId: parent.authorId, kind: 'TWEET_REPLY', payload: { fromId: me.id, tweetId: reply.id, parentId: parent.id, text: text.slice(0, 120) } });
   }
   if (text) {
     const mentionNames = extractMentions(text).filter((name) => name.toLowerCase() !== me.username.toLowerCase());
@@ -89,12 +90,12 @@ export const POST = handle(async (req, { params }: Ctx) => {
       const mentioned = await prisma.user.findMany({ where: { username: { in: mentionNames } }, select: { id: true, username: true } });
       for (const target of mentioned) {
         if (target.id === me.id || target.id === parent.authorId) continue;
-        notifyQueue.push({ userId: target.id, kind: 'TWEET_MENTION', payload: JSON.stringify({ fromId: me.id, tweetId: reply.id, username: target.username, text: text.slice(0, 120) }) });
+        notifyQueue.push({ userId: target.id, kind: 'TWEET_MENTION', payload: { fromId: me.id, tweetId: reply.id, username: target.username, text: text.slice(0, 120) } });
       }
     }
   }
   for (const item of notifyQueue) {
-    await prisma.notification.create({ data: { userId: item.userId, kind: item.kind, payload: item.payload } });
+    await pushNotification(item.userId, item.kind, item.payload);
   }
 
   const fresh = media.length > 0

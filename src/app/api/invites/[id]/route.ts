@@ -1,6 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { livePublish } from '@/lib/live-publish';
+import { pushNotification } from '@/lib/notifications';
 
 type Ctx = { params: { id: string } };
 
@@ -28,13 +29,7 @@ export const POST = handle(async (req, { params }: Ctx) => {
       create: { jamId: invite.jamId, userId: me.id },
     });
     await prisma.jamInvite.update({ where: { id }, data: { status: 'ACCEPTED' } });
-    await prisma.notification.create({
-      data: {
-        userId: invite.fromId,
-        kind: 'JAM_INVITE_ACCEPTED',
-        payload: JSON.stringify({ message: `@${me.username} joined ${invite.jam.name}`, jamId: invite.jamId }),
-      },
-    });
+    await pushNotification(invite.fromId, 'JAM_INVITE_ACCEPTED', { fromId: me.id, username: me.username, jamId: invite.jamId });
     livePublish([`jam:${invite.jamId}`, `user:${me.id}`, `user:${invite.fromId}`], 'jam:update', invite.jamId);
   } else {
     await prisma.jamInvite.update({ where: { id }, data: { status: 'DECLINED' } });

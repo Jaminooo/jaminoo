@@ -1,6 +1,7 @@
 import { handle, json, err, requireAdmin } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { pushAdminEvent } from '@/lib/admin';
+import { pushNotification } from '@/lib/notifications';
 
 export const GET = handle(async (req: Request) => {
   await requireAdmin();
@@ -66,13 +67,7 @@ export const PATCH = handle(async (req: Request) => {
     where: { id },
     data: { status, reviewNote, reviewerId: status === 'PENDING' ? null : admin.id, reviewedAt: reviewed },
   });
-  await prisma.notification.create({
-    data: {
-      userId: application.userId,
-      kind: 'CREATOR_REVIEW',
-      payload: JSON.stringify({ hub: application.hub, status, reviewNote }),
-    },
-  });
+  await pushNotification(application.userId, 'CREATOR_REVIEW', { hub: application.hub, status, reviewNote });
   pushAdminEvent(status === 'APPROVED' ? 'ok' : status === 'REJECTED' ? 'warn' : 'admin', `${application.hub} creator application #${id} marked ${status.toLowerCase()}`, { action: 'creator-review', id, status });
   return json({ application: updated });
 });

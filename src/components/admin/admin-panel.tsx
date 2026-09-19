@@ -21,11 +21,12 @@ import {
   Flag,
   BadgeCheck,
   ArrowLeft,
-  RefreshCw,
+RefreshCw,
   Loader2,
   X,
   ScrollText,
   BellRing,
+  Bell,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminUsers } from './admin-users';
@@ -39,6 +40,7 @@ import { AdminCreators } from './admin-creators';
 import { AdminCinema } from './admin-cinema';
 import { AdminAudit } from './admin-audit';
 import { AdminAnnouncements } from './admin-announcements';
+import { AdminNotifications } from './admin-notifications';
 
 export interface AdminStats {
   users: number;
@@ -66,7 +68,7 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema' | 'audit' | 'announcements';
+export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema' | 'audit' | 'announcements' | 'notifications';
 
 const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
@@ -79,8 +81,9 @@ const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'music', icon: Music2, key: 'admin.musicLabel' },
   { id: 'cinema', icon: RadioTower, key: 'admin.cinema' },
   { id: 'sessions', icon: KeyRound, key: 'admin.sessions' },
-  { id: 'audit', icon: ScrollText, key: 'admin.audit' },
+{ id: 'audit', icon: ScrollText, key: 'admin.audit' },
   { id: 'announcements', icon: BellRing, key: 'admin.announcements' },
+  { id: 'notifications', icon: Bell, key: 'admin.notifications' },
 ];
 
 export function AdminPanel() {
@@ -227,8 +230,9 @@ export function AdminPanel() {
           {tab === 'music' && <AdminMusic />}
           {tab === 'cinema' && <AdminCinema />}
           {tab === 'sessions' && <AdminSessions />}
-          {tab === 'audit' && <AdminAudit events={events} />}
+{tab === 'audit' && <AdminAudit events={events} />}
           {tab === 'announcements' && <AdminAnnouncements />}
+          {tab === 'notifications' && <AdminNotifications />}
         </div>
       </main>
     </div>

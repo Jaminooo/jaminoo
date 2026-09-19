@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { uidDisplay, parseUid } from '@/lib/constants';
 import { pubUser } from '@/lib/users';
 import { livePublish, liveRefreshPresence, invalidateFriendCache } from '@/lib/live-publish';
+import { pushNotification } from '@/lib/notifications';
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -104,13 +105,7 @@ export const POST = handle(async (req) => {
   if (existing) return err('Request already exists', 409);
 
   await prisma.friendRequest.create({ data: { fromId: me.id, toId: targetId, status: 'PENDING' } });
-  await prisma.notification.create({
-    data: {
-      userId: targetId,
-      kind: 'FRIEND_REQUEST',
-      payload: JSON.stringify({ message: `@${me.username} sent you a friend request`, fromId: me.id }),
-    },
-  });
+  await pushNotification(targetId, 'FRIEND_REQUEST', { fromId: me.id, username: me.username });
   livePublish([`user:${me.id}`, `user:${targetId}`], 'friends:update', { at: Date.now() });
   return json({ ok: true, uid: uidDisplay(targetId) }, 201);
 });

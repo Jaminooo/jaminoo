@@ -47,7 +47,8 @@
     "newJam": "New jam",
     "logout": "Sign out",
     "security": "Security",
-    "messages": "Messages"
+    "messages": "Messages",
+    "notifications": "Notifications"
   },
   "status": {
     "online": "Online",
@@ -676,6 +677,45 @@
       "error": "Action",
       "ok": "Success",
       "nothing": "No events yet."
+    },
+    "notifications": "Notifications",
+    "notif": {
+      "send": "Send announcement",
+      "compose": "Compose announcement",
+      "title": "Title (optional)",
+      "titlePlaceholder": "Short headline shown at the top",
+      "messageFa": "Message (فارسی)",
+      "messageEn": "Message (English)",
+      "audience": "Audience",
+      "audienceAll": "All users",
+      "audienceUsers": "Specific users",
+      "audienceFilter": "With filters",
+      "selectUsers": "Pick users",
+      "searchUsers": "Search usernames…",
+      "selectedUsers": "{n} selected",
+      "filters": "Filters",
+      "filterOnline": "Online now only",
+      "filterAdmins": "Admins only",
+      "filterBanned": "Include banned",
+      "filterCountry": "Country",
+      "estRecipients": "Recipients",
+      "preview": "Preview",
+      "previewEmpty": "Your message will appear here.",
+      "sendConfirm": "Send to {n} users?",
+      "sendConfirmBody": "This delivers the announcement to every selected user's notification inbox.",
+      "sent": "Broadcast sent to {n} users.",
+      "sendError": "Could not send the announcement.",
+      "msgRequired": "Write a message in at least one language.",
+      "noAudience": "No recipients match this audience.",
+      "history": "History",
+      "announcement": "Announcement",
+      "sentCount": "Sent",
+      "readCount": "Read",
+      "readRate": "Read rate",
+      "dateCol": "Sent at",
+      "deleteBatch": "Delete broadcast",
+      "deleteBatchConfirm": "Delete this broadcast and its notifications from all users?",
+      "empty": "No broadcasts sent yet."
     }
   },
   "ctx": {
@@ -831,7 +871,12 @@
     "kicker": "TWEET HUB · CONNECTED TO JAMINO",
     "refresh": "Refresh",
     "searchPlaceholder": "Search tweets, @people and #topics",
-    "search": "Search",
+    "search": {
+      "people": "People",
+      "noResults": "No tweets matched your search.",
+      "oneFollower": "1 follower",
+      "followersCount": "{count} followers"
+    },
     "composerPlaceholder": "What is happening?",
     "quotePlaceholder": "Add a comment…",
     "editingNote": "Editing your tweet — changes appear instantly.",
@@ -954,12 +999,6 @@
       "profile": "Profile",
       "hub": "Tweet Hub"
     },
-    "search": {
-      "people": "People",
-      "noResults": "No tweets matched your search.",
-      "oneFollower": "1 follower",
-      "followersCount": "{count} followers"
-    },
     "recent": {
       "title": "Recent searches",
       "clear": "Clear",
@@ -1026,5 +1065,39 @@
       "prev": "Previous",
       "next": "Next"
     }
+  },
+  "notif": {
+    "title": "Notifications",
+    "all": "All",
+    "unread": "Unread",
+    "empty": "No notifications yet.",
+    "noUnread": "You're all caught up.",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "delete": "Delete",
+    "close": "Close",
+    "more": "Show more",
+    "now": "now",
+    "minAgo": "{n}m ago",
+    "hourAgo": "{n}h ago",
+    "dayAgo": "{n}d ago",
+    "friendRequest": "{user} sent you a friend request",
+    "friendAccepted": "{user} accepted your friend request",
+    "creatorFollow": "{user} followed your {hub} channel",
+    "creatorReview": "Your {hub} creator application was {status}",
+    "videoCollab": "{user} invited you to collab on “{title}”",
+    "videoCollabResponse": "{user} {status} your collab on “{title}”",
+    "videoLike": "{user} liked your post “{title}”",
+    "videoComment": "{user} commented on “{title}”",
+    "jamInvite": "{user} invited you to {jam}",
+    "jamInviteAccepted": "{user} accepted your invite to {jam}",
+    "tweetLike": "{user} liked your tweet",
+    "tweetRetweet": "{user} retweeted your tweet",
+    "tweetReply": "{user} replied to your tweet",
+    "tweetFollow": "{user} followed you",
+    "tweetQuote": "{user} quoted your tweet",
+    "tweetMention": "{user} mentioned you",
+    "broadcastTitle": "Announcement from Jamino",
+    "other": "{kind} update"
   }
 }
