@@ -40,6 +40,7 @@ import { toast } from '@/components/toast';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
+import { useTranslations } from '@/providers/use-translations';
 
 type TweetView = 'home' | 'explore' | 'following' | 'bookmarks' | 'notifications' | 'profile' | 'search';
 type ProfileTab = 'posts' | 'replies' | 'media' | 'likes';
@@ -147,26 +148,24 @@ const MAX_TEXT = 280;
 const RECENTS_KEY = 'tweet-recent-searches';
 
 const EMOJIS = ['😀','😂','🤣','😊','😍','🥰','😎','🤩','🙃','😜','🤔','😴','🥳','😭','😅','😉','👍','👎','👏','🙏','💪','🫡','🔥','✨','⭐','💯','🎉','🎊','❤️','💔','💚','💙','🫶','🎂','🎁','🌍','🚀','⚡','🌟'];
-const REPORT_REASONS = [
-  { id: 'SPAM', label: 'Spam' },
-  { id: 'HARASSMENT', label: 'Harassment' },
-  { id: 'HATE', label: 'Hateful content' },
-  { id: 'VIOLENCE', label: 'Violence' },
-  { id: 'SEXUAL', label: 'Sexual content' },
-  { id: 'FRAUD', label: 'Scam or fraud' },
-  { id: 'OTHER', label: 'Something else' },
-];
+const REPORT_REASONS = ['SPAM', 'HARASSMENT', 'HATE', 'VIOLENCE', 'SEXUAL', 'FRAUD', 'OTHER'] as const;
 
-function timeAgo(value: string) {
-  const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
-  if (seconds < 60) return 'now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d`;
-  return new Date(value).toLocaleDateString();
+function useTimeAgo() {
+  const t = useTranslations();
+  return useCallback(
+    (value: string) => {
+      const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
+      if (seconds < 60) return t('tweetHub.time.now');
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return t('tweetHub.time.min', { value: minutes });
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return t('tweetHub.time.hour', { value: hours });
+      const days = Math.floor(hours / 24);
+      if (days < 7) return t('tweetHub.time.day', { value: days });
+      return new Date(value).toLocaleDateString();
+    },
+    [t]
+  );
 }
 
 function apiViewFor(view: TweetView) {
@@ -229,6 +228,7 @@ function QuotedCard({ tweet, onOpen, onAuthor, onTag, onMention }: {
   onTag: (tag: string) => void;
   onMention: (username: string) => void;
 }) {
+  const timeAgo = useTimeAgo();
   return (
     <button type="button" className="tweet-quote-card" onClick={onOpen}>
       <span className="tweet-quote-head">
@@ -264,33 +264,34 @@ function TweetActions({
   onShare: () => void;
 }) {
   const [quoteOpen, setQuoteOpen] = useState(false);
+  const t = useTranslations();
   return (
     <div className="tweet-actions">
-      <button type="button" className="tweet-action tweet-action-reply" onClick={(event) => { event.stopPropagation(); onReply(); }} title="Reply" aria-label="Reply">
+      <button type="button" className="tweet-action tweet-action-reply" onClick={(event) => { event.stopPropagation(); onReply(); }} title={t('tweetHub.reply')} aria-label={t('tweetHub.reply')}>
         <MessageCircle size={17} /><span>{tweet.replies}</span>
       </button>
       <span className="tweet-action-retweet-group" onMouseLeave={() => setQuoteOpen(false)}>
-        <button type="button" className={`tweet-action tweet-action-retweet ${tweet.retweeted ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onRetweet(); }} title="Repost" aria-label="Repost">
-          <Repeat2 size={17} /><span>{tweet.retweets}</span>
-        </button>
-        <button type="button" className="tweet-action-chev" onClick={(event) => { event.stopPropagation(); setQuoteOpen((o) => !o); }} title="Repost menu" aria-label="Repost menu">
-          <span className="tweet-chev">▾</span>
-        </button>
-        {quoteOpen && (
-          <div className="tweet-quote-menu">
-            <button type="button" onClick={(event) => { event.stopPropagation(); onRetweet(); setQuoteOpen(false); }}><Repeat2 size={15} />Repost</button>
-            <button type="button" onClick={(event) => { event.stopPropagation(); onQuote(); setQuoteOpen(false); }}><Pencil size={15} />Quote post</button>
-          </div>
-        )}
-      </span>
-      <button type="button" className={`tweet-action tweet-action-like ${tweet.liked ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onLike(); }} title="Like" aria-label="Like">
+<button type="button" className={`tweet-action tweet-action-retweet ${tweet.retweeted ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onRetweet(); }} title={t('tweetHub.action.repost')} aria-label={t('tweetHub.action.repost')}>
+        <Repeat2 size={17} /><span>{tweet.retweets}</span>
+      </button>
+      <button type="button" className="tweet-action-chev" onClick={(event) => { event.stopPropagation(); setQuoteOpen((o) => !o); }} title={t('tweetHub.action.repostMenu')} aria-label={t('tweetHub.action.repostMenu')}>
+        <span className="tweet-chev">▾</span>
+      </button>
+      {quoteOpen && (
+        <div className="tweet-quote-menu">
+          <button type="button" onClick={(event) => { event.stopPropagation(); onRetweet(); setQuoteOpen(false); }}><Repeat2 size={15} />{t('tweetHub.action.repost')}</button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); onQuote(); setQuoteOpen(false); }}><Pencil size={15} />{t('tweetHub.action.quotePost')}</button>
+        </div>
+      )}
+    </span>
+    <button type="button" className={`tweet-action tweet-action-like ${tweet.liked ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onLike(); }} title={t('tweetHub.action.like')} aria-label={t('tweetHub.action.like')}>
         <Heart size={17} fill={tweet.liked ? 'currentColor' : 'none'} /><span>{tweet.likes}</span>
       </button>
       <span className="tweet-action-sep" />
-      <button type="button" className={`tweet-action tweet-action-bookmark ${tweet.saved ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onBookmark(); }} title="Bookmark" aria-label="Bookmark">
+      <button type="button" className={`tweet-action tweet-action-bookmark ${tweet.saved ? 'active' : ''}`} onClick={(event) => { event.stopPropagation(); onBookmark(); }} title={t('tweetHub.action.bookmark')} aria-label={t('tweetHub.action.bookmark')}>
         <Bookmark size={17} fill={tweet.saved ? 'currentColor' : 'none'} />
       </button>
-      <button type="button" className="tweet-action tweet-action-share" onClick={(event) => { event.stopPropagation(); onShare(); }} title="Copy link" aria-label="Copy link">
+      <button type="button" className="tweet-action tweet-action-share" onClick={(event) => { event.stopPropagation(); onShare(); }} title={t('tweetHub.action.copyLink')} aria-label={t('tweetHub.action.copyLink')}>
         <Link2 size={16} />
       </button>
     </div>
@@ -308,9 +309,10 @@ function TweetOptionsMenu({ tweet, isOwner, onCopy, onEdit, onDelete, onMute, on
   onReport: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations();
   return (
     <span className="tweet-menu-wrap" onMouseLeave={() => setOpen(false)}>
-      <button type="button" className={`tweet-menu-btn ${open ? 'open' : ''}`} title="More" aria-label="More options"
+      <button type="button" className={`tweet-menu-btn ${open ? 'open' : ''}`} title={t('tweetHub.action.more')} aria-label={t('tweetHub.action.more')}
         onClick={(event) => { event.stopPropagation(); setOpen((o) => !o); }}>
         <MoreHorizontal size={16} />
       </button>
@@ -318,16 +320,16 @@ function TweetOptionsMenu({ tweet, isOwner, onCopy, onEdit, onDelete, onMute, on
         <div className="tweet-menu">
           {isOwner ? (
             <>
-              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onEdit(); }}><Pencil size={14} />Edit tweet</button>
-              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onCopy(); }}><Link2 size={14} />Copy link</button>
-              <button type="button" className="danger" onClick={(event) => { event.stopPropagation(); setOpen(false); onDelete(); }}><Trash2 size={14} />Delete</button>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onEdit(); }}><Pencil size={14} />{t('tweetHub.action.editTweet')}</button>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onCopy(); }}><Link2 size={14} />{t('tweetHub.action.copyLink')}</button>
+              <button type="button" className="danger" onClick={(event) => { event.stopPropagation(); setOpen(false); onDelete(); }}><Trash2 size={14} />{t('tweetHub.action.delete')}</button>
             </>
           ) : (
             <>
-              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onCopy(); }}><Link2 size={14} />Copy link</button>
-              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onMute(); }}><VolumeX size={14} />Mute @{tweet.author.username}</button>
-              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onBlock(); }}><Ban size={14} />Block @{tweet.author.username}</button>
-              <button type="button" className="danger" onClick={(event) => { event.stopPropagation(); setOpen(false); onReport(); }}><Flag size={14} />Report tweet</button>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onCopy(); }}><Link2 size={14} />{t('tweetHub.action.copyLink')}</button>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onMute(); }}><VolumeX size={14} />{t('tweetHub.action.mute', { username: tweet.author.username })}</button>
+              <button type="button" onClick={(event) => { event.stopPropagation(); setOpen(false); onBlock(); }}><Ban size={14} />{t('tweetHub.action.block', { username: tweet.author.username })}</button>
+              <button type="button" className="danger" onClick={(event) => { event.stopPropagation(); setOpen(false); onReport(); }}><Flag size={14} />{t('tweetHub.action.reportTweet')}</button>
             </>
           )}
         </div>
@@ -375,11 +377,13 @@ function TweetCard({
 }) {
   const me = useAppStore((state) => state.me);
   const isOwner = me?.id === tweet.author.id;
+  const t = useTranslations();
+  const timeAgo = useTimeAgo();
   return (
     <article className="tweet-card">
-      {tweet.retweetOfId && <div className="tweet-retweet-note"><Repeat2 size={13} /> Reposted</div>}
+      {tweet.retweetOfId && <div className="tweet-retweet-note"><Repeat2 size={13} /> {t('tweetHub.card.reposted')}</div>}
       <div className="tweet-card-body">
-        <button type="button" className="tweet-avatar-btn" onClick={onAuthor} aria-label={`Open ${tweet.author.username}`}>
+        <button type="button" className="tweet-avatar-btn" onClick={onAuthor} aria-label={t('tweetHub.card.openUser', { username: tweet.author.username })}>
           <JaminoAvatar avatarId={tweet.author.avatarId} size={44} photo={tweet.author.avatarPhoto} name={tweet.author.username} />
         </button>
         <div className="tweet-card-content">
@@ -422,7 +426,7 @@ function Composer({
   quote,
   editTweet,
   onCancel,
-  placeholder = 'What is happening?',
+  placeholder,
   compact = false,
   autoFocus = false,
 }: {
@@ -436,6 +440,8 @@ function Composer({
   autoFocus?: boolean;
 }) {
   const me = useAppStore((state) => state.me);
+  const t = useTranslations();
+  const resolvedPlaceholder = placeholder ?? t('tweetHub.composerPlaceholder');
   const [text, setText] = useState(editTweet?.text ?? '');
   const [files, setFiles] = useState<{ file: File; url: string }[]>([]);
   const [mediaIds, setMediaIds] = useState<string[]>([]);
@@ -511,7 +517,7 @@ function Composer({
         );
         ids.push(uploaded.asset.id);
       } catch {
-        throw new Error('A file failed to upload');
+        throw new Error(t('tweetHub.toast.uploadFailed'));
       }
     }
     return ids;
@@ -541,12 +547,12 @@ function Composer({
       if (editTweet) {
         const data = await api<{ tweet: Tweet }>(`/api/tweets/${editTweet.id}`, { method: 'PATCH', body: JSON.stringify({ text: text.trim() }) });
         onPosted(data.tweet);
-        toast('Tweet updated.', 'ok');
+        toast(t('tweetHub.toast.tweetUpdated'), 'ok');
       } else {
         const target = isReply ? `/api/tweets/${replyToId}/replies` : '/api/tweets';
         const data = await api<{ tweet: Tweet }>(target, { method: 'POST', body: JSON.stringify(payload) });
         onPosted(data.tweet);
-        toast(isReply ? 'Reply posted.' : 'Your tweet is live.', 'ok');
+        toast(isReply ? t('tweetHub.toast.replyPosted') : t('tweetHub.toast.live'), 'ok');
       }
       setText('');
       setFiles((current) => { current.forEach((f) => URL.revokeObjectURL(f.url)); return []; });
@@ -554,7 +560,7 @@ function Composer({
       setMentions([]);
     } catch (error) {
       setMediaIds([]);
-      toast(error instanceof Error ? error.message : 'Could not post your tweet.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.postFailed'), 'error');
     } finally {
       setBusy(false);
       setProgress(null);
@@ -568,13 +574,13 @@ function Composer({
         {me && <JaminoAvatar avatarId={me.avatarId} size={compact ? 38 : 46} photo={me.avatarPhoto} name={me.username} />}
       </div>
       <div className="tweet-composer-body">
-        {editTweet && <div className="tweet-composer-note"><Pencil size={13} /> Editing your tweet — changes appear instantly.</div>}
+        {editTweet && <div className="tweet-composer-note"><Pencil size={13} /> {t('tweetHub.editingNote')}</div>}
         <textarea
           ref={inputRef}
           className={autofocusClass}
           value={text}
           onChange={(event) => { setText(event.target.value.slice(0, MAX_TEXT)); updateMentions(event.target.value); }}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           rows={compact ? 2 : 3}
           autoFocus={autoFocus}
           maxLength={MAX_TEXT}
@@ -600,7 +606,7 @@ function Composer({
             {files.map((item, index) => (
               <div className="tweet-composer-preview" key={index}>
                 {item.file.type.startsWith('video/') ? <video src={item.url} muted playsInline /> : <img src={item.url} alt="" />}
-                <button type="button" className="tweet-preview-remove" onClick={() => removeFile(index)} aria-label="Remove media"><X size={15} /></button>
+                <button type="button" className="tweet-preview-remove" onClick={() => removeFile(index)} aria-label={t('tweetHub.removeMedia')}><X size={15} /></button>
               </div>
             ))}
           </div>
@@ -608,12 +614,12 @@ function Composer({
         {busy && progress !== null && (
           <div className="tweet-upload">
             <div className="tweet-upload-bar"><span style={{ width: `${progress}%` }} /></div>
-            <small>Uploading… {progress}%</small>
+            <small>{t('tweetHub.uploading', { percent: progress })}</small>
           </div>
         )}
         <div className="tweet-composer-foot">
           <div className="tweet-composer-tools">
-            <button type="button" className="tweet-tool" onClick={() => fileRef.current?.click()} title="Add photos or video" aria-label="Add media">
+            <button type="button" className="tweet-tool" onClick={() => fileRef.current?.click()} title={t('tweetHub.addMedia')} aria-label={t('tweetHub.addMedia')}>
               <ImagePlus size={18} />
             </button>
             <input
@@ -624,15 +630,15 @@ function Composer({
               accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/quicktime"
               onChange={(event) => { pickFiles(event.target.files); event.target.value = ''; }}
             />
-            <button type="button" className="tweet-tool" onClick={() => setEmojiOpen((o) => !o)} title="Emoji" aria-label="Emoji">
+            <button type="button" className="tweet-tool" onClick={() => setEmojiOpen((o) => !o)} title={t('tweetHub.emoji')} aria-label={t('tweetHub.emoji')}>
               <Smile size={18} />
             </button>
             <span className={`tweet-counter ${remaining < 0 ? 'danger' : remaining <= 20 ? 'warn' : ''}`}>{remaining}</span>
           </div>
           <div className="tweet-composer-post">
-            {onCancel && <button type="button" className="btn btn-ghost pill-sm" onClick={onCancel}><X size={13} /> Cancel</button>}
+            {onCancel && <button type="button" className="btn btn-ghost pill-sm" onClick={onCancel}><X size={13} /> {t('tweetHub.cancel')}</button>}
             <button type="submit" className="btn btn-tweet" disabled={!canPost}>
-              {busy ? 'Posting…' : <><Send size={14} /> {isReply ? 'Reply' : editTweet ? 'Save' : 'Post'}</>}
+              {busy ? t('tweetHub.posting') : <><Send size={14} /> {isReply ? t('tweetHub.reply') : editTweet ? t('tweetHub.save') : t('tweetHub.post')}</>}
             </button>
           </div>
         </div>
@@ -648,8 +654,8 @@ function Composer({
   );
 }
 
-function RelationshipModal({ title, username, avatarId, avatarPhoto, user, onClose, onFollowChange }: {
-  title: string;
+function RelationshipModal({ kind, username, avatarId, avatarPhoto, user, onClose, onFollowChange }: {
+  kind: 'followers' | 'following';
   username: string;
   avatarId: number;
   avatarPhoto: string | null;
@@ -660,15 +666,17 @@ function RelationshipModal({ title, username, avatarId, avatarPhoto, user, onClo
   const [users, setUsers] = useState<ListUser[]>([]);
   const [loading, setLoading] = useState(false);
   const me = useAppStore((state) => state.me);
+  const t = useTranslations();
+  const title = t(kind === 'followers' ? 'tweetHub.people.followers' : 'tweetHub.people.following');
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    api<{ users: ListUser[] }>(`/api/tweets/${user.id}/${title === 'Followers' ? 'followers' : 'following'}`)
+    api<{ users: ListUser[] }>(`/api/tweets/${user.id}/${kind}`)
       .then((data) => setUsers(data.users))
       .catch(() => setUsers([]))
       .finally(() => setLoading(false));
-  }, [user, title]);
+  }, [user, kind]);
 
   const toggleFollow = async (target: ListUser) => {
     if (target.isMe || target.isTarget) return;
@@ -677,7 +685,7 @@ function RelationshipModal({ title, username, avatarId, avatarPhoto, user, onClo
       setUsers((current) => current.map((u) => u.id === target.id ? { ...u, following: data.following } : u));
       onFollowChange?.();
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not update follow.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.people.updateFailed'), 'error');
     }
   };
 
@@ -685,16 +693,16 @@ function RelationshipModal({ title, username, avatarId, avatarPhoto, user, onClo
     <div className="tweet-modal-backdrop" onMouseDown={onClose}>
       <section className="tweet-modal tweet-list-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <header className="tweet-modal-head">
-          <div><div className="hub-kicker">PEOPLE</div><h2>{title}</h2></div>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
+          <div><div className="hub-kicker">{t('tweetHub.people.kicker')}</div><h2>{title}</h2></div>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label={t('tweetHub.close')}><X size={18} /></button>
         </header>
         <div className="tweet-modal-scroll">
           <div className="tweet-list-row tweet-list-target">
             <JaminoAvatar avatarId={avatarId} size={40} photo={avatarPhoto} name={username} />
             <span><b>{username}</b><small>@{username}</small></span>
           </div>
-          {loading && <div className="tweet-empty"><span className="admin-loader" /> Loading {title.toLowerCase()}…</div>}
-          {!loading && users.length === 0 && <div className="tweet-empty"><UsersRound size={20} /><span>{title === 'Followers' ? 'No followers yet.' : 'Not following anyone yet.'}</span></div>}
+          {loading && <div className="tweet-empty"><span className="admin-loader" /> {t('tweetHub.people.loading', { title: title.toLowerCase() })}</div>}
+          {!loading && users.length === 0 && <div className="tweet-empty"><UsersRound size={20} /><span>{kind === 'followers' ? t('tweetHub.people.noFollowers') : t('tweetHub.people.notFollowing')}</span></div>}
           {users.map((u) => (
             <div className="tweet-list-row" key={u.id}>
               <span className="tweet-list-id">
@@ -703,7 +711,7 @@ function RelationshipModal({ title, username, avatarId, avatarPhoto, user, onClo
               </span>
               {!u.isMe && !u.isTarget && !(me && me.id === u.id) && (
                 <button type="button" className={`btn ${u.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(u)}>
-                  {u.following ? 'Following' : 'Follow'}
+                  {u.following ? t('tweetHub.people.followingBtn') : t('tweetHub.people.follow')}
                 </button>
               )}
             </div>
@@ -724,6 +732,7 @@ function EditProfileModal({ profile, onClose, onSaved }: {
   const [website, setWebsite] = useState(profile.user.website);
   const [location, setLocation] = useState(profile.user.location);
   const [busy, setBusy] = useState(false);
+  const t = useTranslations();
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -731,10 +740,10 @@ function EditProfileModal({ profile, onClose, onSaved }: {
     setBusy(true);
     try {
       await api('/api/tweets/profile', { method: 'PATCH', body: JSON.stringify({ name, bio, website, location }) });
-      toast('Profile updated.', 'ok');
+      toast(t('tweetHub.profile.updated'), 'ok');
       onSaved();
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not update profile.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.profile.updateFailed'), 'error');
     } finally {
       setBusy(false);
     }
@@ -744,28 +753,28 @@ function EditProfileModal({ profile, onClose, onSaved }: {
     <div className="tweet-modal-backdrop" onMouseDown={onClose}>
       <section className="tweet-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <header className="tweet-modal-head">
-          <div><div className="hub-kicker">PROFILE</div><h2>Edit profile</h2></div>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
+          <div><div className="hub-kicker">{t('tweetHub.profile.kicker')}</div><h2>{t('tweetHub.profile.edit')}</h2></div>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label={t('tweetHub.close')}><X size={18} /></button>
         </header>
         <form className="tweet-modal-scroll" onSubmit={save}>
           <label className="tweet-edit-field">
-            <span>Display name</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} placeholder="Your name" />
+            <span>{t('tweetHub.profile.displayName')}</span>
+            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} placeholder={t('tweetHub.profile.yourName')} />
           </label>
           <label className="tweet-edit-field">
-            <span>Bio</span>
-            <textarea value={bio} onChange={(event) => setBio(event.target.value)} maxLength={160} rows={3} placeholder="Tell people about yourself" />
+            <span>{t('tweetHub.profile.bio')}</span>
+            <textarea value={bio} onChange={(event) => setBio(event.target.value)} maxLength={160} rows={3} placeholder={t('tweetHub.profile.bioPlaceholder')} />
           </label>
           <label className="tweet-edit-field">
-            <span>Website</span>
+            <span>{t('tweetHub.profile.website')}</span>
             <input value={website} onChange={(event) => setWebsite(event.target.value)} maxLength={120} placeholder="https://…" />
           </label>
           <label className="tweet-edit-field">
-            <span>Location</span>
-            <input value={location} onChange={(event) => setLocation(event.target.value)} maxLength={60} placeholder="City, country" />
+            <span>{t('tweetHub.profile.location')}</span>
+            <input value={location} onChange={(event) => setLocation(event.target.value)} maxLength={60} placeholder={t('tweetHub.profile.locationPlaceholder')} />
           </label>
           <div className="tweet-edit-actions">
-            <button type="submit" className="btn btn-tweet" disabled={busy}>{busy ? 'Saving…' : 'Save profile'}</button>
+            <button type="submit" className="btn btn-tweet" disabled={busy}>{busy ? t('tweetHub.profile.saving') : t('tweetHub.profile.saveProfile')}</button>
           </div>
         </form>
       </section>
@@ -773,13 +782,15 @@ function EditProfileModal({ profile, onClose, onSaved }: {
   );
 }
 
-function ConfirmModal({ title, message, confirmLabel = 'Delete', onCancel, onConfirm }: {
+function ConfirmModal({ title, message, confirmLabel, onCancel, onConfirm }: {
   title: string;
   message: string;
   confirmLabel?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useTranslations();
+  const resolvedLabel = confirmLabel ?? t('tweetHub.action.delete');
   return (
     <div className="tweet-modal-backdrop" onMouseDown={onCancel}>
       <section className="tweet-modal tweet-confirm-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
@@ -787,8 +798,8 @@ function ConfirmModal({ title, message, confirmLabel = 'Delete', onCancel, onCon
         <div className="tweet-modal-scroll">
           <p className="tweet-confirm-copy">{message}</p>
           <div className="tweet-edit-actions">
-            <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
-            <button type="button" className="btn btn-danger" onClick={onConfirm}><Trash2 size={14} /> {confirmLabel}</button>
+            <button type="button" className="btn btn-ghost" onClick={onCancel}>{t('tweetHub.cancel')}</button>
+            <button type="button" className="btn btn-danger" onClick={onConfirm}><Trash2 size={14} /> {resolvedLabel}</button>
           </div>
         </div>
       </section>
@@ -805,6 +816,8 @@ function NotificationsView({ onUnread, onOpenTweet, onOpenProfile }: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [unread, setUnread] = useState(0);
+  const t = useTranslations();
+  const timeAgo = useTimeAgo();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -832,22 +845,22 @@ function NotificationsView({ onUnread, onOpenTweet, onOpenProfile }: {
   };
 
   const label: Record<TweetEventType, (name: string) => string> = {
-    like: (name) => `${name} liked your tweet`,
-    retweet: (name) => `${name} reposted your tweet`,
-    reply: (name) => `${name} replied to your tweet`,
-    follow: (name) => `${name} started following you`,
-    quote: (name) => `${name} quoted your tweet`,
-    mention: (name) => `${name} mentioned you`,
+    like: (name) => t('tweetHub.notifications.liked', { name }),
+    retweet: (name) => t('tweetHub.notifications.reposted', { name }),
+    reply: (name) => t('tweetHub.notifications.replied', { name }),
+    follow: (name) => t('tweetHub.notifications.followedYou', { name }),
+    quote: (name) => t('tweetHub.notifications.quoted', { name }),
+    mention: (name) => t('tweetHub.notifications.mentioned', { name }),
   };
   const icon: Record<TweetEventType, typeof Heart> = { like: Heart, retweet: Repeat2, reply: MessageCircle, follow: UserIcon, quote: Pencil, mention: Smile };
 
-  if (loading && events.length === 0) return <div className="tweet-empty large"><span className="admin-loader" /> Loading activity…</div>;
+  if (loading && events.length === 0) return <div className="tweet-empty large"><span className="admin-loader" /> {t('tweetHub.notifications.loading')}</div>;
   if (error && events.length === 0) {
     return (
       <div className="tweet-empty large">
         <Bell size={26} />
-        <b>Could not load notifications.</b>
-        <button type="button" className="btn btn-tweet pill-sm" onClick={() => void load()}><Sparkles size={13} /> Retry</button>
+        <b>{t('tweetHub.notifications.loadFailed')}</b>
+        <button type="button" className="btn btn-tweet pill-sm" onClick={() => void load()}><Sparkles size={13} /> {t('tweetHub.retry')}</button>
       </div>
     );
   }
@@ -855,21 +868,21 @@ function NotificationsView({ onUnread, onOpenTweet, onOpenProfile }: {
     return (
       <div className="tweet-empty large">
         <Bell size={26} />
-        <b>No activity yet.</b>
-        <span>Likes, reposts, replies, quotes, mentions and new followers show up here.</span>
+        <b>{t('tweetHub.notifications.noActivity')}</b>
+        <span>{t('tweetHub.notifications.noActivityHint')}</span>
       </div>
     );
   }
   return (
     <div className="tweet-notifications-wrap">
       <div className="tweet-notifications-top">
-        {unread > 0 && <span className="tweet-unread-badge">{unread} unread</span>}
-        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void markAll()}><Check size={13} /> Mark all read</button>
+        {unread > 0 && <span className="tweet-unread-badge">{t('tweetHub.notifications.unread', { count: unread })}</span>}
+        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void markAll()}><Check size={13} /> {t('tweetHub.notifications.markAllRead')}</button>
       </div>
       <section className="tweet-notifications">
         {events.map((event) => {
           const Icon = icon[event.type];
-          const name = event.actor ? `@${event.actor.username}` : 'Someone';
+          const name = event.actor ? `@${event.actor.username}` : t('tweetHub.notifications.someone');
           return (
             <button type="button" className={`tweet-notification ${!event.readAt ? 'unread' : ''}`} key={event.id} onClick={() => openEvent(event)}>
               <span className={`tweet-notification-icon ${event.type}`}><Icon size={16} /></span>
@@ -887,17 +900,14 @@ function NotificationsView({ onUnread, onOpenTweet, onOpenProfile }: {
   );
 }
 
-const ALLOWED_TABS: { id: ProfileTab; label: string }[] = [
-  { id: 'posts', label: 'Posts' },
-  { id: 'replies', label: 'Replies' },
-  { id: 'media', label: 'Media' },
-  { id: 'likes', label: 'Likes' },
-];
+const ALLOWED_TABS: ProfileTab[] = ['posts', 'replies', 'media', 'likes'];
 
 export function TweetHub() {
   const setProduct = useAppStore((state) => state.setProduct);
   const setTab = useAppStore((state) => state.setTab);
   const me = useAppStore((state) => state.me);
+  const t = useTranslations();
+  const timeAgo = useTimeAgo();
 
   const [view, setView] = useState<TweetView>('home');
   const [feed, setFeed] = useState<Tweet[]>([]);
@@ -920,7 +930,7 @@ export function TweetHub() {
   const [quote, setQuote] = useState<Tweet | null>(null);
   const [editTarget, setEditTarget] = useState<Tweet | null>(null);
   const [lightbox, setLightbox] = useState<{ media: TweetMedia[]; index: number } | null>(null);
-  const [listModal, setListModal] = useState<{ title: string; user: ListUser } | null>(null);
+  const [listModal, setListModal] = useState<{ kind: 'followers' | 'following'; user: ListUser } | null>(null);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Tweet | null>(null);
   const [reportTarget, setReportTarget] = useState<Tweet | null>(null);
@@ -960,12 +970,12 @@ export function TweetHub() {
     } catch (error) {
       setFeedError(true);
       if (reset) setFeed([]);
-      if (!reset) toast(error instanceof Error ? error.message : 'Could not load the feed.', 'error');
+      if (!reset) toast(error instanceof Error ? error.message : t('tweetHub.toast.feedFailed'), 'error');
     } finally {
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [profileName, profileTab, searchQuery, view]);
+  }, [profileName, profileTab, searchQuery, t, view]);
 
   const reload = useCallback(() => {
     cursorRef.current = null;
@@ -992,7 +1002,7 @@ export function TweetHub() {
       if (statusId > 0) {
         api<{ tweet: Tweet; replyParent: Tweet | null }>(`/api/tweets/${statusId}`)
           .then((data) => { void openTweetFromDetail(data.tweet); })
-          .catch(() => toast('This tweet is no longer available.', 'error'));
+          .catch(() => toast(t('tweetHub.toast.tweetGone'), 'error'));
       }
       if (username) { setView('profile'); setProfileName(username); }
       else if (requested && (FEED_VIEWS.includes(requested) || requested === 'notifications')) setView(requested);
@@ -1066,9 +1076,9 @@ export function TweetHub() {
         return api<{ replies: Tweet[] }>(`/api/tweets/${id}/replies`);
       })
       .then((data) => setReplies(data.replies))
-      .catch(() => toast('This tweet is no longer available.', 'error'))
+      .catch(() => toast(t('tweetHub.toast.tweetGone'), 'error'))
       .finally(() => setRepliesLoading(false));
-  }, []);
+  }, [t]);
 
   const openTweetFromDetail = async (tweet: Tweet) => {
     setActiveTweet(tweet);
@@ -1143,7 +1153,7 @@ export function TweetHub() {
       patchTweet(tweet.id, { liked: data.liked, likes: data.likes });
     } catch (error) {
       patchTweet(tweet.id, { liked: tweet.liked, likes: tweet.likes });
-      toast(error instanceof Error ? error.message : 'Could not update like.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.likeFailed'), 'error');
     }
   };
 
@@ -1154,10 +1164,10 @@ export function TweetHub() {
     try {
       const data = await api<{ retweeted: boolean; retweets: number }>(`/api/tweets/${tweet.id}/retweet`, { method: 'POST' });
       patchTweet(tweet.id, { retweeted: data.retweeted, retweets: data.retweets });
-      toast(data.retweeted ? 'Reposted.' : 'Repost removed.', 'ok');
+      toast(data.retweeted ? t('tweetHub.toast.reposted') : t('tweetHub.toast.repostRemoved'), 'ok');
     } catch (error) {
       patchTweet(tweet.id, { retweeted: tweet.retweeted, retweets: tweet.retweets });
-      toast(error instanceof Error ? error.message : 'Could not repost.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.repostFailed'), 'error');
     }
   };
 
@@ -1169,7 +1179,7 @@ export function TweetHub() {
       patchTweet(tweet.id, { saved: data.saved });
     } catch (error) {
       patchTweet(tweet.id, { saved: tweet.saved });
-      toast(error instanceof Error ? error.message : 'Could not update bookmark.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.bookmarkFailed'), 'error');
     }
   };
 
@@ -1189,11 +1199,11 @@ export function TweetHub() {
       }
       setUsers((current) => current.map((user) => user.id === userId ? { ...user, following: data.following } : user));
       setSuggestions((current) => data.following ? current.filter((user) => user.id !== userId) : current);
-      toast(data.following ? 'Following.' : 'Unfollowed.', 'ok');
+      toast(data.following ? t('tweetHub.toast.following') : t('tweetHub.toast.unfollowed'), 'ok');
     } catch (error) {
       if (prevProfile && prevProfile.user.id === userId) setProfile(prevProfile);
       setUsers((current) => current.map((user) => user.id === userId ? { ...user, following: !user.following } : user));
-      toast(error instanceof Error ? error.message : 'Could not update follow.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.followFailed'), 'error');
     }
   };
 
@@ -1204,9 +1214,9 @@ export function TweetHub() {
       setFeed((current) => current.filter((item) => item.id !== tweet.id));
       setReplies((current) => current.filter((item) => item.id !== tweet.id));
       if (activeTweet?.id === tweet.id) closeTweet();
-      toast('Tweet deleted.', 'ok');
+      toast(t('tweetHub.toast.tweetDeleted'), 'ok');
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not delete this tweet.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.deleteFailed'), 'error');
     }
   };
 
@@ -1214,9 +1224,9 @@ export function TweetHub() {
     const url = `${window.location.origin}/?hub=tweet&tweetView=status&id=${tweet.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast('Link copied to clipboard.', 'ok');
+      toast(t('tweetHub.toast.linkCopied'), 'ok');
     } catch {
-      window.prompt('Copy this link', url);
+      window.prompt(t('tweetHub.toast.copyLink'), url);
     }
   };
 
@@ -1227,9 +1237,9 @@ export function TweetHub() {
       setFeed((current) => current.filter((item) => item.author.id !== tweet.author.id));
       setReplies((current) => current.filter((item) => item.author.id !== tweet.author.id));
       if (activeTweet?.author.id === tweet.author.id) closeTweet();
-      toast(`Muted @${tweet.author.username}. Their posts are hidden from your feeds.`, 'ok');
+      toast(t('tweetHub.toast.muted', { username: tweet.author.username }), 'ok');
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not mute this user.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.muteFailed'), 'error');
     }
   };
 
@@ -1242,9 +1252,9 @@ export function TweetHub() {
       setFeed((current) => current.filter((item) => item.author.id !== tweet.author.id));
       setReplies((current) => current.filter((item) => item.author.id !== tweet.author.id));
       if (activeTweet?.author.id === tweet.author.id) closeTweet();
-      toast(`Blocked @${tweet.author.username}.`, 'ok');
+      toast(t('tweetHub.toast.blocked', { username: tweet.author.username }), 'ok');
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not block this user.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.blockFailed'), 'error');
     }
   };
 
@@ -1253,10 +1263,10 @@ export function TweetHub() {
     if (prev) setProfile({ ...prev, blocked: false });
     try {
       await api(`/api/tweets/${userId}/block`, { method: 'DELETE' });
-      toast('User unblocked.', 'ok');
+      toast(t('tweetHub.toast.unblocked'), 'ok');
     } catch (error) {
       if (prev) setProfile(prev);
-      toast(error instanceof Error ? error.message : 'Could not unblock this user.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.unblockFailed'), 'error');
     }
   };
 
@@ -1265,10 +1275,10 @@ export function TweetHub() {
     if (prev) setProfile({ ...prev, muted: false });
     try {
       await api(`/api/tweets/${userId}/mute`, { method: 'DELETE' });
-      toast('User unmuted.', 'ok');
+      toast(t('tweetHub.toast.unmuted'), 'ok');
     } catch (error) {
       if (prev) setProfile(prev);
-      toast(error instanceof Error ? error.message : 'Could not unmute this user.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.unmuteFailed'), 'error');
     }
   };
 
@@ -1277,10 +1287,10 @@ export function TweetHub() {
     setReportBusy(true);
     try {
       await api(`/api/tweets/${reportTarget.id}/report`, { method: 'POST', body: JSON.stringify({ reason: category }) });
-      toast('Thanks — our team will review this report.', 'ok');
+      toast(t('tweetHub.toast.reportThanks'), 'ok');
       setReportTarget(null);
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not submit the report.', 'error');
+      toast(error instanceof Error ? error.message : t('tweetHub.toast.reportFailed'), 'error');
     } finally {
       setReportBusy(false);
     }
@@ -1311,32 +1321,32 @@ export function TweetHub() {
   };
 
   const pageTitle = useMemo(() => {
-    if (view === 'home') return 'Home';
-    if (view === 'explore') return 'Explore';
-    if (view === 'following') return 'Following';
-    if (view === 'bookmarks') return 'Bookmarks';
-    if (view === 'notifications') return 'Notifications';
-    if (view === 'search') return searchQuery ? `Results for “${searchQuery}”` : 'Search';
-    if (view === 'profile') return profileName ? `@${profileName}` : 'Profile';
-    return 'Tweet Hub';
-  }, [profileName, searchQuery, view]);
+    if (view === 'home') return t('tweetHub.nav.home');
+    if (view === 'explore') return t('tweetHub.nav.explore');
+    if (view === 'following') return t('tweetHub.nav.following');
+    if (view === 'bookmarks') return t('tweetHub.nav.bookmarks');
+    if (view === 'notifications') return t('tweetHub.nav.notifications');
+    if (view === 'search') return searchQuery ? t('tweetHub.pageTitle.results', { query: searchQuery }) : t('tweetHub.search');
+    if (view === 'profile') return profileName ? `@${profileName}` : t('tweetHub.pageTitle.profile');
+    return t('tweetHub.pageTitle.hub');
+  }, [profileName, searchQuery, t, view]);
 
   const nav: { id: TweetView; label: string; icon: typeof Bird; badge?: number }[] = [
-    { id: 'home', label: 'Home', icon: Bird },
-    { id: 'explore', label: 'Explore', icon: Search },
-    { id: 'following', label: 'Following', icon: UsersRound },
-    { id: 'notifications', label: 'Notifications', icon: Bell, badge: notifBadge },
-    { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark },
+    { id: 'home', label: t('tweetHub.nav.home'), icon: Bird },
+    { id: 'explore', label: t('tweetHub.nav.explore'), icon: Search },
+    { id: 'following', label: t('tweetHub.nav.following'), icon: UsersRound },
+    { id: 'notifications', label: t('tweetHub.nav.notifications'), icon: Bell, badge: notifBadge },
+    { id: 'bookmarks', label: t('tweetHub.nav.bookmarks'), icon: Bookmark },
   ];
 
   return (
     <div className="hub-shell hub-shell-tweet tweet-hub-root">
-      <WorkspaceTopbar onHome={() => setProduct('home')} product="Tweet Hub" />
+      <WorkspaceTopbar onHome={() => setProduct('home')} product={t('tweetHub.brand.name')} />
       <div className="tweet-hub-layout">
         <aside className="tweet-hub-sidebar">
           <div className="tweet-hub-brand">
             <span className="hub-empty-icon"><Bird size={22} /></span>
-            <div><b>Tweet Hub</b><small>Post · Follow · Trend</small></div>
+            <div><b>{t('tweetHub.brand.name')}</b><small>{t('tweetHub.brand.tagline')}</small></div>
           </div>
           <nav>
             {nav.map(({ id, label, icon: Icon, badge }) => (
@@ -1347,39 +1357,39 @@ export function TweetHub() {
               </button>
             ))}
             <button type="button" className={view === 'profile' ? 'active' : ''} onClick={() => me && openProfile(me.username, me.id)}>
-              <UserIcon size={17} /><span>Profile</span>
+              <UserIcon size={17} /><span>{t('tweetHub.nav.profile')}</span>
             </button>
           </nav>
           <button type="button" className="btn btn-tweet tweet-hub-post" onClick={() => { setQuote(null); setEditTarget(null); if (view !== 'home') changeView('home'); document.querySelector<HTMLTextAreaElement>('.tweet-composer-textarea')?.focus(); }}>
-            <Bird size={16} /> Post
+            <Bird size={16} /> {t('tweetHub.post')}
           </button>
           <button type="button" className="tweet-hub-jam-link" onClick={() => { setProduct('community'); setTab('jams'); }}>
-            <UsersRound size={15} /> Open Community
+            <UsersRound size={15} /> {t('tweetHub.openCommunity')}
           </button>
         </aside>
 
         <main className="tweet-hub-main">
           <header className="tweet-hub-heading">
             <div className="tweet-hub-heading-copy">
-              {view === 'profile' && <button type="button" className="tweet-back" onClick={() => { changeView('home'); }}><ArrowLeft size={16} /> Back</button>}
-              <div className="hub-kicker">TWEET HUB · CONNECTED TO JAMINO</div>
+              {view === 'profile' && <button type="button" className="tweet-back" onClick={() => { changeView('home'); }}><ArrowLeft size={16} /> {t('tweetHub.back')}</button>}
+              <div className="hub-kicker">{t('tweetHub.kicker')}</div>
               <h1>{pageTitle}</h1>
             </div>
             <div className="hub-heading-actions">
-              <button type="button" className="btn btn-ghost pill-sm" onClick={reload}><Sparkles size={14} /> Refresh</button>
+              <button type="button" className="btn btn-ghost pill-sm" onClick={reload}><Sparkles size={14} /> {t('tweetHub.refresh')}</button>
             </div>
           </header>
 
           {(view === 'explore' || view === 'search') && (
             <form className="tweet-search" onSubmit={runSearch}>
               <Search size={17} />
-              <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search tweets, @people and #topics" maxLength={120} />
-              <button type="submit" className="btn btn-tweet pill-sm">Search</button>
+              <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={t('tweetHub.searchPlaceholder')} maxLength={120} />
+              <button type="submit" className="btn btn-tweet pill-sm">{t('tweetHub.search')}</button>
             </form>
           )}
 
           {view === 'home' && !editTarget && !quote && (
-            <Composer onPosted={onComposerPosted} placeholder={quote ? 'Add a comment…' : 'What is happening?'} />
+            <Composer onPosted={onComposerPosted} placeholder={quote ? t('tweetHub.quotePlaceholder') : t('tweetHub.composerPlaceholder')} />
           )}
           {view === 'home' && (editTarget || quote) && (
             <Composer
@@ -1388,16 +1398,16 @@ export function TweetHub() {
               editTweet={editTarget}
               quote={quote}
               onCancel={() => { setEditTarget(null); setQuote(null); }}
-              placeholder="What is happening?"
+              placeholder={t('tweetHub.composerPlaceholder')}
               autoFocus
             />
           )}
 
           {view === 'search' && !searchQuery && (
             <section className="tweet-rail-card tweet-recent">
-              <div className="tweet-recent-head"><h3><Search size={15} /> Recent searches</h3>{recentSearches.length > 0 && <button type="button" className="btn btn-ghost pill-sm" onClick={clearRecents}><X size={12} /> Clear</button>}</div>
+              <div className="tweet-recent-head"><h3><Search size={15} /> {t('tweetHub.recent.title')}</h3>{recentSearches.length > 0 && <button type="button" className="btn btn-ghost pill-sm" onClick={clearRecents}><X size={12} /> {t('tweetHub.recent.clear')}</button>}</div>
               {recentSearches.length === 0 ? (
-                <p className="tweet-rail-empty">Search for tweets, people and hashtags.</p>
+                <p className="tweet-rail-empty">{t('tweetHub.recent.empty')}</p>
               ) : (
                 recentSearches.map((term) => (
                   <button type="button" className="tweet-trend" key={term} onClick={() => { setSearchInput(term); setSearchQuery(term); setView('search'); }}>
@@ -1421,19 +1431,19 @@ export function TweetHub() {
                 </div>
                 <div className="tweet-profile-actions">
                   {profile.isMe ? (
-                    <button type="button" className="btn btn-ghost pill-sm" onClick={() => setEditProfileOpen(true)}><Pencil size={13} /> Edit profile</button>
+                    <button type="button" className="btn btn-ghost pill-sm" onClick={() => setEditProfileOpen(true)}><Pencil size={13} /> {t('tweetHub.profile.edit')}</button>
                   ) : profile.blockedBy ? (
-                    <span className="tweet-block-note"><Ban size={13} /> You are blocked</span>
+                    <span className="tweet-block-note"><Ban size={13} /> {t('tweetHub.profile.blockedNote')}</span>
                   ) : (
                     <>
                       {profile.blocked && (
-                        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void unblockUser(profile.user.id)}><Ban size={13} /> Unblock</button>
+                        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void unblockUser(profile.user.id)}><Ban size={13} /> {t('tweetHub.profile.unblock')}</button>
                       )}
                       {profile.muted && (
-                        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void unmuteUser(profile.user.id)}><VolumeX size={13} /> Unmute</button>
+                        <button type="button" className="btn btn-ghost pill-sm" onClick={() => void unmuteUser(profile.user.id)}><VolumeX size={13} /> {t('tweetHub.profile.unmute')}</button>
                       )}
                       <button type="button" className={`btn ${profile.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(profile.user.id)}>
-                        {profile.following ? 'Following' : <><BadgeCheck size={14} /> Follow</>}
+                        {profile.following ? t('tweetHub.people.followingBtn') : <><BadgeCheck size={14} /> {t('tweetHub.people.follow')}</>}
                       </button>
                     </>
                   )}
@@ -1445,21 +1455,21 @@ export function TweetHub() {
                   <p className="tweet-profile-meta">
                     {profile.user.location && <span><MapPin size={13} /> {profile.user.location}</span>}
                     {profile.user.website && <span><Globe size={13} /> <a href={profile.user.website} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{profile.user.website.replace(/^https?:\/\//, '')}</a></span>}
-                    <span><Calendar size={13} /> Joined {new Date(profile.user.joinedAt).toLocaleDateString()}</span>
+                    <span><Calendar size={13} /> {t('tweetHub.profile.joined', { date: new Date(profile.user.joinedAt).toLocaleDateString() })}</span>
                   </p>
                 </div>
                 <div className="tweet-profile-stats">
                   {ALLOWED_TABS.map((tab) => (
-                    <button key={tab.id} className={`tweet-stat-btn ${profileTab === tab.id ? 'active' : ''}`} onClick={() => { setProfileTab(tab.id); setFeed([]); }}>
-                      <b>{profile.stats[tab.id === 'posts' ? 'tweets' : tab.id === 'replies' ? 'replies' : tab.id === 'media' ? 'media' : 'likes']}</b> {tab.label}
+                    <button key={tab} className={`tweet-stat-btn ${profileTab === tab ? 'active' : ''}`} onClick={() => { setProfileTab(tab); setFeed([]); }}>
+                      <b>{profile.stats[tab === 'posts' ? 'tweets' : tab === 'replies' ? 'replies' : tab === 'media' ? 'media' : 'likes']}</b> {t(`tweetHub.profile.${tab}`)}
                     </button>
                   ))}
                   <span className="tweet-stat-sep" />
-                  <button type="button" className="tweet-stat-btn" onClick={() => setListModal({ title: 'Following', user: { id: profile.user.id, username: profile.user.username, avatarId: profile.user.avatarId, avatarPhoto: profile.user.avatarPhoto, bio: '', tweets: 0, followersCount: 0, following: false, isMe: false, isTarget: true } })}>
-                    <b>{profile.stats.following}</b> Following
+                  <button type="button" className="tweet-stat-btn" onClick={() => setListModal({ kind: 'following', user: { id: profile.user.id, username: profile.user.username, avatarId: profile.user.avatarId, avatarPhoto: profile.user.avatarPhoto, bio: '', tweets: 0, followersCount: 0, following: false, isMe: false, isTarget: true } })}>
+                    <b>{profile.stats.following}</b> {t('tweetHub.people.following')}
                   </button>
-                  <button type="button" className="tweet-stat-btn" onClick={() => setListModal({ title: 'Followers', user: { id: profile.user.id, username: profile.user.username, avatarId: profile.user.avatarId, avatarPhoto: profile.user.avatarPhoto, bio: '', tweets: 0, followersCount: 0, following: false, isMe: false, isTarget: true } })}>
-                    <b>{profile.stats.followers}</b> Followers
+                  <button type="button" className="tweet-stat-btn" onClick={() => setListModal({ kind: 'followers', user: { id: profile.user.id, username: profile.user.username, avatarId: profile.user.avatarId, avatarPhoto: profile.user.avatarPhoto, bio: '', tweets: 0, followersCount: 0, following: false, isMe: false, isTarget: true } })}>
+                    <b>{profile.stats.followers}</b> {t('tweetHub.people.followers')}
                   </button>
                 </div>
               </div>
@@ -1470,9 +1480,9 @@ export function TweetHub() {
             <section className="tweet-explore-banner">
               <TrendingUp size={26} />
               <div>
-                <div className="hub-kicker">TRENDING NOW</div>
-                <h2>See what the community is talking about.</h2>
-                <p>Search by topic, tap a hashtag, or follow someone new to shape your timeline.</p>
+                <div className="hub-kicker">{t('tweetHub.explore.kicker')}</div>
+                <h2>{t('tweetHub.explore.title')}</h2>
+                <p>{t('tweetHub.explore.sub')}</p>
               </div>
             </section>
           )}
@@ -1483,16 +1493,16 @@ export function TweetHub() {
             <section className="tweet-feed">
               {view === 'search' && searchQuery && users.length > 0 && (
                 <section className="tweet-rail-card tweet-user-results">
-                  <h3><UsersRound size={15} /> People</h3>
+                  <h3><UsersRound size={15} /> {t('tweetHub.search.people')}</h3>
                   {users.map((user) => (
                     <div className="tweet-suggestion" key={user.id}>
                       <button type="button" className="tweet-suggestion-id" onClick={() => openProfile(user.username, user.id)}>
                         <JaminoAvatar avatarId={user.avatarId} size={38} photo={user.avatarPhoto} name={user.username} />
-                        <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} · {user.followers} {user.followers === 1 ? 'follower' : 'followers'}</small></span>
+                        <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} · {user.followers === 1 ? t('tweetHub.search.oneFollower') : t('tweetHub.search.followersCount', { count: user.followers })}</small></span>
                       </button>
                       {me?.id !== user.id && (
                         <button type="button" className={`btn ${user.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(user.id)}>
-                          {user.following ? 'Following' : 'Follow'}
+                          {user.following ? t('tweetHub.people.followingBtn') : t('tweetHub.people.follow')}
                         </button>
                       )}
                     </div>
@@ -1507,21 +1517,21 @@ export function TweetHub() {
               {!loading && feedError && feed.length === 0 && (
                 <div className="tweet-empty large">
                   <ShieldAlert size={26} />
-                  <b>Could not load the feed.</b>
-                  <span>Check your connection and try again.</span>
-                  <button type="button" className="btn btn-tweet pill-sm" onClick={reload}><Sparkles size={13} /> Retry</button>
+                  <b>{t('tweetHub.toast.feedFailed')}</b>
+                  <span>{t('tweetHub.feed.connectionHint')}</span>
+                  <button type="button" className="btn btn-tweet pill-sm" onClick={reload}><Sparkles size={13} /> {t('tweetHub.retry')}</button>
                 </div>
               )}
               {!loading && !feedError && feed.length === 0 && (
                 <div className="tweet-empty large">
                   <Bird size={26} />
                   <b>
-                    {view === 'bookmarks' ? 'No bookmarks yet.' : view === 'following' ? 'Follow people to fill this feed.' : view === 'search' ? 'No tweets matched your search.' : view === 'profile' ? (profile && profile.blockedBy ? 'You are blocked from viewing this profile.' : 'No tweets here yet.') : 'The timeline is quiet.'}
+                    {view === 'bookmarks' ? t('tweetHub.feed.noBookmarks') : view === 'following' ? t('tweetHub.feed.followToFill') : view === 'search' ? t('tweetHub.search.noResults') : view === 'profile' ? (profile && profile.blockedBy ? t('tweetHub.feed.blockedProfile') : t('tweetHub.feed.noTweets')) : t('tweetHub.feed.quiet')}
                   </b>
                   <span>
-                    {view === 'bookmarks' ? 'Tap the bookmark icon on any tweet to keep it here.' : view === 'following' ? 'Follow a few accounts and their posts will land here.' : 'Be the first to post something.'}
+                    {view === 'bookmarks' ? t('tweetHub.feed.noBookmarksHint') : view === 'following' ? t('tweetHub.feed.followToFillHint') : t('tweetHub.feed.beFirst')}
                   </span>
-                  {view === 'home' && <span className="tweet-empty-badge"><Sparkles size={13} /> Compose your first tweet above</span>}
+                  {view === 'home' && <span className="tweet-empty-badge"><Sparkles size={13} /> {t('tweetHub.feed.composeFirst')}</span>}
                 </div>
               )}
               {feed.map((tweet) => (
@@ -1548,7 +1558,7 @@ export function TweetHub() {
               ))}
               <div ref={sentinelRef} className="tweet-feed-sentinel">
                 {loading && feed.length > 0 && <span className="admin-loader" />}
-                {!hasMore && feed.length > 0 && <span>You are all caught up</span>}
+                {!hasMore && feed.length > 0 && <span>{t('tweetHub.feed.allCaughtUp')}</span>}
               </div>
             </section>
           )}
@@ -1557,39 +1567,39 @@ export function TweetHub() {
         <aside className="tweet-hub-rail">
           <form className="tweet-rail-search" onSubmit={runSearch}>
             <Search size={15} />
-            <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search Tweet Hub" maxLength={120} />
+            <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={t('tweetHub.rail.searchPlaceholder')} maxLength={120} />
           </form>
           <section className="tweet-rail-card">
-            <h3><TrendingUp size={15} /> Trends for you</h3>
-            {trends.length === 0 && <p className="tweet-rail-empty">No trends yet — start one with a #hashtag.</p>}
+            <h3><TrendingUp size={15} /> {t('tweetHub.rail.trends')}</h3>
+            {trends.length === 0 && <p className="tweet-rail-empty">{t('tweetHub.rail.noTrends')}</p>}
             {trends.map((trend) => (
               <button type="button" className="tweet-trend" key={trend.tag} onClick={() => searchTag(`#${trend.tag}`)}>
                 <span className="tweet-trend-tag"><Hash size={13} />{trend.tag}</span>
-                <small>{trend.count} {trend.count === 1 ? 'tweet' : 'tweets'}</small>
+                <small>{trend.count === 1 ? t('tweetHub.feed.oneTweet') : t('tweetHub.feed.tweetsCount', { count: trend.count })}</small>
               </button>
             ))}
           </section>
           <section className="tweet-rail-card">
-            <h3><UsersRound size={15} /> Who to follow</h3>
-            {suggestions.length === 0 && <p className="tweet-rail-empty">You are following everyone we could find.</p>}
+            <h3><UsersRound size={15} /> {t('tweetHub.rail.whoToFollow')}</h3>
+            {suggestions.length === 0 && <p className="tweet-rail-empty">{t('tweetHub.rail.allFollowed')}</p>}
             {suggestions.map((user) => (
               <div className="tweet-suggestion" key={user.id}>
                 <button type="button" className="tweet-suggestion-id" onClick={() => openProfile(user.username, user.id)}>
                   <JaminoAvatar avatarId={user.avatarId} size={38} photo={user.avatarPhoto} name={user.username} />
-                  <span><b>{user.name || `@${user.username}`}</b><small>{user.followers} followers</small></span>
+                  <span><b>{user.name || `@${user.username}`}</b><small>{t('tweetHub.search.followersCount', { count: user.followers })}</small></span>
                 </button>
                 {me?.id !== user.id && (
-                  <button type="button" className="btn btn-tweet pill-sm" onClick={() => void toggleFollow(user.id)}>Follow</button>
+                  <button type="button" className="btn btn-tweet pill-sm" onClick={() => void toggleFollow(user.id)}>{t('tweetHub.people.follow')}</button>
                 )}
               </div>
             ))}
           </section>
-          <p className="tweet-rail-note">Tweet Hub shares your Jamino account and identity across every hub.</p>
+          <p className="tweet-rail-note">{t('tweetHub.rail.note')}</p>
         </aside>
       </div>
 
       <nav className="hub-mobile-nav tweet-mobile-nav">
-        <button type="button" onClick={() => setProduct('home')} aria-label="Hub home"><Bird size={17} /><span>Hubs</span></button>
+        <button type="button" onClick={() => setProduct('home')} aria-label={t('tweetHub.nav.hubs')}><Bird size={17} /><span>{t('tweetHub.nav.hubs')}</span></button>
         {nav.slice(0, 4).map(({ id, label, icon: Icon, badge }) => (
           <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}>
             <Icon size={17} /><span>{label}</span>
@@ -1600,11 +1610,11 @@ export function TweetHub() {
 
       {lightbox && (
         <div className="tweet-lightbox" onMouseDown={() => setLightbox(null)}>
-          <button type="button" className="btn-icon tweet-lightbox-close" onClick={() => setLightbox(null)} aria-label="Close"><X size={20} /></button>
+          <button type="button" className="btn-icon tweet-lightbox-close" onClick={() => setLightbox(null)} aria-label={t('tweetHub.close')}><X size={20} /></button>
           {lightbox.media.length > 1 && (
             <>
-              <button type="button" className="tweet-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.media.length) % lightbox.media.length }); }} aria-label="Previous">‹</button>
-              <button type="button" className="tweet-lightbox-nav next" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.media.length }); }} aria-label="Next">›</button>
+              <button type="button" className="tweet-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.media.length) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.prev')}>‹</button>
+              <button type="button" className="tweet-lightbox-nav next" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.next')}>›</button>
             </>
           )}
           <div className="tweet-lightbox-media" onMouseDown={(e) => e.stopPropagation()}>
@@ -1621,8 +1631,8 @@ export function TweetHub() {
         <div className="tweet-modal-backdrop" onMouseDown={closeTweet}>
           <section className="tweet-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <header className="tweet-modal-head">
-              <div><div className="hub-kicker">TWEET</div><h2>Conversation</h2></div>
-              <button type="button" className="btn-icon" onClick={closeTweet} aria-label="Close"><X size={18} /></button>
+              <div><div className="hub-kicker">{t('tweetHub.status.kicker')}</div><h2>{t('tweetHub.status.conversation')}</h2></div>
+              <button type="button" className="btn-icon" onClick={closeTweet} aria-label={t('tweetHub.close')}><X size={18} /></button>
             </header>
             <div className="tweet-modal-scroll">
               {replyParent && (
@@ -1663,11 +1673,11 @@ export function TweetHub() {
                 </div>
               </div>
               {!editTarget && (
-                <Composer compact autoFocus replyToId={activeTweet.id} placeholder="Post your reply" onPosted={onReplyPosted} />
+                <Composer compact autoFocus replyToId={activeTweet.id} placeholder={t('tweetHub.status.replyPlaceholder')} onPosted={onReplyPosted} />
               )}
               <div className="tweet-replies">
-                {repliesLoading && <div className="tweet-empty"><span className="admin-loader" /> Loading replies…</div>}
-                {!repliesLoading && replies.length === 0 && <div className="tweet-empty"><MessageCircle size={20} /><span>No replies yet. Start the conversation.</span></div>}
+                {repliesLoading && <div className="tweet-empty"><span className="admin-loader" /> {t('tweetHub.status.loadingReplies')}</div>}
+                {!repliesLoading && replies.length === 0 && <div className="tweet-empty"><MessageCircle size={20} /><span>{t('tweetHub.status.noReplies')}</span></div>}
                 {replies.map((reply) => (
                   <TweetCard
                     key={reply.id}
@@ -1698,7 +1708,7 @@ export function TweetHub() {
 
       {listModal && (
         <RelationshipModal
-          title={listModal.title}
+          kind={listModal.kind}
           username={listModal.user.username}
           avatarId={listModal.user.avatarId}
           avatarPhoto={listModal.user.avatarPhoto}
@@ -1714,8 +1724,8 @@ export function TweetHub() {
 
       {confirmDelete && (
         <ConfirmModal
-          title="Delete this tweet?"
-          message="This also removes its replies and reposts. This cannot be undone."
+          title={t('tweetHub.deleteModal.title')}
+          message={t('tweetHub.deleteModal.message')}
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() => void deleteTweet(confirmDelete)}
         />
@@ -1723,9 +1733,9 @@ export function TweetHub() {
 
       {blockConfirm && (
         <ConfirmModal
-          title={`Block @${blockConfirm.author.username}?`}
-          message="They will not be able to follow you, mention you, or interact with your content, and their posts will be hidden across the app. You can unblock them later from their profile."
-          confirmLabel="Block"
+          title={t('tweetHub.blockModal.title', { username: blockConfirm.author.username })}
+          message={t('tweetHub.blockModal.message')}
+          confirmLabel={t('tweetHub.blockModal.confirm')}
           onCancel={() => setBlockConfirm(null)}
           onConfirm={() => void blockUser(blockConfirm)}
         />
@@ -1735,15 +1745,15 @@ export function TweetHub() {
         <div className="tweet-modal-backdrop" onMouseDown={() => setReportTarget(null)}>
           <section className="tweet-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <header className="tweet-modal-head">
-              <div><div className="hub-kicker">REPORT</div><h2>Report tweet</h2></div>
-              <button type="button" className="btn-icon" onClick={() => setReportTarget(null)} aria-label="Close"><X size={18} /></button>
+              <div><div className="hub-kicker">{t('tweetHub.report.kicker')}</div><h2>{t('tweetHub.report.title')}</h2></div>
+              <button type="button" className="btn-icon" onClick={() => setReportTarget(null)} aria-label={t('tweetHub.close')}><X size={18} /></button>
             </header>
             <div className="tweet-modal-scroll">
-              <p className="tweet-report-copy">Why are you reporting this tweet? Our moderation team will review it.</p>
-              {reportBusy && <div className="tweet-empty"><span className="admin-loader" /> Sending report…</div>}
+              <p className="tweet-report-copy">{t('tweetHub.report.copy')}</p>
+              {reportBusy && <div className="tweet-empty"><span className="admin-loader" /> {t('tweetHub.report.sending')}</div>}
               {!reportBusy && REPORT_REASONS.map((reason) => (
-                <button type="button" className="tweet-report-reason" key={reason.id} onClick={() => void submitReport(reason.id)}>
-                  <Flag size={14} /> {reason.label}
+                <button type="button" className="tweet-report-reason" key={reason} onClick={() => void submitReport(reason)}>
+                  <Flag size={14} /> {t(`tweetHub.report.${reason.toLowerCase()}`)}
                 </button>
               ))}
             </div>

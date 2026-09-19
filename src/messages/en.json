@@ -810,5 +810,221 @@
     "following": "Following",
     "notifications": "Notifications",
     "bookmarks": "Bookmarks"
+  },
+  "tweetHub": {
+    "brand": {
+      "name": "Tweet Hub",
+      "tagline": "Post · Follow · Trend"
+    },
+    "nav": {
+      "hubs": "Hubs",
+      "home": "Home",
+      "explore": "Explore",
+      "following": "Following",
+      "notifications": "Notifications",
+      "bookmarks": "Bookmarks",
+      "profile": "Profile"
+    },
+    "post": "Post",
+    "openCommunity": "Open Community",
+    "back": "Back",
+    "kicker": "TWEET HUB · CONNECTED TO JAMINO",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search tweets, @people and #topics",
+    "search": "Search",
+    "composerPlaceholder": "What is happening?",
+    "quotePlaceholder": "Add a comment…",
+    "editingNote": "Editing your tweet — changes appear instantly.",
+    "removeMedia": "Remove media",
+    "uploading": "Uploading… {percent}%",
+    "addMedia": "Add photos or video",
+    "emoji": "Emoji",
+    "cancel": "Cancel",
+    "posting": "Posting…",
+    "reply": "Reply",
+    "save": "Save",
+    "close": "Close",
+    "retry": "Retry",
+    "time": {
+      "now": "now",
+      "min": "{value} min",
+      "hour": "{value} hr",
+      "day": "{value} d"
+    },
+    "toast": {
+      "tweetUpdated": "Tweet updated.",
+      "replyPosted": "Reply posted.",
+      "live": "Your tweet is live.",
+      "postFailed": "Could not post your tweet.",
+      "uploadFailed": "A file failed to upload",
+      "tweetGone": "This tweet is no longer available.",
+      "feedFailed": "Could not load the feed.",
+      "reposted": "Reposted.",
+      "repostRemoved": "Repost removed.",
+      "repostFailed": "Could not repost.",
+      "likeFailed": "Could not update like.",
+      "bookmarkFailed": "Could not update bookmark.",
+      "following": "Following.",
+      "unfollowed": "Unfollowed.",
+      "followFailed": "Could not update follow.",
+      "tweetDeleted": "Tweet deleted.",
+      "deleteFailed": "Could not delete this tweet.",
+      "linkCopied": "Link copied to clipboard.",
+      "copyLink": "Copy this link",
+      "muted": "Muted @{username}. Their posts are hidden from your feeds.",
+      "muteFailed": "Could not mute this user.",
+      "blocked": "Blocked @{username}.",
+      "blockFailed": "Could not block this user.",
+      "unblocked": "User unblocked.",
+      "unblockFailed": "Could not unblock this user.",
+      "unmuted": "User unmuted.",
+      "unmuteFailed": "Could not unmute this user.",
+      "reportThanks": "Thanks — our team will review this report.",
+      "reportFailed": "Could not submit the report."
+    },
+    "action": {
+      "repost": "Repost",
+      "repostMenu": "Repost menu",
+      "quotePost": "Quote post",
+      "like": "Like",
+      "bookmark": "Bookmark",
+      "copyLink": "Copy link",
+      "more": "More",
+      "editTweet": "Edit tweet",
+      "delete": "Delete",
+      "mute": "Mute @{username}",
+      "block": "Block @{username}",
+      "reportTweet": "Report tweet"
+    },
+    "card": {
+      "reposted": "Reposted",
+      "openUser": "Open {username}"
+    },
+    "people": {
+      "kicker": "PEOPLE",
+      "followers": "Followers",
+      "following": "Following",
+      "loading": "Loading {title}…",
+      "noFollowers": "No followers yet.",
+      "notFollowing": "Not following anyone yet.",
+      "follow": "Follow",
+      "followingBtn": "Following",
+      "updateFailed": "Could not update follow."
+    },
+    "profile": {
+      "kicker": "PROFILE",
+      "edit": "Edit profile",
+      "displayName": "Display name",
+      "yourName": "Your name",
+      "bio": "Bio",
+      "bioPlaceholder": "Tell people about yourself",
+      "website": "Website",
+      "location": "Location",
+      "locationPlaceholder": "City, country",
+      "saving": "Saving…",
+      "saveProfile": "Save profile",
+      "updated": "Profile updated.",
+      "updateFailed": "Could not update profile.",
+      "blockedNote": "You are blocked",
+      "unblock": "Unblock",
+      "unmute": "Unmute",
+      "joined": "Joined {date}",
+      "posts": "Posts",
+      "replies": "Replies",
+      "media": "Media",
+      "likes": "Likes"
+    },
+    "notifications": {
+      "loading": "Loading activity…",
+      "loadFailed": "Could not load notifications.",
+      "noActivity": "No activity yet.",
+      "noActivityHint": "Likes, reposts, replies, quotes, mentions and new followers show up here.",
+      "unread": "{count} unread",
+      "markAllRead": "Mark all read",
+      "liked": "{name} liked your tweet",
+      "reposted": "{name} reposted your tweet",
+      "replied": "{name} replied to your tweet",
+      "followedYou": "{name} started following you",
+      "quoted": "{name} quoted your tweet",
+      "mentioned": "{name} mentioned you",
+      "someone": "Someone"
+    },
+    "pageTitle": {
+      "results": "Results for “{query}”",
+      "profile": "Profile",
+      "hub": "Tweet Hub"
+    },
+    "search": {
+      "people": "People",
+      "noResults": "No tweets matched your search.",
+      "oneFollower": "1 follower",
+      "followersCount": "{count} followers"
+    },
+    "recent": {
+      "title": "Recent searches",
+      "clear": "Clear",
+      "empty": "Search for tweets, people and hashtags."
+    },
+    "explore": {
+      "kicker": "TRENDING NOW",
+      "title": "See what the community is talking about.",
+      "sub": "Search by topic, tap a hashtag, or follow someone new to shape your timeline."
+    },
+    "feed": {
+      "connectionHint": "Check your connection and try again.",
+      "noBookmarks": "No bookmarks yet.",
+      "noBookmarksHint": "Tap the bookmark icon on any tweet to keep it here.",
+      "followToFill": "Follow people to fill this feed.",
+      "followToFillHint": "Follow a few accounts and their posts will land here.",
+      "blockedProfile": "You are blocked from viewing this profile.",
+      "noTweets": "No tweets here yet.",
+      "quiet": "The timeline is quiet.",
+      "beFirst": "Be the first to post something.",
+      "composeFirst": "Compose your first tweet above",
+      "allCaughtUp": "You are all caught up",
+      "oneTweet": "1 tweet",
+      "tweetsCount": "{count} tweets"
+    },
+    "rail": {
+      "searchPlaceholder": "Search Tweet Hub",
+      "trends": "Trends for you",
+      "noTrends": "No trends yet — start one with a #hashtag.",
+      "whoToFollow": "Who to follow",
+      "allFollowed": "You are following everyone we could find.",
+      "note": "Tweet Hub shares your Jamino account and identity across every hub."
+    },
+    "status": {
+      "kicker": "TWEET",
+      "conversation": "Conversation",
+      "replyPlaceholder": "Post your reply",
+      "loadingReplies": "Loading replies…",
+      "noReplies": "No replies yet. Start the conversation."
+    },
+    "deleteModal": {
+      "title": "Delete this tweet?",
+      "message": "This also removes its replies and reposts. This cannot be undone."
+    },
+    "blockModal": {
+      "title": "Block @{username}?",
+      "message": "They will not be able to follow you, mention you, or interact with your content, and their posts will be hidden across the app. You can unblock them later from their profile.",
+      "confirm": "Block"
+    },
+    "report": {
+      "kicker": "REPORT",
+      "title": "Report tweet",
+      "copy": "Why are you reporting this tweet? Our moderation team will review it.",
+      "sending": "Sending report…",
+      "spam": "Spam",
+      "harassment": "Harassment",
+      "hate": "Hateful content",
+      "violence": "Violence",
+      "sexual": "Sexual content",
+      "fraud": "Scam or fraud",
+      "other": "Something else"
+    },
+    "lightbox": {
+      "prev": "Previous",
+      "next": "Next"
+    }
   }
 }
