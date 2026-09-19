@@ -434,6 +434,45 @@ model Notification {
   @@index([userId, readAt, createdAt])
 }
 
+model MediaCatalogItem {
+  id          Int      @id @default(autoincrement())
+  kind        String   // ANIME | MANGA
+  slug        String   @unique
+  title       String
+  original    String   @default("")
+  synopsis    String   @default("")
+  genres      String   @default("[]")
+  coverUrl    String   @default("")
+  backdropUrl String   @default("")
+  studio      String   @default("")
+  status      String   @default("ONGOING")
+  year        Int      @default(0)
+  score       Float    @default(0)
+  episodes    Int      @default(0)
+  chapters    Int      @default(0)
+  featured    Boolean  @default(false)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  chaptersList MediaChapter[]
+  @@index([kind, published, featured])
+  @@index([kind, updatedAt])
+}
+
+model MediaChapter {
+  id        Int      @id @default(autoincrement())
+  itemId    Int
+  number    Int
+  title     String   @default("")
+  pages     String   @default("[]")
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  item      MediaCatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  @@unique([itemId, number])
+  @@index([itemId, number])
+}
+
 model MessageReport {
   id             Int       @id @default(autoincrement())
   reporterId     Int

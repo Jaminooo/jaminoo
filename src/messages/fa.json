@@ -313,6 +313,12 @@
     "unknownArtist": "هنرمند ناشناس",
     "empty": "نتیجه‌ای پیدا نشد."
   },
+  "catalog": {
+    "eyebrow": "کنترل محتوا", "title": "CMS انیمه و مانگا", "subtitle": "همهٔ عنوان‌ها، کاورها، وضعیت‌ها، فصل‌ها و صفحات را از یک‌جا مدیریت کن.", "anime": "انیمه", "manga": "مانگا", "new": "محتوای جدید", "edit": "ویرایش محتوا", "clear": "پاک‌کردن", "titleField": "عنوان", "slug": "اسلاگ", "original": "عنوان اصلی", "studio": "استودیو", "genres": "ژانرها", "status": "وضعیت", "year": "سال", "score": "امتیاز", "episodes": "قسمت‌ها", "chapters": "فصل‌ها", "cover": "لینک کاور", "backdrop": "لینک بک‌دراپ", "synopsis": "خلاصه داستان", "featured": "ویژه", "published": "منتشرشده", "saving": "در حال ذخیره…", "save": "ذخیره محتوا", "library": "کتابخانه محتوا", "visibility": "نمایش", "public": "عمومی", "hidden": "مخفی", "actions": "عملیات", "loading": "در حال بارگذاری…", "empty": "هنوز محتوایی وجود ندارد.", "delete": "حذف", "deleteConfirm": "حذف", "chapterManager": "مدیریت فصل‌ها", "chapterNumber": "شماره فصل", "chapterTitle": "عنوان فصل", "pageUrls": "لینک تصاویر صفحات", "saveChapter": "ذخیره فصل", "untitled": "فصل بدون عنوان"
+  },
+  "announcement": {
+    "eyebrow": "ارتباط مستقیم", "title": "مرکز اعلان‌ها", "subtitle": "برای همه یا کاربران مشخص، اعلان حرفه‌ای ارسال کن.", "subject": "موضوع", "audience": "مخاطب", "all": "همه کاربران", "selected": "کاربران مشخص", "userIds": "شناسه کاربران", "message": "پیام", "sending": "در حال ارسال…", "send": "ارسال اعلان", "sent": "ارسال شد برای کاربران:"
+  },
   "media": {
     "profilePhotos": "عکس‌های پروفایل",
     "dropHint": "تا ۵ عکس بگذار یا برای انتخاب کلیک کن.",
@@ -378,6 +384,8 @@
     "music": "موسیقی",
     "sessions": "سشن‌ها",
     "audit": "گزارش ممیزی",
+    "catalog": "CMS انیمه و مانگا",
+    "announcements": "اعلان‌ها",
     "usersOnline": "آنلاین الان",
     "totalUsers": "کل کاربران",
     "newUsers24h": "جدید در ۲۴ ساعت",

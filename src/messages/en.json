@@ -313,6 +313,12 @@
     "unknownArtist": "Unknown artist",
     "empty": "No results yet."
   },
+  "catalog": {
+    "eyebrow": "CONTENT CONTROL", "title": "Anime & Manga CMS", "subtitle": "Own every title, cover, status, chapter and page from one workspace.", "anime": "Anime", "manga": "Manga", "new": "New catalog item", "edit": "Edit item", "clear": "Clear", "titleField": "Title", "slug": "Slug", "original": "Original title", "studio": "Studio", "genres": "Genres", "status": "Status", "year": "Year", "score": "Score", "episodes": "Episodes", "chapters": "Chapters", "cover": "Cover URL", "backdrop": "Backdrop URL", "synopsis": "Synopsis", "featured": "Featured", "published": "Published", "saving": "Saving…", "save": "Save item", "library": "Catalog library", "visibility": "Visibility", "public": "Public", "hidden": "Hidden", "actions": "Actions", "loading": "Loading catalog…", "empty": "No items yet.", "delete": "Delete", "deleteConfirm": "Delete", "chapterManager": "Chapter manager", "chapterNumber": "Chapter number", "chapterTitle": "Chapter title", "pageUrls": "Page image URLs", "saveChapter": "Save chapter", "untitled": "Untitled chapter"
+  },
+  "announcement": {
+    "eyebrow": "DIRECT COMMS", "title": "Announcement center", "subtitle": "Send a polished notification to everyone or selected user IDs.", "subject": "Subject", "audience": "Audience", "all": "All users", "selected": "Selected users", "userIds": "User IDs", "message": "Message", "sending": "Sending…", "send": "Send notification", "sent": "Sent to users:"
+  },
   "media": {
     "profilePhotos": "Profile photos",
     "dropHint": "Drop up to 5 photos or tap to choose.",
@@ -378,6 +384,8 @@
     "music": "Music",
     "sessions": "Sessions",
     "audit": "Audit log",
+    "catalog": "Anime & Manga CMS",
+    "announcements": "Announcements",
     "usersOnline": "Online now",
     "totalUsers": "Total users",
     "newUsers24h": "New in 24h",
