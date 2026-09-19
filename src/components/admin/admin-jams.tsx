@@ -84,7 +84,7 @@ export function AdminJams() {
         { v: '', l: t('admin.all') },
         { v: 'CHAT', l: t('admin.chat') },
         { v: 'MOVIE', l: t('admin.movie') },
-        { v: 'MUSIC', l: t('admin.music') },
+          { v: 'MUSIC', l: t('admin.musicLabel') },
         { v: 'HANGOUT', l: t('admin.hangout') },
       ],
     },

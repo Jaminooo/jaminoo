@@ -69,7 +69,7 @@ function AuthBrand() {
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
           </span>
-          <span>{t('jams.jamsSub')}</span>
+          <span>{t('panel.jamsSub')}</span>
         </div>
       </div>
     </div>

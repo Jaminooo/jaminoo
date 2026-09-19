@@ -354,7 +354,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           <div style={{ minWidth: 0 }}>
             <div className="room-title">{jam.name}</div>
             <div className="room-members">
-              <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind]} {t(`jams.kind${jam.kind}` as any)}</span>
+              <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind]} {t(`jams.kind${jam.kind.charAt(0)}${jam.kind.slice(1).toLowerCase()}`)}</span>
               {jam.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
               {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
             </div>

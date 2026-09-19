@@ -57,7 +57,7 @@ export function AdminCreators() {
         <select className="admin-select" value={hub} onChange={(event) => { setHub(event.target.value); list.setPage(1); }}>
           <option value="">{t('admin.allHubs')}</option>
           <option value="VIDEO">{t('admin.video')}</option>
-          <option value="MUSIC">{t('admin.music')}</option>
+          <option value="MUSIC">{t('admin.musicLabel')}</option>
         </select>
         <span className="admin-count">{t('admin.applicationsCount', { n: list.total })}</span>
       </div>

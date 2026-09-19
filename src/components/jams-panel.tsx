@@ -191,7 +191,7 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
             <div className="kind-toggle">
               {JAM_KINDS.map((k) => (
                 <button key={k} type="button" className={jkind === k ? 'active' : ''} onClick={() => setJkind(k)}>
-                  {KIND_ICON[k]} {t(`jams.kind${k}` as any)}
+                  {KIND_ICON[k]} {t(`jams.kind${k.charAt(0)}${k.slice(1).toLowerCase()}`)}
                 </button>
               ))}
             </div>
@@ -216,7 +216,7 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
                   {j.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
                 </span>
                 <span className="friend-sub">
-                  {KIND_ICON[j.kind]} {t(`jams.kind${j.kind}` as any)} · {t('jams.members', { count: j.members })}
+                  {KIND_ICON[j.kind]} {t((`jams.kind${j.kind.charAt(0)}${j.kind.slice(1).toLowerCase()}`) as any)} · {t('jams.members', { count: j.members })}
                 </span>
               </div>
               <span className="friend-sub" style={{ marginInlineStart: 'auto' }}>

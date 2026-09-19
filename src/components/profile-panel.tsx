@@ -255,7 +255,7 @@ export function ProfilePanel() {
         <div className="seg" style={{ maxWidth: 400 }}>
           {(['ONLINE', 'IDLE', 'BUSY', 'OFFLINE'] as const).map((s) => (
             <button key={s} type="button" className={`seg-btn ${status === s ? 'active' : ''}`} onClick={() => setStatus(s)}>
-              {t(`profile.status${s.toLowerCase()}`)}
+              {t(`profile.status${s.charAt(0)}${s.slice(1).toLowerCase()}`)}
             </button>
           ))}
         </div>
