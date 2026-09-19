@@ -2,6 +2,7 @@ import { handle, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { musicFilePath, streamFile } from '@/lib/music';
 import { NextResponse } from 'next/server';
+import { COVER_KIND_DEFAULT, COVER_KIND_MIME, MusicCoverKind } from '@/lib/default-assets';
 
 const MIME_BY_EXT: Record<string, string> = {
   png: 'image/png',
@@ -25,12 +26,16 @@ export const GET = handle(async (req, { params }: Ctx) => {
     if (kind === 'playlist') return prisma.musicPlaylist.findUnique({ where: { id }, select: { coverFile: true } });
     return null;
   };
-  const rec = await pick();
+const rec = await pick();
   if (!rec || !rec.coverFile) return err('Not found', 404);
   if (/^https?:\/\//i.test(rec.coverFile)) return NextResponse.redirect(rec.coverFile);
 
   const filePath = musicFilePath(rec.coverFile);
-  if (!filePath) return err('File missing', 404);
+  if (!filePath) {
+    // Uploaded cover was wiped on deploy — serve the bundled default cover.
+    const coverKind = (kind as MusicCoverKind) in COVER_KIND_DEFAULT ? (kind as MusicCoverKind) : 'song';
+    return streamFile(req, COVER_KIND_DEFAULT[coverKind], COVER_KIND_MIME[coverKind]);
+  }
 
   const ext = (rec.coverFile.split('.').pop() ?? 'jpg').toLowerCase();
   return streamFile(req, filePath, MIME_BY_EXT[ext] ?? 'image/jpeg');

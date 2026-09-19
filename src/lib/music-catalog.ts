@@ -1,11 +1,12 @@
 import { safeJsonArr } from '@/lib/music-cms';
+import { DEFAULT_ASSETS } from '@/lib/default-assets';
 
 const DEMO_COVERS = [
-  'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=900&q=82',
+  DEFAULT_ASSETS.artist,
+  DEFAULT_ASSETS.album,
+  DEFAULT_ASSETS.playlist,
+  DEFAULT_ASSETS.song,
+  DEFAULT_ASSETS.remix,
 ];
 
 export function fallbackCover(seed: number | string) {

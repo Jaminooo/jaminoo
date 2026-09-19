@@ -4,6 +4,40 @@ import { unlink } from 'fs/promises';
 import path from 'path';
 import { NextResponse } from 'next/server';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
+import { streamFile } from '@/lib/music';
+import { DEFAULT_FILE_PATHS } from '@/lib/default-assets';
+
+type Fallback = { path: string; mime: string } | null;
+
+// Pick a bundled default for a media row whose uploaded file no longer exists
+// on disk (uploads/ is ephemeral on most hosters). Choice is based on how the
+// media is actually used so each surface gets a sensible placeholder.
+async function pickMediaFallback(media: { id: string; kind: string; mime: string }): Promise<Fallback> {
+  if (media.kind === 'VOICE') return null;
+
+  if (media.kind === 'CINEMA_ASSET' || media.kind === 'VIDEO_ASSET' || media.mime.startsWith('video/')) {
+    return { path: DEFAULT_FILE_PATHS.videoContent, mime: 'video/mp4' };
+  }
+
+  const use = await prisma.media.findUnique({
+    where: { id: media.id },
+    select: {
+      profileUser: { select: { id: true } },
+      bannerUser: { select: { id: true } },
+      videoPosts: { select: { id: true }, take: 1 },
+      videoThumbnails: { select: { id: true }, take: 1 },
+      tweetAssets: { select: { id: true }, take: 1 },
+      messages: { select: { id: true }, take: 1 },
+      dmMessages: { select: { id: true }, take: 1 },
+    },
+  });
+  if (!use) return { path: DEFAULT_FILE_PATHS.media, mime: 'image/png' };
+
+  if (use.profileUser || use.bannerUser) return { path: DEFAULT_FILE_PATHS.profile, mime: 'image/png' };
+  if (use.videoThumbnails) return { path: DEFAULT_FILE_PATHS.video, mime: 'image/png' };
+  if (use.tweetAssets) return { path: DEFAULT_FILE_PATHS.postPicture, mime: 'image/png' };
+  return { path: DEFAULT_FILE_PATHS.media, mime: 'image/png' };
+}
 
 type Ctx = { params: { id: string } };
 
@@ -104,7 +138,11 @@ export const GET = handle(async (req, { params }: Ctx) => {
     if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${buffer.length}`;
     return new NextResponse(new Uint8Array(body), { status, headers });
   } catch {
-    return err('File missing', 404);
+    // Uploaded file was wiped (fresh deploy without persistent disk). Stream
+    // the bundled default so clients never see a broken image/video.
+    const fallback = await pickMediaFallback(media);
+    if (!fallback) return err('File missing', 404);
+    return streamFile(req, fallback.path, fallback.mime);
   }
 });
 

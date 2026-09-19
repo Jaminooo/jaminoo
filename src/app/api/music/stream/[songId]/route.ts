@@ -1,6 +1,7 @@
 import { handle, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { musicFilePath, streamFile } from '@/lib/music';
+import { DEFAULT_FILE_PATHS } from '@/lib/default-assets';
 
 const MIME_BY_EXT: Record<string, string> = {
   mp3: 'audio/mpeg',
@@ -22,7 +23,10 @@ export const GET = handle(async (req, { params }: Ctx) => {
   if (!song || !song.audioFile) return err('Not found', 404);
 
   const filePath = musicFilePath(song.audioFile);
-  if (!filePath) return err('File missing', 404);
+  if (!filePath) {
+    // Uploaded audio was wiped on deploy — stream the bundled demo track.
+    return streamFile(req, DEFAULT_FILE_PATHS.audio, 'audio/mpeg');
+  }
 
   if (song.plays < 1000000 && !req.headers.get('range')) {
     prisma.song

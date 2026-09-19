@@ -1,3 +1,5 @@
+import { DEFAULT_ASSETS } from '@/lib/default-assets';
+
 export function coverUrl(kind: 'song' | 'album' | 'artist' | 'playlist', id: number) {
   return `/api/music/cover/${kind}/${id}`;
 }
@@ -6,15 +8,9 @@ export function streamUrl(songId: number) {
   return `/api/music/stream/${songId}`;
 }
 
-const FALLBACK_COVERS = [
-  'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?auto=format&fit=crop&w=900&q=82',
-  'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=900&q=82',
-];
-
 export function fallbackMusicCover(seed: number) {
-  return FALLBACK_COVERS[Math.abs(seed) % FALLBACK_COVERS.length];
+  const picks = [DEFAULT_ASSETS.artist, DEFAULT_ASSETS.album, DEFAULT_ASSETS.playlist, DEFAULT_ASSETS.song];
+  return picks[Math.abs(seed) % picks.length];
 }
 
 function externalCover(value: string | null | undefined) {

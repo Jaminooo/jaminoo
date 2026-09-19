@@ -10,7 +10,11 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:reset": "prisma db push --force-reset"
+    "db:reset": "prisma db push --force-reset",
+    "db:seed": "node scripts/seed.mjs"
+  },
+  "prisma": {
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
