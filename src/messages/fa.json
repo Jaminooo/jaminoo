@@ -829,7 +829,7 @@
     "radio": "رادیو",
     "studio": "استودیو"
   },
-  "videoNav": {
+"videoNav": {
     "feed": "برای تو",
     "following": "دنبال‌شده‌ها",
     "shorts": "شورت‌ها",
@@ -838,7 +838,8 @@
     "watchlist": "لیست تماشا",
     "creators": "سازنده‌ها",
     "studio": "استودیو",
-    "playlists": "پلی‌لیست‌ها"
+    "playlists": "پلی‌لیست‌ها",
+    "edit": "ویرایش ویدیوها"
   },
   "cinemaNav": {
     "home": "خانه",

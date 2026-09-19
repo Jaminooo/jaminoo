@@ -49,7 +49,7 @@ import { CreatorCollabStudio } from '@/components/creator-collab-studio';
 import { CreatorInsights } from '@/components/creator-insights';
 import { connectLive, onLive } from '@/lib/live';
 
-type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists';
+type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists' | 'edit';
 type FeedKind = 'ALL' | 'SHORT' | 'LONG';
 type MediaType = 'TEXT' | 'IMAGE' | 'VIDEO';
 
@@ -119,7 +119,7 @@ interface DiscoverCreator {
 }
 
 const NAV: { id: VideoView; key: string; icon: typeof Film }[] = [
-  { id: 'feed', key: 'feed', icon: Film }, { id: 'following', key: 'following', icon: UsersRound }, { id: 'shorts', key: 'shorts', icon: Play }, { id: 'long', key: 'long', icon: Tv2 }, { id: 'watch', key: 'watch', icon: Link2 }, { id: 'watchlist', key: 'watchlist', icon: Bookmark }, { id: 'creators', key: 'creators', icon: Camera }, { id: 'studio', key: 'studio', icon: LayoutDashboard }, { id: 'playlists', key: 'playlists', icon: ListVideo },
+  { id: 'feed', key: 'feed', icon: Film }, { id: 'following', key: 'following', icon: UsersRound }, { id: 'shorts', key: 'shorts', icon: Play }, { id: 'long', key: 'long', icon: Tv2 }, { id: 'watch', key: 'watch', icon: Link2 }, { id: 'watchlist', key: 'watchlist', icon: Bookmark }, { id: 'creators', key: 'creators', icon: Camera }, { id: 'studio', key: 'studio', icon: LayoutDashboard }, { id: 'playlists', key: 'playlists', icon: ListVideo }, { id: 'edit', key: 'edit', icon: Pencil },
 ];
 
 function durationLabel(seconds: number) {
@@ -668,6 +668,122 @@ function CreatorsView({ onOpenCreator }: { onOpenCreator: (id: number) => void }
   );
 }
 
+function EditView({ onEditPost }: { onEditPost: (post: VideoPost) => void }) {
+  const [posts, setPosts] = useState<VideoPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingRef = useRef(false);
+  const nextCursorRef = useRef<string | null>(null);
+  const hasMoreRef = useRef(true);
+
+  const loadMyPosts = useCallback(async (reset = false, search = '') => {
+    if (loadingRef.current || (!reset && !hasMoreRef.current)) return;
+    loadingRef.current = true;
+    if (reset) setLoading(true);
+    try {
+      const params = new URLSearchParams({ authorId: 'me' });
+      if (!reset && nextCursorRef.current) params.set('cursor', nextCursorRef.current);
+      if (search) params.set('q', search);
+      const data = await api<{ posts: VideoPost[]; nextCursor: string | null; hasMore: boolean }>(`/api/video/posts?${params}`);
+      setPosts((current) => {
+        if (reset) return data.posts;
+        const seen = new Set(current.map((post) => post.id));
+        return [...current, ...data.posts.filter((post) => !seen.has(post.id))];
+      });
+      nextCursorRef.current = data.nextCursor;
+      hasMoreRef.current = data.hasMore;
+      setHasMore(data.hasMore);
+    } catch (error) {
+      if (reset) setPosts([]);
+      toast(error instanceof Error ? error.message : 'Could not load your videos.', 'error');
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    nextCursorRef.current = null;
+    hasMoreRef.current = true;
+    setHasMore(true);
+    setPosts([]);
+    void loadMyPosts(true, activeSearch);
+  }, [loadMyPosts, activeSearch]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) void loadMyPosts(false, activeSearch);
+    }, { rootMargin: '900px' });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMyPosts, activeSearch]);
+
+  const submitSearch = (event: FormEvent) => {
+    event.preventDefault();
+    const next = searchQuery.trim();
+    setActiveSearch(next);
+    nextCursorRef.current = null;
+    hasMoreRef.current = true;
+    setHasMore(true);
+    setPosts([]);
+    void loadMyPosts(true, next);
+  };
+
+  return (
+    <section className="video-edit-view">
+      <div className="video-edit-hero">
+        <Pencil size={26} />
+        <div>
+          <div className="hub-kicker">EDIT YOUR VIDEOS</div>
+          <h2>Manage and update your posts.</h2>
+          <p>Find any of your posts quickly and edit titles, descriptions, thumbnails or subtitles.</p>
+        </div>
+      </div>
+      <form className="video-edit-search" onSubmit={submitSearch}>
+        <Search size={16} />
+        <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search your posts by title or description…" maxLength={120} />
+        {activeSearch && <button type="button" className="btn-icon" onClick={() => { setSearchQuery(''); setActiveSearch(''); }} title="Clear search"><X size={13} /></button>}
+        <button type="submit" className="btn btn-violet pill-sm"><Sparkles size={14} /> Search</button>
+      </form>
+      {loading && posts.length === 0 && <div className="video-loading-grid">{[1, 2, 3].map((item) => <div className="video-skeleton" key={item} />)}</div>}
+      {!loading && posts.length === 0 && <div className="video-hub-empty large"><Pencil size={26} /><b>{activeSearch ? `No posts matched “${activeSearch}”.` : 'You have not posted anything yet.'}</b><span>{activeSearch ? 'Try a different search term.' : 'Open Create to publish your first video.'}</span>{!activeSearch && <button type="button" className="btn btn-violet pill-sm" onClick={() => window.history.replaceState({}, '', '/?hub=video&videoView=feed')}>Go to feed</button>}</div>}
+      {posts.length > 0 && (
+        <div className="video-edit-grid">
+          {posts.map((post) => (
+            <article className={`video-post-card video-post-${post.kind.toLowerCase()} edit-mode`} key={post.id}>
+              <div className="video-post-topline">
+                <button type="button" className="video-post-author">
+                  <JaminoAvatar avatarId={post.author.avatarId} size={34} photo={post.author.avatarPhoto} name={post.author.username} />
+                  <span><b>@{post.author.username}</b><small>{timeAgo(post.createdAt)}</small></span>
+                </button>
+                <div className="video-post-type"><span>{post.kind === 'SHORT' ? 'SHORT' : post.kind === 'LONG' ? 'LONG' : 'POST'}</span>{post.durationSec > 0 && <small>{durationLabel(post.durationSec)}</small>}{post.workflowStatus && <span className={`video-workflow-badge ${post.workflowStatus.toLowerCase()}`}>{post.workflowStatus}</span>}</div>
+              </div>
+              <button type="button" className="video-post-heading">
+                <strong>{post.title || 'Untitled post'}</strong>
+                {post.description && <span>{post.description}</span>}
+              </button>
+              <VideoMedia post={post} />
+              <div className="video-post-actions">
+                <button type="button" className={post.liked ? 'active' : ''} title="Like"><Heart size={17} fill={post.liked ? 'currentColor' : 'none'} /><span>{post.likes}</span></button>
+                <button type="button" title="Comments"><MessageCircle size={17} /><span>{post.comments}</span></button>
+                <button type="button" className={post.saved ? 'active' : ''} title="Save"><Bookmark size={17} fill={post.saved ? 'currentColor' : 'none'} /><span>{post.saves}</span></button>
+                <button type="button" title="Share"><Share2 size={17} /></button>
+                <button type="button" className="btn btn-violet edit-button" onClick={() => onEditPost(post)}><Pencil size={14} /> Edit</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      <div ref={sentinelRef} className="video-feed-sentinel">{loading && posts.length > 0 && <span className="admin-loader" />}{!hasMore && posts.length > 0 && <span>All your videos loaded.</span>}</div>
+    </section>
+  );
+}
+
 export function VideoHub() {
   const t = useTranslations();
   const setProduct = useAppStore((state) => state.setProduct);
@@ -921,6 +1037,7 @@ export function VideoHub() {
             </div>
           </section>}
 
+          {view === 'edit' && <EditView onEditPost={setEditPost} />}
           {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><video controls playsInline src={activeUrl} /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}
 
           {feedView && <section className={`video-feed-section ${view === 'shorts' ? 'is-shorts' : ''} ${view === 'long' ? 'is-long' : ''}`}>
