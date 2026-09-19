@@ -1,6 +1,8 @@
 const { createServer } = require('http');
 const next = require('next');
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const { createClient } = require('redis');
 const { PrismaClient } = require('@prisma/client');
 
 require('dotenv').config();
@@ -78,7 +80,7 @@ async function pushPresence() {
 
 let io;
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));
 
   io = new Server(server, {
@@ -90,6 +92,19 @@ app.prepare().then(() => {
       callback(null, true);
     },
   });
+  if (process.env.REDIS_URL) {
+    try {
+      const pubClient = createClient({ url: process.env.REDIS_URL });
+      const subClient = pubClient.duplicate();
+      pubClient.on('error', (error) => console.error('Redis pub error:', error.message));
+      subClient.on('error', (error) => console.error('Redis sub error:', error.message));
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log('> Socket.IO Redis adapter enabled');
+    } catch (error) {
+      console.error('Redis adapter unavailable; continuing in single-instance mode:', error.message);
+    }
+  }
 
   io.use(async (socket, nextcb) => {
     try {
