@@ -396,7 +396,9 @@
     "pause": "Pause",
     "mute": "Mute",
     "volume": "Volume",
-    "loadError": "Could not load this track."
+    "loadError": "Could not load this track.",
+    "seek": "Seek",
+    "favorite": "Favorite"
   },
   "admin": {
     "title": "Admin Panel",
@@ -1064,7 +1066,8 @@
     "lightbox": {
       "prev": "Previous",
       "next": "Next"
-    }
+    },
+    "searchLabel": "Search"
   },
   "notif": {
     "title": "Notifications",

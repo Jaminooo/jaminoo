@@ -1326,7 +1326,7 @@ export function TweetHub() {
     if (view === 'following') return t('tweetHub.nav.following');
     if (view === 'bookmarks') return t('tweetHub.nav.bookmarks');
     if (view === 'notifications') return t('tweetHub.nav.notifications');
-    if (view === 'search') return searchQuery ? t('tweetHub.pageTitle.results', { query: searchQuery }) : t('tweetHub.search');
+    if (view === 'search') return searchQuery ? t('tweetHub.pageTitle.results', { query: searchQuery }) : t('tweetHub.searchLabel');
     if (view === 'profile') return profileName ? `@${profileName}` : t('tweetHub.pageTitle.profile');
     return t('tweetHub.pageTitle.hub');
   }, [profileName, searchQuery, t, view]);
@@ -1384,7 +1384,7 @@ export function TweetHub() {
             <form className="tweet-search" onSubmit={runSearch}>
               <Search size={17} />
               <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder={t('tweetHub.searchPlaceholder')} maxLength={120} />
-              <button type="submit" className="btn btn-tweet pill-sm">{t('tweetHub.search')}</button>
+              <button type="submit" className="btn btn-tweet pill-sm">{t('tweetHub.searchLabel')}</button>
             </form>
           )}
 

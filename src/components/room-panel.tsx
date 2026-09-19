@@ -324,7 +324,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const isOwner = jam.ownerId === me?.id;
   const chatPreview = (
     <div className="room-modal-chat-preview">
-      <div className="room-modal-chat-title"><MessageCircle size={15} /> {t('room.chat')}</div>
+      <div className="room-modal-chat-title"><MessageCircle size={15} /> {t('room.tabChat')}</div>
       <div className="room-modal-chat-body">
         {jam.messages.length === 0 && <div className="empty-state" style={{ padding: 24 }}>{t('room.noMessages')}</div>}
         {jam.messages.map((m) => (
