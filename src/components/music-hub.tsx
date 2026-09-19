@@ -10,6 +10,7 @@ import { artistLabel, type MusicSong } from '@/components/music-player';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { MusicCatalogSections, type MusicAlbumCard, type MusicArtistCard, type MusicPublicPlaylist } from '@/components/music-catalog-sections';
+import { useTranslations } from '@/providers/use-translations';
 
 type MusicView = 'home' | 'discover' | 'library' | 'playlists' | 'community' | 'artists' | 'albums' | 'singles' | 'favorites' | 'history' | 'radio' | 'studio';
 
@@ -18,19 +19,8 @@ interface HistoryRow { id: number; song: MusicSong; playedAt: string; }
 interface Playlist { id: number; name: string; desc?: string; isPublic?: boolean; items: { song: MusicSong }[]; }
 interface CatalogResponse { songs: MusicSong[]; singles: MusicSong[]; artists: MusicArtistCard[]; albums: MusicAlbumCard[]; playlists: MusicPublicPlaylist[]; }
 
-const NAV: { id: MusicView; label: string; icon: typeof Music2 }[] = [
-  { id: 'home', label: 'Home', icon: Music2 },
-  { id: 'discover', label: 'Discover', icon: Search },
-  { id: 'library', label: 'Library', icon: ListMusic },
-  { id: 'playlists', label: 'Playlists', icon: ListMusic },
-  { id: 'community', label: 'Community', icon: UsersRound },
-  { id: 'artists', label: 'Artists', icon: UsersRound },
-  { id: 'albums', label: 'Albums', icon: Disc3 },
-  { id: 'singles', label: 'Singles', icon: Music2 },
-  { id: 'favorites', label: 'Favorites', icon: Heart },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'radio', label: 'Radio', icon: Radio },
-  { id: 'studio', label: 'Studio', icon: LayoutDashboard },
+const NAV: { id: MusicView; key: string; icon: typeof Music2 }[] = [
+  { id: 'home', key: 'home', icon: Music2 }, { id: 'discover', key: 'discover', icon: Search }, { id: 'library', key: 'library', icon: ListMusic }, { id: 'playlists', key: 'playlists', icon: ListMusic }, { id: 'community', key: 'community', icon: UsersRound }, { id: 'artists', key: 'artists', icon: UsersRound }, { id: 'albums', key: 'albums', icon: Disc3 }, { id: 'singles', key: 'singles', icon: Music2 }, { id: 'favorites', key: 'favorites', icon: Heart }, { id: 'history', key: 'history', icon: History }, { id: 'radio', key: 'radio', icon: Radio }, { id: 'studio', key: 'studio', icon: LayoutDashboard },
 ];
 
 function timeLabel(sec: number) {
@@ -109,6 +99,7 @@ function MusicStudio({ catalog, favorites, history, playlists, creatorStatus, on
 }
 
 export function MusicHub() {
+  const t = useTranslations();
   const setProduct = useAppStore((state) => state.setProduct);
   const setTab = useAppStore((state) => state.setTab);
   const [view, setView] = useState<MusicView>('home');
@@ -254,11 +245,11 @@ export function MusicHub() {
       <div className="music-hub-layout">
         <aside className="music-hub-sidebar">
           <div className="music-hub-brand"><span className="hub-empty-icon"><Music2 size={22} /></span><div><b>Music Hub</b><small>Listen together, anywhere.</small></div></div>
-          <nav>{NAV.map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={16} /><span>{label}</span></button>)}</nav>
+          <nav>{NAV.map(({ id, key, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={16} /><span>{t(`musicNav.${key}`)}</span></button>)}</nav>
           <button type="button" className="music-hub-jam-link" onClick={() => { setProduct('community'); setTab('jams'); }}><UsersRound size={15} /> Join a Jam</button>
         </aside>
         <main className="music-hub-main">
-          <header className="music-hub-heading"><div><div className="hub-kicker">MUSIC HUB</div><h1>{view === 'home' ? 'Your sound, your space.' : NAV.find((item) => item.id === view)?.label ?? 'Music Hub'}</h1><p>{view === 'home' ? 'Discover music, build your library and take the room with you.' : 'Everything stays connected to your Jamino account.'}</p></div><div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> {creatorStatus === 'APPROVED' ? 'Artist profile' : 'Become a creator'}</button>{view === 'discover' && <form className="music-hub-search" onSubmit={(event) => { event.preventDefault(); loadCatalog(query); }}><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search songs and artists…" /><button type="submit" className="btn btn-violet pill-sm">Search</button></form>}</div></header>
+          <header className="music-hub-heading"><div><div className="hub-kicker">{t('hubs.music').toUpperCase()}</div><h1>{view === 'home' ? 'Your sound, your space.' : t(`musicNav.${NAV.find((item) => item.id === view)?.key ?? 'home'}`)}</h1><p>{view === 'home' ? 'Discover music, build your library and take the room with you.' : 'Everything stays connected to your Jamino account.'}</p></div><div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> {creatorStatus === 'APPROVED' ? 'Artist profile' : 'Become a creator'}</button>{view === 'discover' && <form className="music-hub-search" onSubmit={(event) => { event.preventDefault(); loadCatalog(query); }}><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search songs and artists…" /><button type="submit" className="btn btn-violet pill-sm">Search</button></form>}</div></header>
 
           {view === 'home' && <>
             <div className="music-hub-hero"><div><Sparkles size={20} /><h2>Make a soundtrack for the moment.</h2><p>Save favorites, build playlists and continue listening from any Jam.</p></div><button type="button" className="btn btn-violet" onClick={() => setView('discover')}>Explore music</button></div>
@@ -284,7 +275,7 @@ export function MusicHub() {
       </div>
       <audio ref={audioRef} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || current?.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onEnded={() => setPlaying(false)} />
       {current && <div className="music-hub-player"><button type="button" className="music-hub-player-main" onClick={() => playSong(current)}>{current.coverUrl ? <Image src={current.coverUrl} alt="" fill unoptimized /> : <Music2 size={16} />}<span><b>{current.title}</b><small>{artistLabel(current)}</small></span></button><button type="button" className="btn-icon music-hub-play-button" onClick={() => playSong(current)}>{playing ? <Pause size={18} /> : <Play size={18} />}</button><input className="music-hub-range" type="range" min={0} max={duration || current.durationSec || 1} step={0.1} value={Math.min(position, duration || current.durationSec || 1)} onChange={(event) => { const next = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = next; setPosition(next); }} /><span className="music-hub-player-time">{timeLabel(position)} / {timeLabel(duration || current.durationSec)}</span><button type="button" className="btn-icon" onClick={() => { const next = radioSongs.find((song) => song.id !== current.id); if (next) playSong(next); }} title="Next"><SkipForward size={16} /></button></div>}
-      <nav className="hub-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label="Hub home"><House size={17} /><span>Home</span></button>{NAV.filter(({ id }) => id !== 'home').map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
+      <nav className="hub-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label={t('hubs.choose')}><House size={17} /><span>{t('musicNav.home')}</span></button>{NAV.filter(({ id }) => id !== 'home').map(({ id, key, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{t(`musicNav.${key}`)}</span></button>)}</nav>
       <CreatorApplyModal hub="MUSIC" open={creatorOpen} onClose={() => setCreatorOpen(false)} onSubmitted={(application) => setCreatorStatus(application.status)} />
     </div>
   );
