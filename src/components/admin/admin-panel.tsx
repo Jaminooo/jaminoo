@@ -24,6 +24,7 @@ import {
   RefreshCw,
   Loader2,
   X,
+  ScrollText,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminUsers } from './admin-users';
@@ -35,6 +36,7 @@ import { AdminMusic } from './music/admin-music';
 import { AdminReports } from './admin-reports';
 import { AdminCreators } from './admin-creators';
 import { AdminCinema } from './admin-cinema';
+import { AdminAudit } from './admin-audit';
 
 export interface AdminStats {
   users: number;
@@ -62,7 +64,7 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema';
+export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema' | 'audit';
 
 const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
@@ -75,6 +77,7 @@ const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'music', icon: Music2, key: 'admin.musicLabel' },
   { id: 'cinema', icon: RadioTower, key: 'admin.cinema' },
   { id: 'sessions', icon: KeyRound, key: 'admin.sessions' },
+  { id: 'audit', icon: ScrollText, key: 'admin.audit' },
 ];
 
 export function AdminPanel() {
@@ -221,6 +224,7 @@ export function AdminPanel() {
           {tab === 'music' && <AdminMusic />}
           {tab === 'cinema' && <AdminCinema />}
           {tab === 'sessions' && <AdminSessions />}
+          {tab === 'audit' && <AdminAudit events={events} />}
         </div>
       </main>
     </div>

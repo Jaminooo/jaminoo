@@ -345,6 +345,7 @@
     "cinema": "Cinema",
     "music": "Music",
     "sessions": "Sessions",
+    "audit": "Audit log",
     "usersOnline": "Online now",
     "totalUsers": "Total users",
     "newUsers24h": "New in 24h",
