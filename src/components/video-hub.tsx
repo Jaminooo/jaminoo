@@ -42,6 +42,7 @@ import { toast } from '@/components/toast';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
+import { useTranslations } from '@/providers/use-translations';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
 import { CreatorCollabStudio } from '@/components/creator-collab-studio';
@@ -117,16 +118,8 @@ interface DiscoverCreator {
   latestPosts: VideoPost[];
 }
 
-const NAV: { id: VideoView; label: string; icon: typeof Film }[] = [
-  { id: 'feed', label: 'For you', icon: Film },
-  { id: 'following', label: 'Following', icon: UsersRound },
-  { id: 'shorts', label: 'Shorts', icon: Play },
-  { id: 'long', label: 'Long videos', icon: Tv2 },
-  { id: 'watch', label: 'Watch', icon: Link2 },
-  { id: 'watchlist', label: 'Watchlist', icon: Bookmark },
-  { id: 'creators', label: 'Creators', icon: Camera },
-  { id: 'studio', label: 'Studio', icon: LayoutDashboard },
-  { id: 'playlists', label: 'Playlists', icon: ListVideo },
+const NAV: { id: VideoView; key: string; icon: typeof Film }[] = [
+  { id: 'feed', key: 'feed', icon: Film }, { id: 'following', key: 'following', icon: UsersRound }, { id: 'shorts', key: 'shorts', icon: Play }, { id: 'long', key: 'long', icon: Tv2 }, { id: 'watch', key: 'watch', icon: Link2 }, { id: 'watchlist', key: 'watchlist', icon: Bookmark }, { id: 'creators', key: 'creators', icon: Camera }, { id: 'studio', key: 'studio', icon: LayoutDashboard }, { id: 'playlists', key: 'playlists', icon: ListVideo },
 ];
 
 function durationLabel(seconds: number) {
@@ -676,6 +669,7 @@ function CreatorsView({ onOpenCreator }: { onOpenCreator: (id: number) => void }
 }
 
 export function VideoHub() {
+  const t = useTranslations();
   const setProduct = useAppStore((state) => state.setProduct);
   const setTab = useAppStore((state) => state.setTab);
   const [view, setView] = useState<VideoView>('feed');
@@ -888,7 +882,7 @@ export function VideoHub() {
     try { await api(`/api/video/posts/${post.id}`, { method: 'DELETE' }); setStudioPosts((current) => current.filter((item) => item.id !== post.id)); setPosts((current) => current.filter((item) => item.id !== post.id)); toast('Post deleted.', 'ok'); } catch (error) { toast(error instanceof Error ? error.message : 'Could not delete this post.', 'error'); }
   };
 
-  const pageTitle = view === 'feed' ? 'A living video feed.' : NAV.find((item) => item.id === view)?.label || 'Video Hub';
+  const pageTitle = view === 'feed' ? 'A living video feed.' : t(`videoNav.${NAV.find((item) => item.id === view)?.key ?? 'feed'}`);
   const feedLabel = view === 'watchlist' ? 'Saved for later' : view === 'following' ? 'From creators you follow' : view === 'shorts' ? 'Swipeable shorts' : view === 'long' ? 'Long-form stories' : trending ? 'Trending right now' : activeSearch ? `Results for “${activeSearch}”` : 'Fresh from the community';
 
   return (
@@ -897,7 +891,7 @@ export function VideoHub() {
       <div className="video-hub-layout">
         <aside className="video-hub-sidebar">
           <div className="video-hub-brand"><span className="hub-empty-icon"><Clapperboard size={22} /></span><div><b>Video Hub</b><small>Post, watch, discover.</small></div></div>
-          <nav>{NAV.map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}><Icon size={16} /><span>{label}</span></button>)}</nav>
+          <nav>{NAV.map(({ id, key, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}><Icon size={16} /><span>{t(`videoNav.${key}`)}</span></button>)}</nav>
           <button type="button" className="video-hub-jam-link" onClick={() => { setProduct('community'); setTab('jams'); }}><UsersRound size={15} /> Open Community</button>
         </aside>
 
@@ -950,7 +944,7 @@ export function VideoHub() {
         </main>
       </div>
 
-      <nav className="hub-mobile-nav video-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label="Hub home"><House size={17} /><span>Home</span></button>{NAV.slice(0, 5).map(({ id, label, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}><Icon size={17} /><span>{label}</span></button>)}</nav>
+      <nav className="hub-mobile-nav video-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label={t('hubs.choose')}><House size={17} /><span>{t('videoNav.feed')}</span></button>{NAV.slice(0, 5).map(({ id, key, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => changeView(id)}><Icon size={17} /><span>{t(`videoNav.${key}`)}</span></button>)}</nav>
       <CreatorApplyModal hub="VIDEO" open={creatorOpen} onClose={() => setCreatorOpen(false)} onSubmitted={(application) => setCreatorStatus(application.status)} />
       <CreatePostModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={(post) => { setPosts((current) => [post, ...current.filter((item) => item.id !== post.id)]); setView('feed'); }} />
       <CommentsModal post={commentsPost} open={!!commentsPost} onClose={() => setCommentsPost(null)} onAdded={() => { if (commentsPost) updatePost(commentsPost.id, { comments: commentsPost.comments + 1 }); }} />
