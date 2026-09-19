@@ -25,7 +25,6 @@ import {
   Loader2,
   X,
   ScrollText,
-  LibraryBig,
   BellRing,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
@@ -39,7 +38,6 @@ import { AdminReports } from './admin-reports';
 import { AdminCreators } from './admin-creators';
 import { AdminCinema } from './admin-cinema';
 import { AdminAudit } from './admin-audit';
-import { AdminCatalog } from './admin-catalog';
 import { AdminAnnouncements } from './admin-announcements';
 
 export interface AdminStats {
@@ -68,7 +66,7 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema' | 'audit' | 'catalog' | 'announcements';
+export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema' | 'audit' | 'announcements';
 
 const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
@@ -82,7 +80,6 @@ const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'cinema', icon: RadioTower, key: 'admin.cinema' },
   { id: 'sessions', icon: KeyRound, key: 'admin.sessions' },
   { id: 'audit', icon: ScrollText, key: 'admin.audit' },
-  { id: 'catalog', icon: LibraryBig, key: 'admin.catalog' },
   { id: 'announcements', icon: BellRing, key: 'admin.announcements' },
 ];
 
@@ -231,7 +228,6 @@ export function AdminPanel() {
           {tab === 'cinema' && <AdminCinema />}
           {tab === 'sessions' && <AdminSessions />}
           {tab === 'audit' && <AdminAudit events={events} />}
-          {tab === 'catalog' && <AdminCatalog />}
           {tab === 'announcements' && <AdminAnnouncements />}
         </div>
       </main>

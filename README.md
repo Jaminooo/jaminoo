@@ -25,7 +25,7 @@
 
 ## ✦ What is Jamino?
 
-Jamino is a full-stack social platform built for people who want more than a feed. A user can create an identity, meet friends, enter a Jam, chat in realtime, listen to music together, discover videos, follow creators, explore cinema and read manga without leaving the same experience.
+Jamino is a full-stack social platform built for people who want more than a feed. A user can create an identity, meet friends, enter a Jam, chat in realtime, listen to music together, discover videos, follow creators, and explore cinema without leaving the same experience.
 
 The interface is designed around a dark frosted-glass visual language with expressive motion, responsive layouts and first-class Persian/English support. The codebase is intentionally modular: social primitives, media hubs and admin workflows are separate enough to evolve independently while sharing the same identity and session layer.
 
@@ -39,7 +39,6 @@ The interface is designed around a dark frosted-glass visual language with expre
 | **Video Hub** | Posts, Shorts, long-form video, uploads, thumbnails, comments, likes, saves, playlists and creator discovery. |
 | **Creator Studio** | Creator applications, profiles, collaboration invites and live collaboration updates. |
 | **Cinema Hub** | Movie and series catalogue, posters, subtitles, watch lists and Movie Jams. |
-| **Anime & Manga** | Anime discovery, chapter timelines and a focused manga reader with cursor light, page controls and chapter navigation. |
 | **Tweet Hub** | Posts, replies, quotes, retweets, bookmarks, follows, mute and block controls. |
 | **Admin Control Room** | Users, sessions, media, reports, messages, creators, music catalogue and cinema publishing workflows. |
 
@@ -148,7 +147,6 @@ npx tsc --noEmit     # Run the strict TypeScript check
 src/
 ├── app/              Pages, layouts and API route handlers
 ├── components/       Product surfaces and reusable UI components
-├── data/             Curated product data such as manga catalogues
 ├── lib/              Sessions, Prisma, media, realtime and domain services
 ├── messages/          FA / EN translation dictionaries
 ├── providers/        Theme and i18n providers
@@ -158,7 +156,6 @@ prisma/
 ├── migrations/       Versioned PostgreSQL migrations
 └── schema.prisma     Domain model and relations
 
-public/               PWA assets, mascot art, icons and manga assets
 docs/                 Project documentation assets
 server.js             Custom Next.js + Socket.IO production server
 ```
@@ -173,9 +170,7 @@ For production, use HTTPS, a managed PostgreSQL instance, persistent media stora
 
 - [x] Port the original prototype to a modular Next.js application
 - [x] Realtime chat, presence and shared room state
-- [x] Music, Video, Cinema, Tweet and Anime product hubs
 - [x] Creator applications, collaboration studio and admin operations
-- [x] Manga reader with page/chapter navigation and cursor light
 - [ ] Shared object storage for multi-instance media delivery
 - [ ] Dedicated Cinema player with episode and season management
 - [ ] More complete live moderation and analytics streams
