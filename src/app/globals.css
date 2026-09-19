@@ -9063,3 +9063,34 @@ body {
 
 [data-theme='light'] .hub-shell-music, [data-theme='light'] .hub-shell-video, [data-theme='light'] .hub-shell-cinema, [data-theme='light'] .hub-shell-tweet { background:var(--color-midnight); color:var(--color-frost); }
 [data-theme='light'] .hub-shell-music .music-card, [data-theme='light'] .hub-shell-video .video-card, [data-theme='light'] .hub-shell-cinema .cinema-card, [data-theme='light'] .hub-shell-tweet .tweet-card, [data-theme='light'] .hub-shell-music .music-panel, [data-theme='light'] .hub-shell-video .video-panel, [data-theme='light'] .hub-shell-cinema .cinema-panel, [data-theme='light'] .hub-shell-tweet .tweet-panel { color:var(--color-frost); background:rgba(255,255,255,.82); border-color:rgba(39,55,80,.14); box-shadow:0 16px 45px rgba(47,63,88,.08); }
+
+/* Final Light palette: override the shared product tokens as well as the base color tokens. */
+[data-theme='light'] {
+  --bg: #f3f6fb;
+  --panel: rgba(255, 255, 255, .92);
+  --panel-2: #eaf0f7;
+  --line: rgba(30, 48, 76, .14);
+  --text: #172238;
+  --muted: #5d6b80;
+  color-scheme: light;
+}
+[data-theme='light'] body,
+[data-theme='light'] .app-root,
+[data-theme='light'] .app-scroller { background: var(--bg); color: var(--text); }
+[data-theme='light'] .hub-shell { --bg: #f3f6fb; --panel: rgba(255,255,255,.92); --panel-2: #eaf0f7; --line: rgba(30,48,76,.14); --text: #172238; --muted: #5d6b80; background: radial-gradient(circle at 50% -20%, rgba(111,92,255,.1), transparent 42%), var(--bg); }
+[data-theme='light'] .hub-shell .hub-topbar { background: rgba(243,246,251,.88); border-bottom-color: rgba(30,48,76,.1); box-shadow: 0 8px 28px rgba(55,72,103,.08); }
+[data-theme='light'] .hub-gateway-content h1,
+[data-theme='light'] .hub-empty-content h1,
+[data-theme='light'] .hub-card-copy strong,
+[data-theme='light'] .hub-account-note b { color: #172238; }
+[data-theme='light'] .hub-card { background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(239,244,250,.94)); border-color: rgba(30,48,76,.14); }
+[data-theme='light'] .hub-card::before { opacity: .18; }
+[data-theme='light'] .hub-card:hover,
+[data-theme='light'] .hub-card:focus-visible { background: #fff; box-shadow: 0 18px 50px rgba(55,72,103,.14); }
+[data-theme='light'] .hub-card-copy span,
+[data-theme='light'] .hub-lead,
+[data-theme='light'] .hub-account-note,
+[data-theme='light'] .hub-topbar-center,
+[data-theme='light'] .hub-back { color: #5d6b80; }
+[data-theme='light'] .hub-empty-content,
+[data-theme='light'] .hub-account-note { background: rgba(255,255,255,.78); }
