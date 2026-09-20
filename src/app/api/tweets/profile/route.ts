@@ -7,6 +7,7 @@ const PROFILE_SELECT = {
   ...TWEET_ACTOR_SELECT.select,
   createdAt: true,
   github: true,
+  isPrivate: true,
 };
 
 export const GET = handle(async (req) => {
@@ -20,7 +21,7 @@ export const GET = handle(async (req) => {
   });
   if (!user) return err('User not found', 404);
 
-  const [tweets, replies, media, likes, following, followers, amFollowing, blockRow, blockedByRow, muteRow] = await Promise.all([
+  const [tweets, replies, media, likes, following, followers, amFollowing, blockRow, blockedByRow, muteRow, requestRow] = await Promise.all([
     prisma.tweet.count({ where: { authorId: user.id, visibility: 'PUBLIC', replyToId: null } }),
     prisma.tweet.count({ where: { authorId: user.id, visibility: 'PUBLIC', replyToId: { not: null } } }),
     prisma.tweetAsset.count({ where: { tweet: { authorId: user.id, visibility: 'PUBLIC' } } }),
@@ -31,11 +32,15 @@ export const GET = handle(async (req) => {
     prisma.tweetBlock.findUnique({ where: { blockerId_blockedId: { blockerId: me.id, blockedId: user.id } }, select: { id: true } }),
     prisma.tweetBlock.findUnique({ where: { blockerId_blockedId: { blockerId: user.id, blockedId: me.id } }, select: { id: true } }),
     prisma.tweetMute.findUnique({ where: { muterId_mutedId: { muterId: me.id, mutedId: user.id } }, select: { id: true } }),
+    prisma.tweetFollowRequest.findUnique({ where: { requesterId_targetId: { requesterId: me.id, targetId: user.id } }, select: { status: true } }),
   ]);
+
+  const isMe = user.id === me.id;
+  const locked = !!user.isPrivate && !isMe && !amFollowing;
 
   return json({
     user: { ...serializeTweetAuthor(user), joinedAt: user.createdAt.toISOString() },
-    stats: {
+    stats: locked ? { tweets: 0, replies: 0, media: 0, likes: 0, following, followers, likedCount: 0 } : {
       tweets,
       replies,
       media,
@@ -45,10 +50,13 @@ export const GET = handle(async (req) => {
       likedCount: likes,
     },
     following: !!amFollowing,
+    requested: !!requestRow && requestRow.status === 'PENDING',
+    locked,
+    private: !!user.isPrivate,
     blocked: !!blockRow,
     blockedBy: !!blockedByRow,
     muted: !!muteRow,
-    isMe: user.id === me.id,
+    isMe,
   });
 });
 
@@ -60,6 +68,15 @@ export const PATCH = handle(async (req) => {
   const bio = typeof body.bio === 'string' ? body.bio.trim().slice(0, 160) : undefined;
   const website = typeof body.website === 'string' ? body.website.trim().slice(0, 120) : undefined;
   const location = typeof body.location === 'string' ? body.location.trim().slice(0, 60) : undefined;
+  const isPrivate = typeof body.isPrivate === 'boolean' ? body.isPrivate : undefined;
+
+  if (isPrivate === true) {
+    // Going private: keep existing relationships, but nothing else changes instantly.
+  }
+  if (isPrivate === false) {
+    // Going public: drop any pending requests that were waiting for this account.
+    await prisma.tweetFollowRequest.deleteMany({ where: { targetId: me.id, status: 'PENDING' } });
+  }
 
   let bannerPhotoId: string | undefined | null = undefined;
   if (typeof body.bannerPhotoId === 'string') {
@@ -78,6 +95,7 @@ export const PATCH = handle(async (req) => {
       ...(bio !== undefined ? { bio } : {}),
       ...(website !== undefined ? { website } : {}),
       ...(location !== undefined ? { location } : {}),
+      ...(isPrivate !== undefined ? { isPrivate } : {}),
       ...(bannerPhotoId !== undefined ? { bannerPhotoId } : {}),
     },
     select: PROFILE_SELECT,

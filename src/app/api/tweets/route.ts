@@ -1,12 +1,13 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
-import { serializeTweet, extractMentions } from '@/lib/tweet';
+import { serializeTweet } from '@/lib/tweet';
 import { tweetIncludes, hiddenAuthorIds } from '@/lib/tweet-db';
-import { pushNotification } from '@/lib/notifications';
-
-const MAX_TEXT = 280;
-const MAX_MEDIA = 4;
+import { TWEET_MEDIA_KINDS } from '@/lib/media-kinds';
+import { createTweetRecord } from '@/lib/tweet-create';
+import { parseTweetQuery } from '@/lib/tweet-search';
+import { rankForYou, FOR_YOU_POOL_SIZE, FRESH_WINDOW_MS } from '@/lib/tweet-ranking';
+import { livePublish } from '@/lib/live-publish';
 
 export const GET = handle(async (req) => {
   const me = await requireUser();
@@ -19,36 +20,35 @@ export const GET = handle(async (req) => {
   const trending = view === 'trending';
 
   const hidden = await hiddenAuthorIds(me.id);
+  const parsedQuery = parseTweetQuery(q);
 
   // -- user search results -------------------------------------------
   let users: unknown[] = [];
-  if (q) {
-    const userQuery = q.replace(/^@/, '').trim();
-    if (userQuery.length >= 2) {
-      const excluded = Array.from(new Set([...hidden, me.id]));
-      const rows = await prisma.user.findMany({
-        where: {
-          NOT: excluded.length > 0 ? { id: { in: excluded } } : undefined,
-          OR: [{ username: { contains: userQuery, mode: 'insensitive' } }, { name: { contains: userQuery, mode: 'insensitive' } }],
-        },
-        take: 6,
-        include: {
-          _count: { select: { tweets: true, tweetFollowers: true } },
-          tweetFollowing: { where: { followerId: me.id }, take: 1, select: { id: true } },
-        },
-      });
-      users = rows.map((u) => ({
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        avatarId: u.avatarId,
-        avatarPhoto: u.profilePhotoId ? `/api/media/${u.profilePhotoId}` : null,
-        bio: u.bio,
-        tweets: u._count.tweets,
-        followers: u._count.tweetFollowers,
-        following: u.tweetFollowing.length > 0,
-      }));
-    }
+  const userQuery = parsedQuery.text ? parsedQuery.text.replace(/^@/, '').trim() : '';
+  if (userQuery.length >= 2) {
+    const excluded = Array.from(new Set([...hidden, me.id]));
+    const rows = await prisma.user.findMany({
+      where: {
+        NOT: excluded.length > 0 ? { id: { in: excluded } } : undefined,
+        OR: [{ username: { contains: userQuery, mode: 'insensitive' } }, { name: { contains: userQuery, mode: 'insensitive' } }],
+      },
+      take: 6,
+      include: {
+        _count: { select: { tweets: true, tweetFollowers: true } },
+        tweetFollowing: { where: { followerId: me.id }, take: 1, select: { id: true } },
+      },
+    });
+    users = rows.map((u) => ({
+      id: u.id,
+      username: u.username,
+      name: u.name,
+      avatarId: u.avatarId,
+      avatarPhoto: u.profilePhotoId ? `/api/media/${u.profilePhotoId}` : null,
+      bio: u.bio,
+      tweets: u._count.tweets,
+      followers: u._count.tweetFollowers,
+      following: u.tweetFollowing.length > 0,
+    }));
   }
 
   // -- tweet feed -----------------------------------------------------
@@ -58,14 +58,24 @@ export const GET = handle(async (req) => {
   if (view === 'following') {
     where.author = { is: { tweetFollowers: { some: { followerId: me.id } } } };
   } else if (view === 'bookmarks') {
-    where.bookmarks = { some: { userId: me.id } };
+    const collectionId = Number(params.get('collection') ?? 0);
+    where.bookmarks = { some: { userId: me.id, ...(collectionId > 0 ? { collectionId } : {}) } };
+  } else if (view === 'hashtag') {
+    const tag = params.get('tag')?.trim().toLowerCase() ?? '';
+    if (!tag) return err('A tag is required');
+    const hashtag = await prisma.hashtag.findUnique({ where: { tag }, select: { id: true } });
+    if (hashtag) {
+      where.hashtags = { some: { hashtagId: hashtag.id } };
+    } else {
+      where.text = { contains: `#${tag}`, mode: 'insensitive' };
+    }
   } else if (view === 'profile') {
     if (!profile) return err('A username is required for this view');
     where.author = { is: { username: profile } };
     if (tab === 'replies') {
       where.replyToId = { not: null };
     } else if (tab === 'media') {
-      where.assets = { some: { media: { kind: { in: ['IMAGE_ASSET', 'VIDEO_ASSET'] } } } };
+      where.assets = { some: { media: { kind: { in: [...TWEET_MEDIA_KINDS] } } } };
     } else if (tab === 'likes') {
       const target = await prisma.user.findUnique({ where: { username: profile }, select: { id: true } });
       if (!target) return err('User not found', 404);
@@ -73,37 +83,117 @@ export const GET = handle(async (req) => {
     }
   }
 
-  if ((view !== 'profile' || tab === 'posts') && view !== 'bookmarks') where.replyToId = null;
+  if ((view !== 'profile' || tab === 'posts') && view !== 'bookmarks' && view !== 'hashtag') where.replyToId = null;
 
-  if (q) {
-    where.AND = [
-      {
+  if (parsedQuery.text || parsedQuery.hasFilters) {
+    const filters: any[] = [];
+    const clauses: any[] = [];
+
+    if (parsedQuery.text) {
+      const terms = parsedQuery.text.split(/\s+/).filter(Boolean);
+      for (const term of terms) {
+        if (term.startsWith('@') && term.length > 1) {
+          clauses.push({
+            OR: [
+              { text: { contains: term, mode: 'insensitive' } },
+              { author: { is: { username: { contains: term.slice(1), mode: 'insensitive' } } } },
+            ],
+          });
+        } else {
+          clauses.push({ text: { contains: term, mode: 'insensitive' } });
+        }
+      }
+    }
+
+    if (parsedQuery.to) {
+      clauses.push({
         OR: [
-          { text: { contains: q, mode: 'insensitive' } },
-          { author: { is: { username: { contains: q.replace(/^@/, ''), mode: 'insensitive' } } } },
+          { replyTo: { is: { author: { is: { username: parsedQuery.to } } } } },
+          { mentions: { some: { mentioned: { is: { username: parsedQuery.to } } } } },
         ],
-      },
-    ];
-  }
-  if (Number.isInteger(cursor) && cursor > 0) where.id = { lt: cursor };
+      });
+    }
 
-  const orderBy: any = trending ? [{ likes: { _count: 'desc' } }, { id: 'desc' }] : [{ id: 'desc' }];
-  const rows = await prisma.tweet.findMany({
-    where,
-    orderBy,
-    take: 15,
-    include: tweetIncludes(me.id),
-  });
-  const hasMore = rows.length > 14;
-  const page = hasMore ? rows.slice(0, 14) : rows;
-  const ids = page.map((t) => t.id);
+    if (parsedQuery.from && parsedQuery.from !== me.username) {
+      const fromUser = await prisma.user.findUnique({ where: { username: parsedQuery.from }, select: { id: true } });
+      if (!fromUser) return json({ tweets: [], users, nextCursor: null, hasMore: false });
+      where.authorId = fromUser.id;
+    }
+
+    if (parsedQuery.since) clauses.push({ createdAt: { gte: parsedQuery.since } });
+    if (parsedQuery.until) clauses.push({ createdAt: { lt: parsedQuery.until } });
+
+    if (parsedQuery.mediaOnly) {
+      clauses.push({ assets: { some: { media: { kind: { in: [...TWEET_MEDIA_KINDS] } } } } });
+    }
+    if (parsedQuery.linksOnly) {
+      clauses.push({ text: { contains: 'http', mode: 'insensitive' } });
+    }
+
+    if (parsedQuery.minFaves) {
+      const rows = await prisma.$queryRaw<{ id: number }[]>`
+        SELECT "tweetId" AS "id" FROM "TweetLike" GROUP BY "tweetId" HAVING COUNT("id") >= ${parsedQuery.minFaves}`;
+      if (rows.length === 0) return json({ tweets: [], users, nextCursor: null, hasMore: false });
+      clauses.push({ id: { in: rows.map((row) => row.id) } });
+    }
+
+    if (clauses.length > 0) filters.push({ AND: clauses });
+    where.AND = [...(where.AND ?? []), ...filters];
+  }
+  // Private-account gate: content from private accounts is only visible to
+  // approved followers (and the account owner).
+  where.AND = [
+    ...(where.AND ?? []),
+    {
+      OR: [
+        { author: { isPrivate: false } },
+        { author: { id: me.id } },
+        { author: { isPrivate: true, tweetFollowers: { some: { followerId: me.id } } } },
+      ],
+    },
+  ];
+  let rows: Awaited<ReturnType<typeof prisma.tweet.findMany>> = [];
+  let nextCursor: string | null = null;
+  let hasMore = false;
+
+  if (view === 'home') {
+    // For You: deterministic engagement + recency ranking over a bounded pool.
+    const cutoff = new Date(Date.now() - FRESH_WINDOW_MS);
+    where.createdAt = { gte: cutoff };
+    const [candidates, follows, followerEdges] = await Promise.all([
+      prisma.tweet.findMany({ where, orderBy: { id: 'desc' }, take: FOR_YOU_POOL_SIZE, include: tweetIncludes(me.id) }),
+      prisma.tweetFollow.findMany({ where: { followerId: me.id }, select: { followingId: true } }),
+      prisma.tweetFollow.findMany({ where: { followingId: me.id }, select: { followerId: true } }),
+    ]);
+    const following = new Set(follows.map((f) => f.followingId));
+    const mutual = new Set(followerEdges.map((f) => f.followerId).filter((id) => following.has(id)));
+    const ranked = rankForYou(candidates, { following, mutual });
+    const offset = Math.max(0, Math.floor(Number(cursor) || 0));
+    rows = ranked.slice(offset, offset + 15) as unknown as typeof rows;
+    hasMore = offset + 15 < ranked.length;
+    nextCursor = hasMore ? String(offset + rows.length) : null;
+  } else {
+    if (Number.isInteger(cursor) && cursor > 0) where.id = { lt: cursor };
+    const orderBy: any = trending ? [{ likes: { _count: 'desc' } }, { id: 'desc' }] : [{ id: 'desc' }];
+    rows = await prisma.tweet.findMany({
+      where,
+      orderBy,
+      take: 15,
+      include: tweetIncludes(me.id),
+    });
+    hasMore = rows.length > 14;
+    rows = hasMore ? rows.slice(0, 14) : rows;
+    nextCursor = hasMore && rows.length > 0 ? String(rows[rows.length - 1].id) : null;
+  }
+
+  const ids = rows.map((t) => t.id);
   const myRetweets = ids.length > 0
     ? await prisma.tweet.findMany({ where: { retweetOfId: { in: ids }, authorId: me.id }, select: { retweetOfId: true } })
     : [];
   const retweetedSet = new Set(myRetweets.map((r) => r.retweetOfId));
   return json({
-    tweets: page.map((t) => serializeTweet(t, retweetedSet.has(t.id))),
-    nextCursor: hasMore ? String(page[page.length - 1].id) : null,
+    tweets: rows.map((t) => serializeTweet(t, retweetedSet.has(t.id))),
+    nextCursor,
     hasMore,
     users,
   });
@@ -118,93 +208,32 @@ export const POST = handle(async (req) => {
   const replyToId = Number(body.replyToId ?? 0);
   const retweetOfId = Number(body.retweetOfId ?? 0);
   const quotedTweetId = Number(body.quotedTweetId ?? 0);
-  const legacyMedia = typeof body.mediaAssetId === 'string' ? body.mediaAssetId.trim() : '';
-  const rawMediaIds = Array.isArray(body.mediaIds) ? body.mediaIds.filter((m: unknown) => typeof m === 'string') : [];
-  const mediaIds = [...rawMediaIds, ...(legacyMedia && !rawMediaIds.includes(legacyMedia) ? [legacyMedia] : [])];
 
-  if (text.length > MAX_TEXT) return err(`Tweets are limited to ${MAX_TEXT} characters`);
-  if (mediaIds.length > MAX_MEDIA) return err(`A tweet can carry up to ${MAX_MEDIA} photos or videos`);
-  if (!text && mediaIds.length === 0 && !retweetOfId && !quotedTweetId) return err('Say something first');
-  if (replyToId > 0 && retweetOfId > 0) return err('A retweet cannot be a reply');
-  if (quotedTweetId > 0 && retweetOfId > 0) return err('A quote cannot be a retweet');
-  if (quotedTweetId > 0 && !text) return err('Add a comment to quote this tweet');
+  if (!text && retweetOfId <= 0 && quotedTweetId <= 0 && !Array.isArray(body.mediaIds) && !body.mediaAssetId) {
+    return err('Say something first');
+  }
 
-  let parentTweet: { id: number; visibility: string; authorId: number } | null = null;
+  const blockedIds = (await hiddenAuthorIds(me.id)).filter((id) => id !== me.id);
+
+  // Resolve parent/quotes early so blocked authors are rejected before creating.
+  let parent: { id: number; visibility: string; authorId: number } | null = null;
   if (replyToId > 0) {
-    parentTweet = await prisma.tweet.findUnique({ where: { id: replyToId }, select: { id: true, visibility: true, authorId: true } });
-    if (!parentTweet || parentTweet.visibility !== 'PUBLIC') return err('Tweet not found', 404);
+    parent = await prisma.tweet.findUnique({ where: { id: replyToId }, select: { id: true, visibility: true, authorId: true } });
+    if (!parent || parent.visibility !== 'PUBLIC') return err('Tweet not found', 404);
+    if (blockedIds.includes(parent.authorId)) return err('You cannot reply to this user', 403);
   }
   let quoted: { id: number; visibility: string; authorId: number } | null = null;
   if (quotedTweetId > 0) {
     quoted = await prisma.tweet.findUnique({ where: { id: quotedTweetId }, select: { id: true, visibility: true, authorId: true } });
     if (!quoted || quoted.visibility !== 'PUBLIC') return err('Tweet not found', 404);
-  }
-  if (retweetOfId > 0) {
-    const source = await prisma.tweet.findUnique({ where: { id: retweetOfId }, select: { id: true, visibility: true } });
-    if (!source || source.visibility !== 'PUBLIC') return err('Tweet not found', 404);
+    if (blockedIds.includes(quoted.authorId)) return err('You cannot quote this user', 403);
   }
 
-  // Blocked users cannot reply to or quote the blocker's content; same the other way.
-  const blockedIds = (await hiddenAuthorIds(me.id)).filter((id) => id !== me.id);
-  if (parentTweet && blockedIds.includes(parentTweet.authorId)) return err('You cannot reply to this user', 403);
-  if (quoted && blockedIds.includes(quoted.authorId)) return err('You cannot quote this user', 403);
+  const { tweet } = await createTweetRecord(
+    { text, replyToId, retweetOfId, quotedTweetId, mediaIds: body.mediaIds, mediaAssetId: body.mediaAssetId },
+    { authorId: me.id, myUsername: me.username, parent, quoted }
+  );
 
-  const uniqueMedia = Array.from(new Set(mediaIds));
-  let media: { id: string; userId: number }[] = [];
-  if (uniqueMedia.length > 0) {
-    media = await prisma.media.findMany({ where: { id: { in: uniqueMedia } }, select: { id: true, userId: true } });
-    if (media.length !== uniqueMedia.length) return err('Media not found', 404);
-    if (media.some((m) => m.userId !== me.id)) return err('Media does not belong to you', 403);
-    const already = await prisma.tweetAsset.count({ where: { mediaId: { in: uniqueMedia } } });
-    if (already > 0) return err('A file is already attached to a tweet');
-  }
-
-  const tweet = await prisma.tweet.create({
-    data: {
-      authorId: me.id,
-      text,
-      replyToId: replyToId > 0 ? replyToId : null,
-      retweetOfId: retweetOfId > 0 ? retweetOfId : null,
-      quotedTweetId: quotedTweetId > 0 ? quotedTweetId : null,
-    },
-    include: tweetIncludes(me.id),
-  });
-
-  if (media.length > 0) {
-    await prisma.tweetAsset.createMany({
-      data: media.map((m, index) => ({ tweetId: tweet.id, mediaId: m.id, pos: index })),
-    });
-    tweet.assets = [];
-  }
-
-  // Fetch fresh assets after attach so the response carries media.
-  const fresh =
-    media.length > 0
-      ? await prisma.tweet.findUnique({ where: { id: tweet.id }, include: tweetIncludes(me.id) })
-      : null;
-
-  const notifyQueue: { userId: number; kind: string; payload: Record<string, unknown> }[] = [];
-  if (parentTweet && parentTweet.authorId !== me.id) {
-    notifyQueue.push({ userId: parentTweet.authorId, kind: 'TWEET_REPLY', payload: { fromId: me.id, tweetId: tweet.id, parentId: parentTweet.id, text: text.slice(0, 120) } });
-  }
-  if (quoted && quoted.authorId !== me.id) {
-    notifyQueue.push({ userId: quoted.authorId, kind: 'TWEET_QUOTE', payload: { fromId: me.id, tweetId: tweet.id, quotedId: quoted.id, text: text.slice(0, 120) } });
-  }
-  if (text) {
-    const mentionNames = extractMentions(text).filter((name) => name.toLowerCase() !== me.username.toLowerCase());
-    if (mentionNames.length > 0) {
-      const mentioned = await prisma.user.findMany({ where: { username: { in: mentionNames } }, select: { id: true, username: true } });
-      for (const target of mentioned) {
-        if (target.id === me.id) continue;
-        if (parentTweet && target.id === parentTweet.authorId) continue;
-        notifyQueue.push({ userId: target.id, kind: 'TWEET_MENTION', payload: { fromId: me.id, tweetId: tweet.id, username: target.username, text: text.slice(0, 120) } });
-      }
-    }
-  }
-  for (const item of notifyQueue) {
-    await pushNotification(item.userId, item.kind, item.payload);
-  }
-
-  const result = fresh ?? tweet;
-  return json({ tweet: serializeTweet(result, retweetOfId > 0) }, 201);
+  livePublish(['tweet:public', `user:${me.id}`], 'tweet:new', { tweet, authorId: me.id });
+  return json({ tweet }, 201);
 });

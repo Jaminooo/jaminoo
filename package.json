@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:reset": "prisma db push --force-reset",
-    "db:seed": "node scripts/seed.mjs"
+    "db:seed": "node scripts/seed.mjs",
+    "test": "vitest run"
   },
   "prisma": {
     "seed": "node scripts/seed.mjs"
@@ -50,6 +51,7 @@
     "eslint-config-next": "^15.5.7",
     "prisma": "^6.2.1",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^5.0.1"
   }
 }

@@ -41,6 +41,50 @@ export interface SerializedTweet {
   liked: boolean;
   saved: boolean;
   retweeted: boolean;
+  views: number;
+  pinned: boolean;
+  poll: SerializedPoll | null;
+  canPin: boolean;
+}
+
+export interface SerializedPollOption {
+  id: number;
+  text: string;
+  votes: number;
+  percent: number;
+}
+
+export interface SerializedPoll {
+  id: number;
+  question: string;
+  closesAt: string;
+  open: boolean;
+  totalVotes: number;
+  myVote: number | null;
+  options: SerializedPollOption[];
+}
+
+export function serializePoll(poll: any): SerializedPoll | null {
+  if (!poll) return null;
+  const options = (poll.options ?? [])
+    .map((o: any) => {
+      const votes = o._count?.votes ?? o.votesCount ?? 0;
+      return { id: o.id, text: o.text, votes };
+    });
+  const totalVotes = options.reduce((sum: number, o: any) => sum + o.votes, 0);
+  const myVoteRow = (poll.options ?? []).find((o: any) => (o.votes ?? []).length > 0);
+  const myVote = myVoteRow ? myVoteRow.id : null;
+  const closesAt = poll.expiresAt ?? poll.closesAt ?? null;
+  const open = closesAt ? new Date(closesAt).getTime() > Date.now() : true;
+  return {
+    id: poll.id,
+    question: poll.question,
+    closesAt: closesAt ? new Date(closesAt).toISOString() : '',
+    open,
+    totalVotes,
+    myVote,
+    options: options.map((o: any) => ({ ...o, percent: totalVotes > 0 ? Math.round((o.votes / totalVotes) * 100) : 0 })),
+  };
 }
 
 export function serializeTweet(t: any, retweeted = false, depth = 0): SerializedTweet {
@@ -64,6 +108,10 @@ export function serializeTweet(t: any, retweeted = false, depth = 0): Serialized
     liked: (t.likes ?? []).length > 0,
     saved: (t.bookmarks ?? []).length > 0,
     retweeted,
+    views: t.views ?? 0,
+    pinned: !!t.pinnedBy,
+    poll: serializePoll(t.poll),
+    canPin: !!t.canPin,
   };
 }
 
@@ -78,6 +126,7 @@ export function serializeTweetAuthor(user: any) {
     bio: user.bio ?? '',
     website: user.website ?? '',
     location: user.location ?? '',
+    isPrivate: !!user.isPrivate,
   };
 }
 

@@ -532,6 +532,17 @@ app.prepare().then(async () => {
       }
     });
 
+    const TWEET_ROOM = (name) => typeof name === 'string' && (name === 'tweet:public' || /^tweet:\d+$/.test(name));
+
+    socket.on('tweet:join', (rooms) => {
+      const list = typeof rooms === 'string' ? [rooms] : Array.isArray(rooms) ? rooms : [];
+      for (const name of list) if (TWEET_ROOM(name)) socket.join(name);
+    });
+
+    socket.on('tweet:leave', (name) => {
+      if (TWEET_ROOM(name)) socket.leave(name);
+    });
+
     socket.on('jam:join', async (jamId) => {
       if (typeof jamId !== 'string' || !jamId) return;
       try {
