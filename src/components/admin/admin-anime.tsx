@@ -67,6 +67,9 @@ export function AdminAnime() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterVisibility, setFilterVisibility] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -78,21 +81,23 @@ export function AdminAnime() {
 
   const load = useCallback(() => {
     setLoading(true);
-    api<{ items: AnimeAdminItem[] }>('/api/admin/anime')
+    const params = new URLSearchParams();
+    if (q.trim()) params.set('q', q.trim());
+    if (filterType) params.set('type', filterType);
+    if (filterStatus) params.set('status', filterStatus);
+    if (filterVisibility) params.set('visibility', filterVisibility);
+    api<{ items: AnimeAdminItem[] }>(`/api/admin/anime?${params.toString()}`)
       .then((data) => setItems(data.items))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [filterStatus, filterType, filterVisibility, q]);
   useEffect(load, [load]);
   useEffect(() => {
     connectLive();
     return onLive('anime:update', () => load());
   }, [load]);
 
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return items.filter((item) => !needle || item.title.toLowerCase().includes(needle) || item.studio.toLowerCase().includes(needle));
-  }, [items, q]);
+  const filtered = items;
 
   const stats = useMemo(
     () => ({
@@ -296,6 +301,15 @@ export function AdminAnime() {
         </div>
         <div className="admin-cinema-filters">
           <input className="admin-cinema-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.animeSearch')} />
+          <select className="admin-select" value={filterType} onChange={(e) => setFilterType(e.target.value)} aria-label="Filter anime type">
+            <option value="">All types</option>{ANIME_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <select className="admin-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filter anime status">
+            <option value="">All statuses</option>{ANIME_STATUSES.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+          <select className="admin-select" value={filterVisibility} onChange={(e) => setFilterVisibility(e.target.value)} aria-label="Filter anime visibility">
+            <option value="">All visibility</option><option value="PUBLIC">PUBLIC</option><option value="HIDDEN">HIDDEN</option>
+          </select>
         </div>
         <div className="admin-table-wrap">
           <table className="admin-table">

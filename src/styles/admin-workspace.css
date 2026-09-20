@@ -63,6 +63,8 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 }
 .admin-brand-text b { color: #fff; font-size: 19px; letter-spacing: -0.3px; }
 .admin-brand-text em { color: var(--admin-muted); }
+.admin-root-badge { display: flex; align-items: center; gap: 9px; margin: 12px 8px 8px; padding: 10px 11px; border: 1px solid color-mix(in srgb, #f2b85b 42%, transparent); border-radius: 13px; background: linear-gradient(135deg, rgba(243, 184, 91, .16), rgba(136, 98, 255, .12)); color: #ffd681; box-shadow: 0 10px 28px rgba(242, 184, 91, .08); }
+.admin-root-badge > span { display: grid; gap: 2px; }.admin-root-badge b { color: #ffe4a9; font-size: 10px; letter-spacing: .1em; }.admin-root-badge small { color: #aebbd0; font-size: 10px; }
 
 .admin-nav-caption {
   display: flex;
@@ -119,6 +121,8 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 .admin-top h1 { color: #f8fbff; font-size: clamp(20px, 2.4vw, 28px); letter-spacing: -0.5px; }
 .admin-top p { color: var(--admin-muted); }
 .admin-top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.admin-access-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 10px; border: 1px solid color-mix(in srgb, #8d7aff 30%, transparent); border-radius: 999px; background: rgba(141, 122, 255, .08); color: #c3b9ff; font-size: 11px; font-weight: 700; }
+.admin-access-chip.admin-access-root { border-color: color-mix(in srgb, #f2b85b 42%, transparent); background: rgba(242, 184, 91, .11); color: #ffd681; }
 .admin-status-chip {
   display: inline-flex;
   align-items: center;
@@ -474,4 +478,3 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
   color: var(--accent);
   font-size: 11px;
 }
-

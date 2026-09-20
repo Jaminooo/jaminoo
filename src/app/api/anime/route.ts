@@ -13,6 +13,7 @@ export const GET = handle(async (req) => {
   const genre = safeParam(params.get('genre'));
   const type = params.get('type')?.toUpperCase();
   const status = params.get('status')?.toUpperCase();
+  const sort = params.get('sort')?.toLowerCase() || 'latest';
   const cursor = Number(params.get('cursor')) || 0;
   const featured = params.get('featured') === '1';
 
@@ -29,8 +30,10 @@ export const GET = handle(async (req) => {
   if (status) where.status = status;
   if (cursor) where.id = { lt: cursor };
 
-  let orderBy: any = { id: 'desc' };
-  if (featured) orderBy = { rating: 'desc', id: 'desc' };
+  let orderBy: any = [{ id: 'desc' }];
+  if (featured || sort === 'rating' || sort === 'popular') orderBy = [{ rating: 'desc' }, { id: 'desc' }];
+  else if (sort === 'year') orderBy = [{ year: 'desc' }, { id: 'desc' }];
+  else if (sort === 'airing') orderBy = [{ status: 'asc' }, { id: 'desc' }];
 
   const rows = await prisma.anime.findMany({ where, orderBy, take: 24 });
   const hasMore = rows.length === 24;

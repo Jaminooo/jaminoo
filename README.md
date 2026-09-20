@@ -39,8 +39,9 @@ The interface is designed around a dark frosted-glass visual language with expre
 | **Video Hub** | Posts, Shorts, long-form video, uploads, thumbnails, comments, likes, saves, playlists and creator discovery. |
 | **Creator Studio** | Creator applications, profiles, collaboration invites and live collaboration updates. |
 | **Cinema Hub** | Movie and series catalogue, posters, subtitles, watch lists and Movie Jams. |
+| **Anime Hub** | Streaming-style discovery shelves, series and movie filters, saved titles, episode playback and synchronized Anime Parties. |
 | **Tweet Hub** | Posts, replies, quotes, retweets, bookmarks, follows, mute and block controls. |
-| **Admin Control Room** | Users, sessions, media, reports, messages, creators, music catalogue and cinema publishing workflows. |
+| **Admin Control Room** | Users, sessions, media, reports, messages, creators, music, cinema and Anime CMS workflows with scoped hub roles. |
 
 ## ⚡ Highlights
 
@@ -128,6 +129,17 @@ UPLOAD_DIR="uploads"
 ```
 
 `COOKIE_SECURE` should be set to `1` when the application is served through HTTPS. In production, point `UPLOAD_DIR` at a persistent disk or an object-storage-backed mount. The database stores media metadata, but uploaded bytes must live on persistent storage so deploys and restarts do not remove them.
+
+### Owner and hub-admin access
+
+The owner-only control room lives at `/super-login`. Its credentials are intentionally supplied through deployment environment variables and are never hard-coded or committed to Git:
+
+```env
+SUPER_ADMIN_USERNAME="superadmin"
+SUPER_ADMIN_PASSWORD="use-a-long-random-password-here"
+```
+
+After the first successful owner login, the application provisions the account as a `SUPER` admin. The owner can then use **Admin → Roles** to grant a scoped `HUB` role for `MUSIC`, `VIDEO`, `ANIME`, `CINEMA`, `TWEET`, `COMMUNITY`, or `ALL`. Set these two variables in Render before attempting the first login; the current sandbox intentionally has no production credentials configured.
 
 ## 🛠️ Useful commands
 

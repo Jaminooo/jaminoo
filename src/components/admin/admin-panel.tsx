@@ -26,8 +26,9 @@ import {
    X,
    ScrollText,
    BellRing,
-   Bell,
+  Bell,
   Film,
+  Crown,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminUsers } from './admin-users';
@@ -216,6 +217,12 @@ export function AdminPanel() {
             <em>{t('admin.title')}</em>
           </span>
         </div>
+        {meta?.isSuper && (
+          <div className="admin-root-badge">
+            <Crown size={14} />
+            <span><b>ROOT CONTROL</b><small>Full site access</small></span>
+          </div>
+        )}
         <div className="admin-nav-caption">
           <Activity size={13} />
           {t('admin.workspace')}
@@ -254,6 +261,7 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="admin-top-actions">
+            {meta?.isSuper ? <span className="admin-access-chip admin-access-root"><Crown size={13} /> Owner access</span> : <span className="admin-access-chip"><Shield size={13} /> {meta?.scope || 'Scoped admin'}</span>}
             <span className="admin-status-chip"><span className="admin-live-dot" />{t('admin.live')}</span>
             <button className="admin-language btn-icon-label" onClick={() => setLocale(locale === 'fa' ? 'en' : 'fa')} title={t('admin.language')}>
               <Languages size={15} />
