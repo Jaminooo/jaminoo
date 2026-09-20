@@ -23,6 +23,7 @@ import {
   Play,
   Plus,
   Search,
+  Scissors,
   Send,
   Share2,
   Sparkles,
@@ -45,6 +46,7 @@ import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { useTranslations } from '@/providers/use-translations';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
+import { VideoEditorModal } from '@/components/video-editor-modal';
 import { CreatorCollabStudio } from '@/components/creator-collab-studio';
 import { CreatorInsights } from '@/components/creator-insights';
 import { connectLive, onLive } from '@/lib/live';
@@ -220,6 +222,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [workflowStatus, setWorkflowStatus] = useState<'DRAFT' | 'PUBLISHED'>('PUBLISHED');
+  const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -235,6 +238,7 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
     setThumbnailFile(null);
     setUploadProgress(0);
     setWorkflowStatus('PUBLISHED');
+    setEditorOpen(false);
   }, [open]);
 
   const inspectVideo = async (nextFile: File) => {
@@ -310,12 +314,13 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
           {kind === 'POST' && <label><span>Post format</span><select value={mediaType} onChange={(event) => { setMediaType(event.target.value as MediaType); setFile(null); }}><option value="TEXT">Text post</option><option value="IMAGE">Photo</option><option value="VIDEO">Video</option></select></label>}
           <label><span>Title</span><input required={!description} value={title} onChange={(event) => setTitle(event.target.value)} maxLength={180} placeholder={needsVideo ? 'Give your video a clear title' : 'What is this about?'} /></label>
           <label><span>Description</span><textarea required={!title} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={5000} rows={4} placeholder="Add context, a caption or a story…" /></label>
-          {mediaType !== 'TEXT' && <div className="video-upload-box"><UploadCloud size={22} /><div><b>{file ? file.name : 'Choose a photo or video'}</b><span>{mediaType === 'IMAGE' ? 'PNG, JPG or WEBP · up to 15 MB' : 'MP4, MOV or WEBM · up to 100 MB · thumbnail is generated automatically'}</span></div><label className="btn btn-ghost pill-sm"><ImageIcon size={14} /> Browse<input type="file" hidden accept={mediaType === 'IMAGE' ? 'image/png,image/jpeg,image/webp' : 'video/mp4,video/webm,video/quicktime'} onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setThumbnailFile(null); if (nextFile?.type.startsWith('video/')) void inspectVideo(nextFile); }} /></label></div>}
+          {mediaType !== 'TEXT' && <div className="video-upload-box"><UploadCloud size={22} /><div><b>{file ? file.name : 'Choose a photo or video'}</b><span>{mediaType === 'IMAGE' ? 'PNG, JPG or WEBP · up to 15 MB' : 'MP4, MOV or WEBM · up to 100 MB · thumbnail is generated automatically'}</span></div>{mediaType === 'VIDEO' && file && <button type="button" className="btn btn-ghost pill-sm video-edit-trigger" onClick={() => setEditorOpen(true)}><Scissors size={14} /> Edit video</button>}<label className="btn btn-ghost pill-sm"><ImageIcon size={14} /> Browse<input type="file" hidden accept={mediaType === 'IMAGE' ? 'image/png,image/jpeg,image/webp' : 'video/mp4,video/webm,video/quicktime'} onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setThumbnailFile(null); if (nextFile?.type.startsWith('video/')) void inspectVideo(nextFile); }} /></label></div>}
           {mediaType !== 'TEXT' && <label><span>Or paste a direct media URL</span><input type="url" value={externalUrl} onChange={(event) => setExternalUrl(event.target.value)} placeholder="https://…/video.mp4" /></label>}
           {needsVideo && <div className="video-create-grid"><label><span>Duration in seconds</span><input type="number" min={0} max={86400} value={durationSec} onChange={(event) => setDurationSec(event.target.value)} placeholder="Auto detected from upload" /></label><label><span>Thumbnail URL</span><input type="url" value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder={thumbnailFile ? 'Auto thumbnail ready' : 'Optional cover image'} /></label><label><span>Subtitles URL</span><input type="url" value={subtitlesUrl} onChange={(event) => setSubtitlesUrl(event.target.value)} placeholder="Optional .vtt file" /></label></div>}
           {saving && (file || thumbnailFile) && <div className="creator-upload-progress"><span style={{ width: `${uploadProgress}%` }} /><small>{uploadProgress}% uploaded</small></div>}
           <footer className="video-modal-actions"><span><Sparkles size={13} /> {workflowStatus === 'DRAFT' ? 'Keep it private and finish it later.' : 'Your post appears in the infinite feed after publishing.'}</span><div className="video-modal-actions-buttons"><button type="submit" className="btn btn-ghost" disabled={saving} onClick={() => setWorkflowStatus('DRAFT')}>Save draft</button><button type="submit" className="btn btn-violet" disabled={saving} onClick={() => setWorkflowStatus('PUBLISHED')}>{saving ? `Publishing ${uploadProgress}%…` : <><Send size={14} /> Publish</>}</button></div></footer>
         </form>
+        <VideoEditorModal file={file} open={editorOpen} onClose={() => setEditorOpen(false)} onSaved={(editedFile) => { setFile(editedFile); setThumbnailFile(null); setEditorOpen(false); void inspectVideo(editedFile); toast('Edited video applied to your post.', 'ok'); }} />
       </section>
     </div>
   );

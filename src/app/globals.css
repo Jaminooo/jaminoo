@@ -6231,6 +6231,105 @@ select.auth-input option {
 @media (max-width: 900px) {
   .video-edit-grid { grid-template-columns: 1fr; max-width: 620px; margin: 0 auto; }
 }
+.video-editor-modal { width: min(1080px, 100%); max-height: min(900px, 100%); overflow: auto; border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 24px; background: color-mix(in srgb, var(--panel) 97%, #071225); box-shadow: 0 28px 100px rgba(0, 0, 0, .56), 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent) inset; animation: modalIn 180ms cubic-bezier(.2, .8, .3, 1); }
+.video-editor-sub { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.video-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) 304px; gap: 16px; align-items: start; padding: 18px 20px 22px; }
+.video-editor-main { display: grid; gap: 14px; min-width: 0; }
+.video-editor-preview { position: relative; background: #050505; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 18px 55px rgba(0, 0, 0, .22); }
+.video-editor-preview video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #050505; }
+.video-editor-loading { position: absolute; inset: 0; display: grid; place-items: center; gap: 8px; background: rgba(0, 0, 0, .65); color: var(--muted); font-size: 12px; }
+.video-editor-spin { animation: videoEditorSpin .9s linear infinite; color: var(--accent); }
+@keyframes videoEditorSpin { to { transform: rotate(360deg); } }
+.video-editor-trim-note { position: absolute; top: 10px; left: 10px; display: none; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; background: rgba(0, 0, 0, .72); border: 1px solid var(--line); color: var(--accent); font-size: 11px; font-weight: 700; backdrop-filter: blur(6px); z-index: 2; }
+.video-editor-trim-note.show { display: inline-flex; }
+.video-editor-seek { display: flex; align-items: center; gap: 10px; padding: 12px 14px 6px; }
+.video-editor-time { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 42px; }
+.video-editor-time.is-current { text-align: right; }
+.video-editor-slider { position: relative; flex: 1; height: 24px; display: flex; align-items: center; cursor: pointer; touch-action: none; user-select: none; }
+.video-editor-track { position: relative; width: 100%; height: 4px; border-radius: 99px; background: color-mix(in srgb, var(--text) 20%, transparent); transition: height .12s ease; }
+.video-editor-slider:hover .video-editor-track, .video-editor-slider.grabbing .video-editor-track { height: 6px; }
+.video-editor-progress { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 99px; background: var(--accent); }
+.video-editor-thumb { position: absolute; top: 50%; left: calc(var(--video-editor-thumb, 0%) - 6px); translate: 0 -50%; width: 13px; height: 13px; border-radius: 50%; background: var(--accent); box-shadow: 0 1px 4px rgba(0, 0, 0, .5); pointer-events: none; }
+.video-editor-ctls { display: flex; align-items: center; gap: 7px; padding: 6px 14px 14px; flex-wrap: wrap; }
+.video-editor-play { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: #000; display: grid; place-items: center; cursor: pointer; flex: none; transition: transform .14s ease, background .14s ease, box-shadow .2s ease; }
+.video-editor-play:hover { transform: scale(1.05); background: var(--accent-active); box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 12%, transparent); }
+.video-editor-chip { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 13px; border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 5%, transparent); color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: color .12s ease, background .12s ease, transform .12s ease; }
+.video-editor-chip:hover { color: var(--text); background: color-mix(in srgb, var(--text) 11%, transparent); transform: translateY(-1px); }
+.video-editor-chip svg { width: 15px; height: 15px; }
+.video-editor-chip.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.video-editor-ctls .ipt-right { margin-inline-start: auto; }
+.video-editor-timeline-card { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); overflow: hidden; box-shadow: 0 18px 55px rgba(0, 0, 0, .22); }
+.video-editor-timeline-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 15px; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); }
+.video-editor-timeline-head b { color: var(--accent); letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+.video-editor-timeline { position: relative; display: flex; align-items: center; height: 74px; background: rgba(255, 255, 255, .06); border-block: 1px solid var(--line); cursor: ew-resize; touch-action: none; user-select: none; }
+.video-editor-timeline.grabbing { cursor: grabbing; }
+.video-editor-filmstrip { position: absolute; inset: 0; display: flex; overflow: hidden; }
+.video-editor-film-cell { position: relative; flex: 1 1 auto; min-width: 0; height: 100%; background: #10141b; overflow: hidden; }
+.video-editor-film-cell::after { content: ''; position: absolute; inset: 0; border-inline-end: 1px solid rgba(255, 255, 255, .08); }
+.video-editor-film-cell canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+.video-editor-trim-region { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: color-mix(in srgb, var(--accent) 14%, transparent); border-inline: 2px solid var(--accent); z-index: 3; pointer-events: none; }
+.video-editor-shadow { position: absolute; top: 0; bottom: 0; background: rgba(0, 0, 0, .7); }
+.video-editor-shadow.left { right: 100%; width: 100vmax; }
+.video-editor-shadow.right { left: 100%; width: 100vmax; }
+.video-editor-trim-tag { position: absolute; bottom: calc(100% - 3px); font-size: 9.5px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; pointer-events: none; }
+.video-editor-trim-tag.left { left: 0; }
+.video-editor-trim-tag.right { right: 0; }
+.video-editor-handle { position: absolute; top: 0; bottom: 0; width: 22px; z-index: 4; cursor: ew-resize; touch-action: none; display: grid; place-items: center; }
+.video-editor-handle.left { left: -13px; }
+.video-editor-handle.right { right: -13px; }
+.video-editor-grip { width: 7px; height: 48%; border-radius: 4px; background: rgba(255, 255, 255, .95); box-shadow: 0 0 12px rgba(0, 0, 0, .7); }
+.video-editor-handle:hover .video-editor-grip, .video-editor-handle.drag .video-editor-grip { background: var(--accent); }
+.video-editor-playhead { position: absolute; top: -1px; bottom: 0; left: 0; width: 2px; background: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 90%, transparent); z-index: 5; pointer-events: none; }
+.video-editor-playhead::before { content: ''; position: absolute; top: -9px; left: 50%; translate: -50% 0; border: 6px solid transparent; border-top-color: var(--accent); }
+.video-editor-timeline-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 15px; flex-wrap: wrap; }
+.video-editor-trim-summary { font-size: 12px; color: var(--muted); }
+.video-editor-trim-summary b { color: var(--accent); font-variant-numeric: tabular-nums; }
+.video-editor-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.video-editor-side { display: grid; gap: 0; }
+.video-editor-panel { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); overflow: hidden; box-shadow: 0 18px 55px rgba(0, 0, 0, .22); }
+.video-editor-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 15px; border-bottom: 1px solid var(--line); }
+.video-editor-panel-head b { font-size: 13px; }
+.video-editor-panel-head span { font-size: 11px; color: var(--muted-2); }
+.video-editor-panel { padding-bottom: 15px; }
+.video-editor-step { display: flex; align-items: center; gap: 8px; margin: 14px 15px 9px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-2); }
+.video-editor-step-n { display: grid; width: 20px; height: 20px; place-items: center; border-radius: 50%; background: var(--accent); color: #000; font-size: 11px; }
+.video-editor-sound-row { display: flex; align-items: center; gap: 10px; margin: 0 15px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); }
+.video-editor-sound-thumb { display: grid; width: 42px; height: 42px; flex: none; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.video-editor-sound-info { min-width: 0; flex: 1; }
+.video-editor-sound-info b { display: block; overflow: hidden; font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.video-editor-sound-info span { display: flex; align-items: center; gap: 6px; margin-top: 2px; color: var(--muted-2); font-size: 10.5px; }
+.video-editor-x { display: grid; width: 30px; height: 30px; flex: none; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+.video-editor-x:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.video-editor-sound-empty { display: flex; align-items: center; gap: 10px; margin: 0 15px; padding: 13px; border: 1px dashed color-mix(in srgb, var(--text) 22%, transparent); border-radius: 12px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.video-editor-audio-file { position: relative; display: flex; align-items: center; gap: 10px; margin: 8px 15px 0; padding: 12px; border: 1px dashed color-mix(in srgb, var(--text) 22%, transparent); border-radius: 12px; cursor: pointer; color: var(--muted); font-size: 12.5px; font-weight: 600; transition: border-color .12s ease, background .12s ease; }
+.video-editor-audio-file:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); color: var(--text); }
+.video-editor-audio-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.video-editor-vol { margin: 8px 15px 4px; }
+.video-editor-vol-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; font-size: 11px; color: var(--muted); }
+.video-editor-vol-head b { color: var(--text); font-size: 12px; }
+.video-editor-vol-head output { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.video-editor-export { margin: 14px 15px 0; padding: 14px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 14px; background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 9%, transparent), color-mix(in srgb, var(--accent) 4%, transparent)); }
+.video-editor-export > b { font-size: 13px; }
+.video-editor-export p { margin: 6px 0 12px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+.video-editor-warn { color: #fbbf24 !important; }
+.video-editor-render-btn { opacity: .92; }
+.video-editor-progress { margin-top: 12px; }
+.video-editor-progress-track { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--text) 14%, transparent); overflow: hidden; }
+.video-editor-progress-track span { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-active)); transition: width .2s ease; }
+.video-editor-progress-row { display: flex; justify-content: space-between; margin-top: 7px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.video-editor-done { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 11px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 12px; font-weight: 700; }
+.video-editor-error { margin-top: 12px; padding: 11px; border-radius: 10px; background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.video-edit-trigger { color: var(--accent) !important; border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important; }
+@media (max-width: 980px) {
+  .video-editor-grid { grid-template-columns: 1fr; }
+  .video-editor-side { order: -1; }
+}
+@media (max-width: 560px) {
+  .video-editor-modal { width: 100%; max-height: 96vh; border-radius: 24px 24px 0 0; border-bottom: 0; }
+  .video-editor-grid { padding: 14px; }
+  .video-editor-ctls .ipt-right { margin-inline-start: 0; }
+  .video-editor-timeline { height: 64px; }
+}
 .video-playlist-hero div { display: grid; gap: 5px; color: var(--text); }
 .video-playlist-hero h2 { margin: 0; font-size: 20px; }
 .video-playlist-hero p { margin: 0; color: var(--muted); font-size: 12px; }
