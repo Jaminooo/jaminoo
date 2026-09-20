@@ -248,7 +248,7 @@ export function ProfilePanel() {
       </div>
 
       {/* Status card */}
-      <section className="card" style={{ padding: 24, marginBottom: 0 }}>
+      <section className="card" style={{ padding: 24, marginBottom: 12 }}>
         <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
           <CircleDot size={16} /> {t('profile.status')}
         </h3>
@@ -270,7 +270,7 @@ export function ProfilePanel() {
         </button>
       </section>
 
-      <section className="card profile-library-card" style={{ padding: 24, marginBottom: 0 }}>
+      <section className="card profile-library-card" style={{ padding: 24, marginBottom: 12 }}>
         <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><ListMusic size={16} /> Music library</h3>
         <div className="profile-library-grid">
           <div><div className="profile-library-title"><Heart size={14} /> Favorites</div>{library.favorites.length === 0 ? <span className="pane-sub">No favorites yet.</span> : library.favorites.slice(0, 8).map((item) => <div className="profile-library-row" key={item.id}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
