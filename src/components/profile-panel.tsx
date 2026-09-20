@@ -173,7 +173,7 @@ export function ProfilePanel() {
   };
 
   return (
-    <>
+    <div className="profile-panel-layout" style={{ display: "grid", gap: "var(--space-section, 16px)" }}>
       <header className="pane-head">
         <div>
           <h2 className="pane-title">{t('panel.profile')}</h2>
@@ -185,10 +185,10 @@ export function ProfilePanel() {
 
       <div className="grid-2">
         {/* Avatar card */}
-        <section className="card" style={{ padding: 24 }}>
+        <section className="card" style={{ padding: "var(--space-card, 24px)" }}>
           <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 4 }}>{t('profile.avatar')}</h3>
-          <p className="pane-sub" style={{ marginTop: 0, marginBottom: 16 }}>{t('profile.avatarHint')}</p>
-          <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+          <p className="pane-sub" style={{ marginTop: 0, marginBottom: "var(--space-md, 16px)" }}>{t('profile.avatarHint')}</p>
+          <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: "var(--space-md, 16px)" }}>
             <JaminoAvatar avatarId={me.avatarId} size={64} photo={me.avatarPhoto} name={me.username} />
             <div style={{ fontSize: 13, color: 'var(--color-fog)', display: 'grid', gap: 8 }}>
               <span>{me.avatarPhoto ? t('media.photoActive') : t('media.presetActive')}</span>
@@ -216,9 +216,9 @@ export function ProfilePanel() {
         </section>
 
         {/* Details card */}
-        <section className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16 }}>{t('profile.details')}</h3>
-          <div className="field" style={{ marginBottom: 14 }}>
+        <section className="card" style={{ padding: "var(--space-card, 24px)" }}>
+          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)" }}>{t('profile.details')}</h3>
+          <div className="field" style={{ marginBottom: "var(--space-md, 16px)" }}>
             <span className="field-label">
               {t('profile.myId')} <span style={{ opacity: 0.6, fontWeight: 400 }}>— {t('profile.idHint')}</span>
             </span>
@@ -229,15 +229,15 @@ export function ProfilePanel() {
               </button>
             </div>
           </div>
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "var(--space-md, 16px)" }}>
             <span className="field-label">{t('auth.username')}</span>
             <input className="auth-input" value={username} onChange={(e) => setUsername(e.target.value)} />
           </div>
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "var(--space-md, 16px)" }}>
             <span className="field-label">{t('auth.email')}</span>
             <input className="auth-input" value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
           </div>
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "var(--space-md, 16px)" }}>
             <span className="field-label">{t('profile.bio')}</span>
             <textarea className="auth-input" value={bio} onChange={(e) => setBio(e.target.value)} placeholder={t('profile.bioPlaceholder')} rows={2} style={{ resize: 'none' }} />
           </div>
@@ -248,8 +248,8 @@ export function ProfilePanel() {
       </div>
 
       {/* Status card */}
-      <section className="card" style={{ padding: 24, marginBottom: 12 }}>
-        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <section className="card" style={{ padding: "var(--space-card, 24px)", marginBottom: "var(--space-section, 16px)" }}>
+        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)", display: 'flex', alignItems: 'center', gap: 8 }}>
           <CircleDot size={16} /> {t('profile.status')}
         </h3>
         <div className="seg" style={{ maxWidth: 400 }}>
@@ -270,8 +270,8 @@ export function ProfilePanel() {
         </button>
       </section>
 
-      <section className="card profile-library-card" style={{ padding: 24, marginBottom: 12 }}>
-        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><ListMusic size={16} /> Music library</h3>
+      <section className="card profile-library-card" style={{ padding: "var(--space-card, 24px)", marginBottom: "var(--space-section, 16px)" }}>
+        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)", display: 'flex', alignItems: 'center', gap: 8 }}><ListMusic size={16} /> Music library</h3>
         <div className="profile-library-grid">
           <div><div className="profile-library-title"><Heart size={14} /> Favorites</div>{library.favorites.length === 0 ? <span className="pane-sub">No favorites yet.</span> : library.favorites.slice(0, 8).map((item) => <div className="profile-library-row" key={item.id}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
           <div><div className="profile-library-title"><History size={14} /> Recently played</div>{library.history.length === 0 ? <span className="pane-sub">No history yet.</span> : library.history.slice(0, 8).map((item, index) => <div className="profile-library-row" key={`${item.id}-${index}`}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
@@ -281,8 +281,8 @@ export function ProfilePanel() {
 
       <div className="grid-2" style={{ marginTop: 0 }}>
         {/* Password */}
-        <section className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <section className="card" style={{ padding: "var(--space-card, 24px)" }}>
+          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)", display: 'flex', alignItems: 'center', gap: 8 }}>
             <Lock size={16} /> {t('profile.changePassword')}
           </h3>
           {me.github ? (
@@ -309,8 +309,8 @@ export function ProfilePanel() {
         </section>
 
         {/* Media */}
-        <section className="card" style={{ padding: 24 }}>
-          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <section className="card" style={{ padding: "var(--space-card, 24px)" }}>
+          <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)", display: 'flex', alignItems: 'center', gap: 8 }}>
             <Upload size={16} /> {t('media.profilePhotos')}
           </h3>
           <div className="media-card">
@@ -368,6 +368,6 @@ export function ProfilePanel() {
           </div>
         </section>
       </div>
-    </>
+    </div>
   );
 }
