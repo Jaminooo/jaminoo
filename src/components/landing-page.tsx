@@ -2,22 +2,22 @@
 
 import { ArrowDown, ArrowRight, Headphones, MessageCircle, PlaySquare, Sparkles, UsersRound, Globe, Zap, Shield, Music2 } from 'lucide-react';
 import { useAppStore } from '@/store/app-store';
-import { useTranslations } from '@/providers/use-translations';
+import { useLocale, useTranslations } from '@/providers/use-translations';
 import { AuthScreen } from '@/components/auth-screen';
 import { JamiMascot } from '@/components/jami-mascot';
 import { motion } from 'framer-motion';
 
 export function LandingPage() {
   const t = useTranslations();
+  const { locale, setLocale } = useLocale();
   const setAuthView = useAppStore((state) => state.setAuthView);
-  const { lang, setLang } = useAppStore();
 
   const openAuth = (view: 'login' | 'signup') => {
     setAuthView(view);
     document.getElementById('landing-auth')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const toggleLang = () => setLang(lang === 'fa' ? 'en' : 'fa');
+  const toggleLang = () => setLocale(locale === 'fa' ? 'en' : 'fa');
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -30,7 +30,7 @@ export function LandingPage() {
   };
 
   return (
-    <main className="landing-page" dir={lang === 'fa' ? 'rtl' : 'ltr'}>
+    <main className="landing-page" dir={locale === 'fa' ? 'rtl' : 'ltr'}>
       {/* Navigation */}
       <nav className="landing-nav">
         <motion.a 
@@ -51,7 +51,7 @@ export function LandingPage() {
         <div className="landing-nav-actions">
           <button type="button" className="lang-toggle" onClick={toggleLang}>
             <Globe size={16} />
-            <span>{lang === 'fa' ? 'English' : 'فارسی'}</span>
+            <span>{locale === 'fa' ? 'English' : 'فارسی'}</span>
           </button>
           <button type="button" className="btn btn-ghost pill-sm hide-mobile" onClick={() => openAuth('login')}>{t('landing.login')}</button>
           <button type="button" className="btn btn-violet pill-sm" onClick={() => openAuth('signup')}>{t('landing.create')}</button>
@@ -229,4 +229,3 @@ export function LandingPage() {
     </main>
   );
 }
-
