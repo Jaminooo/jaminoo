@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Loader2, Music, Music2, Pause, Play, Repeat, RotateCcw, Scissors, Sparkles, UploadCloud, Volume2, VolumeX, X } from 'lucide-react';
+import { useTranslations } from '@/providers/use-translations';
 
 interface VideoEditorModalProps {
   file: File | null;
@@ -55,6 +56,7 @@ function VolumeSlider({ label, value, onChange }: { label: string; value: number
 }
 
 export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, renderHelperCopy }: VideoEditorWorkspaceProps) {
+  const t = useTranslations();
   const previewRef = useRef<HTMLVideoElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -253,9 +255,9 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
   const applyHandle = (fromStart: boolean, clientX: number) => {
     const timeline = timelineRef.current;
     if (!timeline) return;
-    const t = fracFromClient(timeline, clientX) * duration;
-    if (fromStart) setTrimStart(Math.min(Math.max(0, t), tEnd - 0.05));
-    else setTrimEnd(Math.max(Math.min(t, duration), tStart + 0.05));
+    const tmpT = fracFromClient(timeline, clientX) * duration;
+    if (fromStart) setTrimStart(Math.min(Math.max(0, tmpT), tEnd - 0.05));
+    else setTrimEnd(Math.max(Math.min(tmpT, duration), tStart + 0.05));
   };
 
   const onHandleDown = (fromStart: boolean) => (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -275,17 +277,17 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
     if ((e.target as HTMLElement).closest('.video-editor-handle')) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     const v = previewRef.current;
-    const t = fracFromClient(e.currentTarget, e.clientX) * duration;
-    if (v) v.currentTime = t;
-    setCurrent(t);
+    const tmpT = fracFromClient(e.currentTarget, e.clientX) * duration;
+    if (v) v.currentTime = tmpT;
+    setCurrent(tmpT);
     e.preventDefault();
   };
   const onTimelineMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
     const v = previewRef.current;
-    const t = fracFromClient(e.currentTarget, e.clientX) * duration;
-    if (v) v.currentTime = t;
-    setCurrent(t);
+    const tmpT = fracFromClient(e.currentTarget, e.clientX) * duration;
+    if (v) v.currentTime = tmpT;
+    setCurrent(tmpT);
   };
   const onTimelineUp = (e: ReactPointerEvent<HTMLDivElement>) => e.currentTarget.classList.remove('grabbing');
 
@@ -306,12 +308,12 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
     if (!v || !ready || rendering || !supported) return;
     const s = tStart;
     const e = tEnd;
-    if (e - s < 0.1) { setError('Clip is too short to render.'); return; }
+    if (e - s < 0.1) { setError(t('video.editor.ws.errShort')); return; }
     const canvas = document.createElement('canvas');
     canvas.width = v.videoWidth || 640;
     canvas.height = v.videoHeight || 360;
     const ctx = canvas.getContext('2d');
-    if (!ctx) { setError('Canvas rendering is not available in this browser.'); return; }
+    if (!ctx) { setError(t('video.editor.ws.errCanvas')); return; }
 
     setRendering(true);
     setRenderProgress(0);
@@ -359,7 +361,7 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
         try {
           recorder = new MediaRecorder(mixed, { mimeType: mimeType || undefined, videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 192_000 });
         } catch {
-          reject(new Error('This browser cannot record this video format.'));
+          reject(new Error(t('video.editor.ws.errRecord')));
           return;
         }
         const chunks: Blob[] = [];
@@ -367,14 +369,14 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
         recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType || 'video/mp4' }));
         recorder.onerror = () => {
           const err = (recorder as (MediaRecorder & { error?: { message?: string } }) | null)?.error;
-          reject(new Error(err?.message || 'Recording failed.'));
+          reject(new Error(err?.message || t('video.editor.ws.errRecording')));
         };
         recorder.start(500);
       });
 
       await new Promise<void>((resolve, reject) => {
         videoEl.onloadeddata = () => resolve();
-        videoEl.onerror = () => reject(new Error('Could not read this video.'));
+        videoEl.onerror = () => reject(new Error(t('video.editor.ws.errRead')));
         videoEl.load();
       });
       await new Promise<void>((resolve) => {
@@ -385,7 +387,7 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
         await videoEl.play();
       } catch {
         videoEl.muted = true;
-        try { await videoEl.play(); } catch { throw new Error('Browser blocked playback for rendering.'); }
+        try { await videoEl.play(); } catch { throw new Error(t('video.editor.ws.errBlocked')); }
       }
       musicEl?.play().catch(() => {});
 
@@ -418,13 +420,13 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
       setDone(true);
       onRenderDone(editedFile);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not render this video.');
+      setError(err instanceof Error ? err.message : t('video.editor.ws.errRender'));
     } finally {
       cancelAnimationFrame(rafId);
       try { audioCtx?.close(); } catch { /* noop */ }
       setRendering(false);
     }
-  }, [ready, rendering, supported, tStart, tEnd, file, videoUrl, music, muted, musicVol, videoVol, onRenderDone]);
+  }, [ready, rendering, supported, tStart, tEnd, file, videoUrl, music, muted, musicVol, videoVol, onRenderDone, t]);
 
   const playFraction = duration > 0 ? current / duration : 0;
 
@@ -433,8 +435,8 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
       <div className="video-editor-main">
         <div className="video-editor-preview">
           <video ref={previewRef} playsInline preload="metadata" muted={muted} />
-          {!ready && <div className="video-editor-loading"><Loader2 size={22} className="video-editor-spin" /> Loading preview…</div>}
-          {ready && <span className={`video-editor-trim-note ${tStart > 0 || tEnd < duration ? 'show' : ''}`}><Scissors size={12} /> Trim active</span>}
+          {!ready && <div className="video-editor-loading"><Loader2 size={22} className="video-editor-spin" /> {t('video.editor.ws.loadingPreview')}</div>}
+          {ready && <span className={`video-editor-trim-note ${tStart > 0 || tEnd < duration ? 'show' : ''}`}><Scissors size={12} /> {t('video.editor.ws.trimActive')}</span>}
           <div className="video-editor-seek">
             <span className="video-editor-time is-current">{formatTime(current)}</span>
             <div ref={sliderRef} className="video-editor-slider" onPointerDown={onSeekDown} onPointerMove={onSeekMove} onPointerUp={onSeekUp} onPointerCancel={onSeekUp}>
@@ -444,15 +446,15 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
             <span className="video-editor-time">{formatTime(duration)}</span>
           </div>
           <div className="video-editor-ctls">
-            <button type="button" className="video-editor-play" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}</button>
-            <button type="button" className={`video-editor-chip ${loop ? 'on' : ''}`} onClick={() => setLoop((value) => !value)}><Repeat size={14} /> Loop preview</button>
-            <button type="button" className={`video-editor-chip ${muted ? 'on' : ''}`} onClick={() => setMuted((value) => !value)}>{muted ? <VolumeX size={14} /> : <Volume2 size={14} />} Video sound</button>
-            <button type="button" className="video-editor-chip ipt-right" onClick={resetTrim}><RotateCcw size={14} /> Reset</button>
+            <button type="button" className="video-editor-play" onClick={togglePlay} aria-label={playing ? t('video.editor.ws.pause') : t('video.editor.ws.play')}>{playing ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}</button>
+            <button type="button" className={`video-editor-chip ${loop ? 'on' : ''}`} onClick={() => setLoop((value) => !value)}><Repeat size={14} /> {t('video.editor.ws.loopPreview')}</button>
+            <button type="button" className={`video-editor-chip ${muted ? 'on' : ''}`} onClick={() => setMuted((value) => !value)}>{muted ? <VolumeX size={14} /> : <Volume2 size={14} />} {t('video.editor.ws.videoSound')}</button>
+            <button type="button" className="video-editor-chip ipt-right" onClick={resetTrim}><RotateCcw size={14} /> {t('video.editor.ws.reset')}</button>
           </div>
         </div>
 
         <div className="video-editor-timeline-card">
-          <div className="video-editor-timeline-head"><span>Timeline</span><b>{ready ? `${formatTime(tStart)} — ${formatTime(tEnd)} · ${formatTime(tEnd - tStart)}` : 'Loading…'}</b></div>
+          <div className="video-editor-timeline-head"><span>{t('video.editor.ws.timeline')}</span><b>{ready ? t('video.editor.ws.strip', { start: formatTime(tStart), end: formatTime(tEnd), len: formatTime(tEnd - tStart), total: formatTime(duration) }) : t('video.editor.ws.loading')}</b></div>
           <div
             ref={timelineRef}
             className="video-editor-timeline"
@@ -473,10 +475,10 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
             <div className="video-editor-playhead" style={{ left: `${playFraction * 100}%` }} />
           </div>
           <div className="video-editor-timeline-foot">
-            <div className="video-editor-trim-summary">Clip: <b>{formatTime(tStart)}</b> → <b>{formatTime(tEnd)}</b> · Length <b>{formatTime(tEnd - tStart)}</b> / <b>{formatTime(duration)}</b></div>
+            <div className="video-editor-trim-summary">{t('video.editor.ws.strip', { start: formatTime(tStart), end: formatTime(tEnd), len: formatTime(tEnd - tStart), total: formatTime(duration) })}{' '}· {t('video.editor.ws.timeline')}</div>
             <div className="video-editor-chip-row">
-              <button type="button" className="video-editor-chip" onClick={setAsStart}><Scissors size={14} /> Trim start</button>
-              <button type="button" className="video-editor-chip" onClick={setAsEnd}><Scissors size={14} /> Trim end</button>
+              <button type="button" className="video-editor-chip" onClick={setAsStart}><Scissors size={14} /> {t('video.editor.ws.trimStart')}</button>
+              <button type="button" className="video-editor-chip" onClick={setAsEnd}><Scissors size={14} /> {t('video.editor.ws.trimEnd')}</button>
             </div>
           </div>
         </div>
@@ -484,35 +486,35 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
 
       <div className="video-editor-side">
         <div className="video-editor-panel">
-          <div className="video-editor-panel-head"><b>Sound</b><span>Mix a soundtrack</span></div>
-          <div className="video-editor-step"><span className="video-editor-step-n">1</span> Add music</div>
+          <div className="video-editor-panel-head"><b>{t('video.editor.ws.sound')}</b><span>{t('video.editor.ws.mixHint')}</span></div>
+          <div className="video-editor-step"><span className="video-editor-step-n">1</span> {t('video.editor.ws.addMusic')}</div>
           {music ? (
             <div className="video-editor-sound-row">
               <div className="video-editor-sound-thumb"><Music2 size={18} /></div>
-              <div className="video-editor-sound-info"><b>{music.name}</b><span><Repeat size={11} /> Loops with the clip</span></div>
-              <button type="button" className="video-editor-x" onClick={removeMusic} aria-label="Remove soundtrack"><X size={14} /></button>
+              <div className="video-editor-sound-info"><b>{music.name}</b><span><Repeat size={11} /> {t('video.editor.ws.loops')}</span></div>
+              <button type="button" className="video-editor-x" onClick={removeMusic} aria-label={t('video.common.close')}><X size={14} /></button>
             </div>
           ) : (
-            <div className="video-editor-sound-empty"><Music size={16} /> No soundtrack yet</div>
+            <div className="video-editor-sound-empty"><Music size={16} /> {t('video.editor.ws.noMusic')}</div>
           )}
-          <label className="video-editor-audio-file"><UploadCloud size={16} /> Add audio file<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4" onChange={(event) => { const f = event.target.files?.[0]; if (f) addMusic(f); event.target.value = ''; }} /></label>
-          <div className="video-editor-step"><span className="video-editor-step-n">2</span> Volume mix</div>
-          <VolumeSlider label="Music" value={musicVol} onChange={setMusicVol} />
-          <VolumeSlider label="Original sound" value={videoVol} onChange={setVideoVol} />
+          <label className="video-editor-audio-file"><UploadCloud size={16} /> {t('video.editor.ws.addAudio')}<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4" onChange={(event) => { const f = event.target.files?.[0]; if (f) addMusic(f); event.target.value = ''; }} /></label>
+          <div className="video-editor-step"><span className="video-editor-step-n">2</span> {t('video.editor.ws.volumeMix')}</div>
+          <VolumeSlider label={t('video.editor.ws.musicLabel')} value={musicVol} onChange={setMusicVol} />
+          <VolumeSlider label={t('video.editor.ws.originalLabel')} value={videoVol} onChange={setVideoVol} />
           <div className="video-editor-export">
-            <b>Render &amp; use</b>
-            <p>{renderHelperCopy ?? 'Trims your clip and mixes the music into a new video, ready for your post. Rendering runs in real time.'}</p>
-            {!supported && <p className="video-editor-warn">This browser cannot render videos in-browser yet — try the latest Chrome, Edge or Safari.</p>}
+            <b>{t('video.editor.ws.exportTitle')}</b>
+            <p>{renderHelperCopy ?? t('video.editor.ws.helperCopy')}</p>
+            {!supported && <p className="video-editor-warn">{t('video.editor.ws.warn')}</p>}
             <button type="button" className={`btn btn-violet pill-sm ${rendering ? 'video-editor-render-btn' : ''}`} style={{ width: '100%' }} disabled={rendering || !ready || !supported} onClick={() => void render()}>
-              {rendering ? <>Rendering {Math.round(renderProgress)}%…</> : <><Scissors size={14} /> Render &amp; export</>}
+              {rendering ? t('video.editor.ws.rendering', { n: Math.round(renderProgress) }) : <><Scissors size={14} /> {t('video.editor.ws.renderExport')}</>}
             </button>
             {rendering && (
               <div className="video-editor-progress">
                 <div className="video-editor-progress-track"><span style={{ width: `${renderProgress}%` }} /></div>
-                <div className="video-editor-progress-row"><span>{Math.round(renderProgress)}%</span><span>{formatTime(Math.max(0, (tEnd - tStart) * (1 - renderProgress / 100)))} left</span></div>
+                <div className="video-editor-progress-row"><span>{Math.round(renderProgress)}%</span><span>{formatTime(Math.max(0, (tEnd - tStart) * (1 - renderProgress / 100)))} {t('video.editor.ws.left')}</span></div>
               </div>
             )}
-            {done && <div className="video-editor-done"><Sparkles size={13} /> {renderDoneCopy ?? 'Edited video ready — applied to your post.'}</div>}
+            {done && <div className="video-editor-done"><Sparkles size={13} /> {renderDoneCopy ?? t('video.editor.ws.doneCopy')}</div>}
             {error && <div className="video-editor-error">{error}</div>}
           </div>
         </div>
@@ -522,17 +524,18 @@ export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, rende
 }
 
 export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorModalProps) {
+  const t = useTranslations();
   if (!open || !file) return null;
   return (
     <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={onClose}>
       <section className="video-editor-modal" role="dialog" aria-modal="true" aria-labelledby="video-editor-title" onMouseDown={(event) => event.stopPropagation()}>
         <header className="video-modal-head">
           <div>
-            <div className="hub-kicker">VIDEO EDITOR · CUT &amp; MIX</div>
-            <h2 id="video-editor-title">Edit before you upload</h2>
-            <p className="video-editor-sub">Trim the best part, drop in a soundtrack and export — right before your post goes live.</p>
+            <div className="hub-kicker">{t('video.editor.modalKicker')}</div>
+            <h2 id="video-editor-title">{t('video.editor.modalTitle')}</h2>
+            <p className="video-editor-sub">{t('video.editor.modalSub')}</p>
           </div>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label={t('video.common.close')}><X size={18} /></button>
         </header>
         <VideoEditorWorkspace file={file} onRenderDone={onSaved} />
       </section>
