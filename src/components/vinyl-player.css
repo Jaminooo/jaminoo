@@ -190,6 +190,53 @@
   pointer-events: none;
 }
 
+/* ---------- bare mode (shorts feed): hairline progress ---------- */
+.vp-hairline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+}
+.vp-hairline span {
+  display: block;
+  height: 100%;
+  background: #1ed760;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ---------- double-tap like burst ---------- */
+.vp-heart-burst {
+  position: absolute;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  color: #ff4d6d;
+  pointer-events: none;
+  animation: vp-heart-pop 0.85s ease-out forwards;
+  filter: drop-shadow(0 4px 18px rgba(255, 77, 109, 0.55));
+}
+@keyframes vp-heart-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(-8deg);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18) rotate(4deg);
+  }
+  55% {
+    transform: translate(-50%, -56%) scale(1) rotate(-2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -120%) scale(0.92) rotate(2deg);
+  }
+}
+
 /* ---------- top bar (feature variant) ---------- */
 .vp-topbar {
   position: absolute;

@@ -116,6 +116,8 @@ export interface VinylPlayerProps {
   fill?: boolean;
   /** Persistent mute chip (shorts) so sound can be restored in one tap. */
   soundToggle?: boolean;
+  /** Chrome-less mode (shorts feed): hairline progress + big play only. */
+  bare?: boolean;
   /** Size the box to the video's real aspect ratio once metadata loads. */
   dynamicAspect?: boolean;
   /** Aspect used before metadata arrives, e.g. '9 / 16'. */
@@ -144,6 +146,7 @@ export function VinylPlayer({
   variant = 'card',
   fill = false,
   soundToggle = false,
+  bare = false,
   dynamicAspect = false,
   defaultAspect = '16 / 9',
   onDoubleTap,
@@ -369,6 +372,7 @@ export function VinylPlayer({
     }
     setMuted(video.muted);
     setAudioBlocked(false);
+    writeMemory({ muted: video.muted });
     toast(video.muted ? 'Muted' : 'Sound on');
   }, []);
 
@@ -378,6 +382,7 @@ export function VinylPlayer({
     video.playbackRate = nextRate;
     setRate(nextRate);
     setRateOpen(false);
+    writeMemory({ rate: nextRate });
     toast(`Speed ${nextRate}×`);
   }, []);
 
@@ -435,13 +440,29 @@ export function VinylPlayer({
   /* ---------- media event handlers ---------- */
   const handleLoadedMetadata = () => {
     const video = videoRef.current;
-    if (video) setDuration(Number.isFinite(video.duration) ? video.duration : 0);
+    if (!video) return;
+    const videoDuration = Number.isFinite(video.duration) ? video.duration : 0;
+    setDuration(videoDuration);
+    if (dynamicAspect && video.videoWidth && video.videoHeight) {
+      setAspect(`${video.videoWidth} / ${video.videoHeight}`);
+    }
+    // Restore position once per src: explicit startAt wins, then saved resume.
+    if (!resumeApplied.current && videoDuration > 0) {
+      resumeApplied.current = true;
+      const saved = rememberPosition && !startAt ? readResumeMap()[src] ?? 0 : 0;
+      const start = startAt && startAt > 0 && startAt < videoDuration - 2 ? startAt : saved;
+      if (start > 2 && start < videoDuration - 2) {
+        video.currentTime = start;
+        setCurrent(start);
+      }
+    }
   };
   const handleTimeUpdate = () => {
     const video = videoRef.current;
     if (!video) return;
     setCurrent(video.currentTime);
     if (video.buffered.length) setBuffered(video.buffered.end(video.buffered.length - 1));
+    onTimeUpdate?.(video.currentTime);
   };
   const handleProgress = () => {
     const video = videoRef.current;
@@ -451,6 +472,7 @@ export function VinylPlayer({
     setPlaying(false);
     setEnded(true);
     setShowPoster(true);
+    if (rememberPosition && src) clearResumePoint(src);
     onEnded?.();
   };
 
@@ -471,6 +493,22 @@ export function VinylPlayer({
     // Coarse pointers: first tap reveals the chrome, the next tap toggles.
     if (coarse && !showUI) {
       armHide();
+      return;
+    }
+    // Double-tap on the video surface fires the like burst (shorts).
+    if (onDoubleTap) {
+      const rect = viewportRef.current?.getBoundingClientRect();
+      if (tapTimer.current) {
+        window.clearTimeout(tapTimer.current);
+        tapTimer.current = null;
+        setHeart({ x: event.clientX - (rect?.left ?? 0), y: event.clientY - (rect?.top ?? 0), key: Date.now() });
+        onDoubleTap();
+        return;
+      }
+      tapTimer.current = window.setTimeout(() => {
+        tapTimer.current = null;
+        togglePlay();
+      }, DOUBLE_TAP_MS);
       return;
     }
     togglePlay();
@@ -575,6 +613,7 @@ export function VinylPlayer({
     setVolume(next);
     setMuted(video.muted);
     setAudioBlocked(false);
+    writeMemory({ volume: next, muted: video.muted });
   };
 
   const onVolumePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -613,7 +652,10 @@ export function VinylPlayer({
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
-    <div className={`vp-player ${variant === 'card' ? 'vp-card' : 'vp-feature'} ${fill ? 'vp-fill' : 'vp-box'} ${className}`}>
+    <div
+      className={`vp-player ${variant === 'card' ? 'vp-card' : 'vp-feature'} ${fill ? 'vp-fill' : 'vp-box'} ${className}`}
+      style={!fill ? { aspectRatio: dynamicAspect && aspect ? aspect : defaultAspect } : undefined}
+    >
       <div
         ref={viewportRef}
         className={`vp-viewport ${showUI ? 'vp-ui' : ''} ${playing ? 'vp-playing' : 'vp-paused'} ${ended ? 'vp-ended' : ''}`}
@@ -667,7 +709,7 @@ export function VinylPlayer({
           </span>
         </button>
 
-        {variant === 'feature' && (
+        {variant === 'feature' && !bare && (
           <div className="vp-topbar">
             <div className="vp-brand-chip">
               <span className="vp-live-dot" />
@@ -700,7 +742,8 @@ export function VinylPlayer({
           </div>
         )}
 
-        <div className="vp-overlay">
+        {!bare && (
+          <div className="vp-overlay">
           {variant === 'feature' && (
             <div className="vp-meta">
               <div className="vp-meta-left">
@@ -774,7 +817,10 @@ export function VinylPlayer({
               {fullscreen ? <Minimize size={19} /> : <Maximize size={19} />}
             </button>
           </div>
-        </div>
+          </div>
+        )}
+
+        {bare && <div className="vp-hairline"><span style={{ width: `${progressPct}%` }} /></div>}
 
         {soundToggle && (
           <button
@@ -787,6 +833,12 @@ export function VinylPlayer({
           </button>
         )}
         {audioBlocked && muted && <span className="vp-sound-hint">Tap for sound</span>}
+
+        {heart && (
+          <span key={heart.key} className="vp-heart-burst" style={{ left: heart.x, top: heart.y }} aria-hidden="true">
+            <Heart size={74} fill="currentColor" />
+          </span>
+        )}
 
         <div className={`vp-error ${error ? 'is-show' : ''}`}>
           <div className="vp-error-inner">
