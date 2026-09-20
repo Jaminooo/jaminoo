@@ -1,8 +1,10 @@
-import { handle, json, err, requireAdmin } from '@/lib/api';
+import { handle, json, err } from '@/lib/api';
+import { requireHubAdmin } from '@/lib/roles';
+const ADMIN_SCOPE = 'MUSIC';
 import { prisma } from '@/lib/prisma';
 
 export const GET = handle(async (req) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const url = new URL(req.url);
   const q = (url.searchParams.get('q') ?? '').trim();
   const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
@@ -37,7 +39,7 @@ export const GET = handle(async (req) => {
 });
 
 export const POST = handle(async (req) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const b = await req.json();
   const name = (b.name ?? '').toString().trim();
   if (!name || name.length > 120) return err('Name is required (max 120)');

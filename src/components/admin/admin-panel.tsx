@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/client-api';
 import { connectLive, onLive } from '@/lib/live';
@@ -19,14 +19,15 @@ import {
   KeyRound,
   Music2,
   Flag,
-  BadgeCheck,
-  ArrowLeft,
-RefreshCw,
-  Loader2,
-  X,
-  ScrollText,
-  BellRing,
-  Bell,
+   BadgeCheck,
+   ArrowLeft,
+ RefreshCw,
+   Loader2,
+   X,
+   ScrollText,
+   BellRing,
+   Bell,
+  Film,
 } from 'lucide-react';
 import { AdminDashboard } from './admin-dashboard';
 import { AdminUsers } from './admin-users';
@@ -38,6 +39,8 @@ import { AdminMusic } from './music/admin-music';
 import { AdminReports } from './admin-reports';
 import { AdminCreators } from './admin-creators';
 import { AdminCinema } from './admin-cinema';
+import { AdminAnime } from './admin-anime';
+import { AdminRoles } from './admin-roles';
 import { AdminAudit } from './admin-audit';
 import { AdminAnnouncements } from './admin-announcements';
 import { AdminNotifications } from './admin-notifications';
@@ -68,7 +71,29 @@ export interface AdminEvent {
   meta?: Record<string, unknown>;
 }
 
-export type AdminTab = 'dashboard' | 'users' | 'jams' | 'messages' | 'reports' | 'creators' | 'media' | 'sessions' | 'music' | 'cinema' | 'audit' | 'announcements' | 'notifications';
+export type AdminTab =
+  | 'dashboard'
+  | 'users'
+  | 'jams'
+  | 'messages'
+  | 'reports'
+  | 'creators'
+  | 'media'
+  | 'sessions'
+  | 'music'
+  | 'cinema'
+  | 'anime'
+  | 'roles'
+  | 'audit'
+  | 'announcements'
+  | 'notifications';
+
+export interface AdminMeta {
+  username: string;
+  scope: string;
+  isSuper: boolean;
+  hubScopes: string[];
+}
 
 const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'dashboard', icon: LayoutDashboard, key: 'admin.dashboard' },
@@ -80,11 +105,22 @@ const TABS: { id: AdminTab; icon: typeof Users; key: string }[] = [
   { id: 'media', icon: Image, key: 'admin.media' },
   { id: 'music', icon: Music2, key: 'admin.musicLabel' },
   { id: 'cinema', icon: RadioTower, key: 'admin.cinema' },
+  { id: 'anime', icon: Film, key: 'admin.anime' },
+  { id: 'roles', icon: Shield, key: 'admin.roles' },
   { id: 'sessions', icon: KeyRound, key: 'admin.sessions' },
-{ id: 'audit', icon: ScrollText, key: 'admin.audit' },
+  { id: 'audit', icon: ScrollText, key: 'admin.audit' },
   { id: 'announcements', icon: BellRing, key: 'admin.announcements' },
   { id: 'notifications', icon: Bell, key: 'admin.notifications' },
 ];
+
+const SCOPE_TABS: Partial<Record<AdminTab, string[]>> = {
+  dashboard: ['MUSIC', 'VIDEO', 'ANIME', 'CINEMA', 'TWEET', 'COMMUNITY'],
+  media: ['MUSIC', 'VIDEO', 'ANIME', 'CINEMA', 'TWEET', 'COMMUNITY'],
+  creators: ['MUSIC', 'VIDEO', 'ANIME'],
+  music: ['MUSIC'],
+  cinema: ['CINEMA'],
+  anime: ['ANIME'],
+};
 
 export function AdminPanel() {
   const t = useTranslations();
@@ -94,12 +130,14 @@ export function AdminPanel() {
   const [state, setState] = useState<'loading' | 'forbidden' | 'ready'>('loading');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [meta, setMeta] = useState<AdminMeta | null>(null);
 
   const reload = useCallback(() => {
-    api<{ stats: AdminStats; events: AdminEvent[] }>('/api/admin')
+    api<{ stats: AdminStats; events: AdminEvent[]; admin: AdminMeta }>('/api/admin')
       .then((d) => {
         setStats(d.stats);
         setEvents(d.events);
+        setMeta(d.admin);
         setState('ready');
       })
       .catch(() => setState('forbidden'));
@@ -149,6 +187,22 @@ export function AdminPanel() {
     setMobileOpen(false);
   };
 
+  const visibleTabs = useMemo(() => {
+    if (!meta) return TABS;
+    if (meta.isSuper) return TABS;
+    const scopes = new Set(meta.hubScopes);
+    return TABS.filter((t) => {
+      if (t.id === 'roles') return false;
+      const allowed = SCOPE_TABS[t.id];
+      if (!allowed) return true;
+      return allowed.some((s) => scopes.has(s));
+    });
+  }, [meta]);
+
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) setTab(visibleTabs[0].id);
+  }, [visibleTabs, tab]);
+
   return (
     <div className="admin-root">
       {mobileOpen ? <button className="admin-side-overlay" aria-label={t('admin.closeMenu')} onClick={() => setMobileOpen(false)} /> : null}
@@ -167,7 +221,7 @@ export function AdminPanel() {
           {t('admin.workspace')}
         </div>
         <nav className="admin-nav">
-          {TABS.map(({ id, icon: Icon, key }) => (
+          {visibleTabs.map(({ id, icon: Icon, key }) => (
             <button
               key={id}
               className={`admin-nav-item ${tab === id ? 'active' : ''}`}
@@ -229,6 +283,8 @@ export function AdminPanel() {
           {tab === 'media' && <AdminMedia />}
           {tab === 'music' && <AdminMusic />}
           {tab === 'cinema' && <AdminCinema />}
+          {tab === 'anime' && <AdminAnime />}
+          {tab === 'roles' && <AdminRoles />}
           {tab === 'sessions' && <AdminSessions />}
 {tab === 'audit' && <AdminAudit events={events} />}
           {tab === 'announcements' && <AdminAnnouncements />}

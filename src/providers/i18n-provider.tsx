@@ -6,7 +6,7 @@ import fa from '@/messages/fa.json';
 
 export type Locale = 'en' | 'fa';
 
-const dictionaries: Record<Locale, typeof en> = { en, fa };
+const dictionaries: Record<Locale, Record<string, unknown>> = { en, fa };
 
 export function dirFor(locale: Locale) {
   return locale === 'fa' ? 'rtl' : 'ltr';

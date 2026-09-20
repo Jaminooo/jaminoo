@@ -1,8 +1,10 @@
-import { handle, json, err, requireAdmin } from '@/lib/api';
+import { handle, json, err } from '@/lib/api';
+import { requireHubAdmin } from '@/lib/roles';
+const ADMIN_SCOPE = 'MUSIC';
 import { MUSIC_AUDIO_MAX, MUSIC_COVER_MAX, isAcceptedAudioMime, sniffCoverMime, saveCoverBuf, saveAudioBuf } from '@/lib/music';
 
 export const POST = handle(async (req: Request) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const form = await req.formData();
   const file = form.get('file');
   const kind = (form.get('kind') ?? 'cover').toString();

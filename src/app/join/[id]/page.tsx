@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowLeft, CheckCircle2, Clapperboard, Copy, LockKeyhole, MessageCircle, Music2, Radio, Sparkles, UsersRound } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, Clapperboard, Copy, LockKeyhole, MessageCircle, Music2, Radio, Sparkles, Tv2, UsersRound } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
@@ -10,12 +10,12 @@ import { TopRightControls } from '@/components/top-controls';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 
 type JoinState = 'loading' | 'ready' | 'joining' | 'joined' | 'auth' | 'error';
-type Preview = { id: string; name: string; desc: string; type: 'PUBLIC' | 'PRIVATE'; kind: 'CHAT' | 'MOVIE' | 'MUSIC' | 'HANGOUT'; closed: boolean; members: number; owner: { username: string; avatarId: number; profilePhotoId: string | null } };
+type Preview = { id: string; name: string; desc: string; type: 'PUBLIC' | 'PRIVATE'; kind: 'CHAT' | 'MOVIE' | 'MUSIC' | 'HANGOUT' | 'ANIME'; closed: boolean; members: number; owner: { username: string; avatarId: number; profilePhotoId: string | null } };
 
 export default function JoinJamPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTranslations(); const router = useRouter(); const setRoomId = useAppStore((s) => s.setRoomId);
   const [state, setState] = useState<JoinState>('loading'); const [preview, setPreview] = useState<Preview | null>(null); const [errMsg, setErrMsg] = useState(''); const [copied, setCopied] = useState(false); const [jamId, setJamId] = useState(''); const ran = useRef(false);
-  const kind = useMemo(() => { if (!preview) return { label: t('join.chat'), icon: MessageCircle, tone: 'violet' }; if (preview.kind === 'MUSIC') return { label: t('join.music'), icon: Music2, tone: 'pink' }; if (preview.kind === 'MOVIE') return { label: t('join.movie'), icon: Clapperboard, tone: 'blue' }; if (preview.kind === 'HANGOUT') return { label: t('join.hangout'), icon: Sparkles, tone: 'green' }; return { label: t('join.chat'), icon: MessageCircle, tone: 'violet' }; }, [preview, t]);
+  const kind = useMemo(() => { if (!preview) return { label: t('join.chat'), icon: MessageCircle, tone: 'violet' }; if (preview.kind === 'MUSIC') return { label: t('join.music'), icon: Music2, tone: 'pink' };   if (preview.kind === 'MOVIE') return { label: t('join.movie'), icon: Clapperboard, tone: 'blue' }; if (preview.kind === 'ANIME') return { label: t('join.anime'), icon: Tv2, tone: 'pink' }; if (preview.kind === 'HANGOUT') return { label: t('join.hangout'), icon: Sparkles, tone: 'green' }; return { label: t('join.chat'), icon: MessageCircle, tone: 'violet' }; }, [preview, t]);
   const load = async () => { setState('loading'); setErrMsg(''); try { const p = await api<{ jam: Preview }>(`/api/jams/${jamId}/preview`); setPreview(p.jam); const user = await api<{ user: unknown }>('/api/auth').catch(() => null); setState(user ? 'ready' : 'auth'); } catch (err) { setState('error'); setErrMsg(err instanceof Error ? err.message : ''); } };
   useEffect(() => { if (ran.current) return; ran.current = true; void params.then((p) => setJamId(p.id)); }, [params]);
   useEffect(() => { if (jamId) void load(); }, [jamId]);

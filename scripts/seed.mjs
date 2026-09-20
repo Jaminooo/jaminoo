@@ -228,6 +228,151 @@ async function seedCinema() {
   }
 }
 
+async function seedAnime() {
+  const DEMO = '/defaults/videos/demo.mp4';
+  const rows = [
+    {
+      slug: 'cowboy-bebop',
+      title: 'Cowboy Bebop',
+      original: 'カウンボーイビバップ',
+      type: 'TV',
+      status: 'FINISHED',
+      year: 1998,
+      episodes: 26,
+      rating: 9.5,
+      studio: 'Sunrise',
+      genres: ['Action', 'Sci-Fi', 'Drama'],
+      colors: [260, 340],
+      overview: 'The Bebop crew hunt bounties across the solar system in this space-western classic.',
+      coverFile: '/defaults/images/movie.png',
+      eps: [
+        { number: 1, title: 'Asteroid Blaster', dur: 1680 },
+        { number: 2, title: 'Less from Legend', dur: 1600 },
+        { number: 3, title: 'Ballad of Fallen Angels', dur: 1620 },
+        { number: 5, title: 'Ballad of the Brave', dur: 1660 },
+      ],
+    },
+    {
+      slug: 'spirited-away',
+      title: 'Spirited Away',
+      original: '千と千への剣',
+      type: 'MOVIE',
+      status: 'FINISHED',
+      year: 2001,
+      episodes: 1,
+      rating: 9.7,
+      studio: 'Studio Ghibli',
+      genres: ['Adventure', 'Fantasy', 'Family'],
+      colors: [30, 40],
+      overview: 'A young girl enters the spirit world and works in a bathhouse to find her way home.',
+      coverFile: '/defaults/images/movie.png',
+      eps: [{ number: 1, title: 'The River, the Shrine, and the Girl', dur: 7800 }],
+    },
+    {
+      slug: 'demon-slayer',
+      title: 'Demon Slayer: Kimetsu',
+      original: '鬼滅の刃',
+      type: 'TV',
+      status: 'AIRING',
+      year: 2019,
+      episodes: 44,
+      rating: 8.9,
+      studio: 'ufotable',
+      genres: ['Action', 'Demons', 'Fantasy'],
+      colors: [340, 260],
+      overview: 'Tanjiro hunts demons to save his sister, whose soul still burns with kindness.',
+      coverFile: '/defaults/images/video.png',
+      eps: [
+        { number: 1, title: 'Cruelty: The Demon', dur: 1440 },
+        { number: 19, title: 'Hinokami', dur: 1320 },
+        { number: 26, title: 'Hinokami Rising', dur: 1260 },
+      ],
+    },
+    {
+      slug: 'your-name',
+      title: 'Your Name',
+      original: '君の名は。',
+      type: 'MOVIE',
+      status: 'FINISHED',
+      year: 2016,
+      episodes: 1,
+      rating: 8.4,
+      studio: 'CoMix Wave Films',
+      genres: ['Romance', 'Drama', 'Fantasy'],
+      colors: [200, 260],
+      overview: 'Two strangers begin swapping bodies and timelines in a story that defies distance.',
+      coverFile: '/defaults/images/movie.png',
+      eps: [{ number: 1, title: 'The Girl Who Fell', dur: 6120 }],
+    },
+  ];
+
+  for (const r of rows) {
+    const existing = await prisma.anime.upsert({
+      where: { slug: r.slug },
+      update: {
+        title: r.title,
+        original: r.original,
+        overview: r.overview,
+        coverFile: r.coverFile,
+        trailerUrl: '',
+        type: r.type,
+        status: r.status,
+        year: r.year,
+        episodes: r.episodes,
+        rating: r.rating,
+        genres: JSON.stringify(r.genres),
+        studio: r.studio,
+        colorFrom: r.colors[0],
+        colorTo: r.colors[1],
+        visibility: 'PUBLIC',
+      },
+      create: {
+        slug: r.slug,
+        title: r.title,
+        original: r.original,
+        overview: r.overview,
+        coverFile: r.coverFile,
+        trailerUrl: '',
+        type: r.type,
+        status: r.status,
+        year: r.year,
+        episodes: r.episodes,
+        rating: r.rating,
+        genres: JSON.stringify(r.genres),
+        studio: r.studio,
+        colorFrom: r.colors[0],
+        colorTo: r.colors[1],
+        visibility: 'PUBLIC',
+      },
+    });
+    for (const e of r.eps) {
+      const exists = await prisma.animeEpisode.findFirst({ where: { animeId: existing.id, number: e.number } });
+      const epData = {
+        animeId: existing.id,
+        number: e.number,
+        slug: e.number === 1 ? 'e01' : `e${String(e.number).padStart(2, '0')}`,
+        title: e.title,
+        externalUrl: DEMO,
+        thumbnailUrl: r.coverFile,
+        subtitlesUrl: '',
+        durationSec: e.dur,
+      };
+      if (exists) await prisma.animeEpisode.update({ where: { id: exists.id }, data: epData });
+      else await prisma.animeEpisode.create({ data: epData });
+    }
+  }
+}
+
+async function seedSuperAdmin() {
+  const admin = await prisma.user.findUnique({ where: { username: 'admin' } });
+  if (!admin) return;
+  await prisma.adminRole.upsert({
+    where: { userId: admin.id },
+    update: { role: 'SUPER', scope: '' },
+    create: { userId: admin.id, role: 'SUPER', scope: '' },
+  });
+}
+
 async function seedVideoPosts() {
   const byName = async (name) => prisma.user.findUnique({ where: { username: name } });
 
@@ -431,9 +576,11 @@ async function main() {
   await seedUsers();
   await seedMusic();
   await seedCinema();
+  await seedAnime();
   await seedVideoPosts();
   await seedTweets();
   await seedJams();
+  await seedSuperAdmin();
   console.log('> Seed complete. Demo password for users: demo1234 (admin: admin1234)');
 }
 

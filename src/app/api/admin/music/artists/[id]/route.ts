@@ -1,11 +1,13 @@
-import { handle, json, err, requireAdmin } from '@/lib/api';
+import { handle, json, err } from '@/lib/api';
+import { requireHubAdmin } from '@/lib/roles';
+const ADMIN_SCOPE = 'MUSIC';
 import { prisma } from '@/lib/prisma';
 import { deleteMusicFile } from '@/lib/music';
 
 type Ctx = { params: { id: string } };
 
 export const PATCH = handle(async (req, { params }: Ctx) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Not found', 404);
   const artist = await prisma.artist.findUnique({ where: { id } });
@@ -34,7 +36,7 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
 });
 
 export const DELETE = handle(async (_req, { params }: Ctx) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Not found', 404);
 

@@ -1,5 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { requireAnyAdmin } from '@/lib/roles';
 import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
@@ -35,9 +36,13 @@ async function hasApprovedCreator(userId: number) {
 export const POST = handle(async (req: Request) => {
   const me = await requireUser();
   const form = await req.formData();
-  const context = form.get('context') === 'cinema' ? 'cinema' : 'video';
-  if (context !== 'cinema' && !(await hasApprovedCreator(me.id))) return err('Creator approval is required before uploading media', 403);
-  if (context === 'cinema' && !me.isAdmin) return err('Admin access is required for cinema uploads', 403);
+  const rawContext = form.get('context');
+  const context = rawContext === 'cinema' ? 'cinema' : rawContext === 'anime' ? 'anime' : 'video';
+  if (context !== 'video') {
+    await requireAnyAdmin();
+  } else if (!(await hasApprovedCreator(me.id))) {
+    return err('Creator approval is required before uploading media', 403);
+  }
   const file = form.get('file');
   if (!(file instanceof File)) return err('No file provided');
   if (file.size <= 0) return err('The selected file is empty');

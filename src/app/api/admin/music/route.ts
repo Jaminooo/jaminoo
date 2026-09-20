@@ -1,8 +1,10 @@
-import { handle, json, requireAdmin } from '@/lib/api';
+import { handle, json } from '@/lib/api';
+import { requireHubAdmin } from '@/lib/roles';
+const ADMIN_SCOPE = 'MUSIC';
 import { prisma } from '@/lib/prisma';
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const [songs, artists, albums, playlists, totalPlays, featured, recent] = await Promise.all([
     prisma.song.count(),
     prisma.artist.count(),

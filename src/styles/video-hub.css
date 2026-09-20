@@ -59,8 +59,8 @@
 /* Focused UX fixes: stable media cards */
 .video-post-card { width: min(100%, 620px); min-width: 0; max-width: 620px; margin-inline: auto; overflow: hidden; }
 .video-post-card .video-card-media { width: 100%; max-height: min(68vh, 680px); overflow: hidden; }
-.video-post-short .video-card-media { width: min(100%, 390px); max-height: min(72vh, 690px); margin-inline: auto; }
-.video-post-short .video-card-media video { display: block; width: 100%; height: auto; max-height: min(72vh, 690px); object-fit: contain; }
+.video-post-short .video-card-media { position: relative; width: min(100%, 390px); max-height: min(76vh, 760px); margin-inline: auto; }
+.video-post-short .video-card-video-wrap .vp-player { max-height: min(76vh, 760px); }
 .video-sound-button { right: 12px; bottom: 12px; }
 .video-sound-hint { right: 56px; bottom: 18px; }
 .video-post-actions { position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; }

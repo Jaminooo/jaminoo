@@ -514,6 +514,104 @@ app.prepare().then(async () => {
       }
     });
 
+    const animePositionMs = (jam) => {
+      if (jam.currentAnimePlaying && jam.currentAnimeStartedAt) {
+        return jam.currentAnimePosition + (Date.now() - jam.currentAnimeStartedAt.getTime());
+      }
+      return jam.currentAnimePosition;
+    };
+
+    const animeEpisodePayloadJS = (episode) => episode ? {
+      id: episode.id,
+      animeId: episode.animeId,
+      title: episode.title,
+      number: episode.number,
+      slug: episode.slug,
+      externalUrl: episode.externalUrl || null,
+      thumbnailUrl: episode.thumbnailUrl || null,
+      subtitlesUrl: episode.subtitlesUrl || null,
+      durationSec: episode.durationSec,
+    } : null;
+
+    const refreshAnimeJam = async (jamId) => prisma.jam.findUnique({
+      where: { id: jamId },
+      include: { currentAnimeEpisode: true, members: true },
+    });
+
+    const broadcastAnimeState = (jam) => {
+      io.to(`jam:${jam.id}`).emit('anime:state', {
+        jamId: jam.id,
+        now: animeEpisodePayloadJS(jam.currentAnimeEpisode),
+        playing: jam.currentAnimePlaying,
+        positionMs: animePositionMs(jam),
+        atMs: Date.now(),
+        durationSec: jam.currentAnimeEpisode ? jam.currentAnimeEpisode.durationSec : 0,
+      });
+    };
+
+    socket.on('anime:sync', async (jamId) => {
+      if (typeof jamId !== 'string' || !jamId) return;
+      try {
+        const jam = await refreshAnimeJam(jamId);
+        if (!jam || jam.kind !== 'ANIME' || !jam.members.some((member) => member.userId === userId)) return;
+        broadcastAnimeState(jam);
+      } catch (e) {
+        console.error('anime:sync error:', e && e.message);
+      }
+    });
+
+    socket.on('anime:control', async (d) => {
+      if (!d || typeof d !== 'object' || typeof d.jamId !== 'string') return;
+      const jamId = d.jamId;
+      const action = String(d.action || '').toLowerCase();
+      try {
+        const jam = await refreshAnimeJam(jamId);
+        if (!jam || jam.kind !== 'ANIME') return;
+        const member = jam.members.find((item) => item.userId === userId);
+        if (!member) return;
+        const canControl = jam.ownerId === userId || !!socket.data.isAdmin || member.role === 'MINI_HOST';
+        if (!canControl) return;
+        const episodeId = Number(d.episodeId);
+        const position = Number(d.position);
+        const update = {};
+
+        if (action === 'load' || (action === 'play' && Number.isInteger(episodeId) && episodeId > 0)) {
+          const episode = await prisma.animeEpisode.findFirst({ where: { id: episodeId, anime: { visibility: 'PUBLIC' } } });
+          if (!episode) return;
+          update.currentAnimeEpisodeId = episode.id;
+          update.currentAnimePosition = Math.max(0, Math.min(episode.durationSec * 1000, Number.isFinite(position) ? position : 0));
+          update.currentAnimePlaying = action === 'play';
+          update.currentAnimeStartedAt = action === 'play' ? new Date() : null;
+        } else if (action === 'play' || action === 'resume') {
+          if (!jam.currentAnimeEpisodeId) return;
+          update.currentAnimePlaying = true;
+          update.currentAnimeStartedAt = new Date();
+        } else if (action === 'pause') {
+          update.currentAnimePlaying = false;
+          update.currentAnimePosition = animePositionMs(jam);
+          update.currentAnimeStartedAt = null;
+        } else if (action === 'seek') {
+          if (!jam.currentAnimeEpisodeId) return;
+          const durationMs = Math.max(0, (jam.currentAnimeEpisode?.durationSec || 0) * 1000);
+          const requested = Math.max(0, Number.isFinite(position) ? position : 0);
+          update.currentAnimePosition = durationMs > 0 ? Math.min(durationMs, requested) : requested;
+          update.currentAnimeStartedAt = jam.currentAnimePlaying ? new Date() : null;
+        } else if (action === 'ended') {
+          update.currentAnimePlaying = false;
+          update.currentAnimePosition = Math.max(0, (jam.currentAnimeEpisode?.durationSec || 0) * 1000);
+          update.currentAnimeStartedAt = null;
+        } else {
+          return;
+        }
+
+        await prisma.jam.update({ where: { id: jamId }, data: update });
+        const fresh = await refreshAnimeJam(jamId);
+        if (fresh) broadcastAnimeState(fresh);
+      } catch (e) {
+        console.error('anime:control error:', e && e.message);
+      }
+    });
+
     socket.on('jam:role', async (d) => {
       if (!d || typeof d !== 'object' || typeof d.jamId !== 'string' || !Number.isInteger(d.userId)) return;
       const jamId = d.jamId;

@@ -23,6 +23,7 @@ interface JamRow {
 function kindTone(kind: string): Tone {
   if (kind === 'MOVIE') return 'violet';
   if (kind === 'MUSIC') return 'green';
+  if (kind === 'ANIME') return 'violet';
   if (kind === 'HANGOUT') return 'amber';
   return 'steel';
 }

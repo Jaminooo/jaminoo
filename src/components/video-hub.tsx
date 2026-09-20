@@ -980,6 +980,11 @@ export function VideoHub() {
       .finally(() => setPlaylistsLoading(false));
   }, []);
 
+  const loadStudioPosts = useCallback(() => {
+    setStudioLoading(true);
+    api<{ posts: VideoPost[] }>('/api/video/studio').then((data) => setStudioPosts(data.posts)).catch(() => setStudioPosts([])).finally(() => setStudioLoading(false));
+  }, []);
+
   useEffect(() => {
     api<{ applications: { status: 'PENDING' | 'APPROVED' | 'REJECTED' }[] }>('/api/creator/apply?hub=VIDEO').then((data) => setCreatorStatus(data.applications[0]?.status ?? null)).catch(() => {});
     const params = new URLSearchParams(window.location.search);
@@ -1013,9 +1018,8 @@ export function VideoHub() {
 
   useEffect(() => {
     if (view !== 'studio') return;
-    setStudioLoading(true);
-    api<{ posts: VideoPost[] }>('/api/video/studio').then((data) => setStudioPosts(data.posts)).catch(() => setStudioPosts([])).finally(() => setStudioLoading(false));
-  }, [view]);
+    loadStudioPosts();
+  }, [view, loadStudioPosts]);
 
   useEffect(() => {
     if (view !== 'playlists') return;
@@ -1102,8 +1106,23 @@ export function VideoHub() {
 
   const openPost = (post: VideoPost) => {
     setActivePost(post);
-    window.history.replaceState({}, '', `/?hub=video&post=${post.id}`);
+    // Push (not replace) so the browser Back button closes the modal.
+    window.history.pushState({ jaminoPost: post.id }, '', `/?hub=video&post=${post.id}`);
   };
+
+  // Back button closes the post modal when the post param disappears.
+  useEffect(() => {
+    const onPop = () => {
+      const postId = Number(new URLSearchParams(window.location.search).get('post') || 0);
+      if (!postId) {
+        setActivePost(null);
+        setDeepLinkAt(0);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
@@ -1168,7 +1187,7 @@ export function VideoHub() {
 
           {view === 'creators' && <CreatorsView onOpenCreator={setCreatorProfileId} />}
 
-          {view === 'studio' && <CreatorStudio posts={studioPosts} loading={studioLoading} onDelete={(post) => void deleteStudioPost(post)} onEditProfile={() => setCreatorOpen(true)} onEditPost={setEditPost} />}
+          {view === 'studio' && <CreatorStudio posts={studioPosts} loading={studioLoading} onDelete={(post) => void deleteStudioPost(post)} onEditProfile={() => setCreatorOpen(true)} onEditPost={setEditPost} onRefresh={loadStudioPosts} />}
           {view === 'playlists' && <section className="video-playlists-view">
             <div className="video-playlist-hero"><ListVideo size={26} /><div><div className="hub-kicker">{t('video.playlist.libKicker')}</div><h2>{t('video.playlist.libTitle')}</h2><p>{t('video.playlist.libSub')}</p></div></div>
             <form className="video-create-playlist" onSubmit={createPlaylist}><input value={playlistName} onChange={(event) => setPlaylistName(event.target.value)} placeholder={t('video.playlist.newPh')} maxLength={80} /><button type="submit" className="btn btn-violet pill-sm" disabled={!playlistName.trim()}><Plus size={14} /> {t('video.feed.create')}</button></form>
@@ -1224,18 +1243,48 @@ export function VideoHub() {
   );
 }
 
-function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void; onEditProfile: () => void; onEditPost: (post: VideoPost) => void }) {
+function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost, onRefresh }: { posts: VideoPost[]; loading: boolean; onDelete: (post: VideoPost) => void; onEditProfile: () => void; onEditPost: (post: VideoPost) => void; onRefresh: () => void }) {
   const t = useTranslations();
+  const [scheduling, setScheduling] = useState<VideoPost | null>(null);
+  const [when, setWhen] = useState('');
+  const [savingSchedule, setSavingSchedule] = useState(false);
   const likes = posts.reduce((sum, post) => sum + post.likes, 0);
   const saves = posts.reduce((sum, post) => sum + post.saves, 0);
   const comments = posts.reduce((sum, post) => sum + post.comments, 0);
   const interactions = likes + saves + comments;
-  const updateWorkflow = async (post: VideoPost, workflowStatus: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED') => {
-    const publishAt = workflowStatus === 'SCHEDULED' ? window.prompt(t('video.studio.prompt')) : null;
+
+  const toLocalInput = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const openScheduler = (post: VideoPost) => {
+    setScheduling(post);
+    setWhen(toLocalInput(new Date(Date.now() + 60 * 60 * 1000)));
+  };
+
+  const confirmSchedule = async () => {
+    if (!scheduling || !when) return;
+    const publishAt = new Date(when).toISOString();
+    if (Number.isNaN(Date.parse(publishAt))) return;
+    setSavingSchedule(true);
     try {
-      const data = await api<{ post: VideoPost }>('/api/video/studio', { method: 'PATCH', body: JSON.stringify({ id: post.id, workflowStatus, publishAt }) });
-      window.location.reload();
-      void data;
+      await api('/api/video/studio', { method: 'PATCH', body: JSON.stringify({ id: scheduling.id, workflowStatus: 'SCHEDULED', publishAt }) });
+      toast(t('video.studio.scheduled'), 'ok');
+      setScheduling(null);
+      onRefresh();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('video.studio.workflowError'), 'error');
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const updateWorkflow = async (post: VideoPost, workflowStatus: 'DRAFT' | 'PUBLISHED') => {
+    try {
+      await api('/api/video/studio', { method: 'PATCH', body: JSON.stringify({ id: post.id, workflowStatus }) });
+      toast(t('video.studio.workflowUpdated'), 'ok');
+      onRefresh();
     } catch (error) { toast(error instanceof Error ? error.message : t('video.studio.workflowError'), 'error'); }
   };
 
@@ -1256,7 +1305,7 @@ function CreatorStudio({ posts, loading, onDelete, onEditProfile, onEditPost }: 
         <div className="creator-studio-toolbar"><p>{t('video.studio.toolbarNote')}</p><span className="creator-studio-edit"><TrendingUp size={14} /> {t('video.studio.tracked', { n: interactions })}</span></div>
         <div className="creator-studio-table">
           <div className="creator-studio-row creator-studio-row-head"><span>{t('video.studio.colPost')}</span><span>{t('video.studio.colLikes')}</span><span>{t('video.studio.colSaves')}</span><span>{t('video.studio.colComments')}</span><span>{t('video.studio.colType')}</span><span /></div>
-          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || t('video.common.untitledPost')}</b><small>{new Date(post.createdAt).toLocaleDateString()} · {post.workflowStatus ?? 'PUBLISHED'}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>{t('video.studio.likesLabel')}</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>{t('video.studio.savesLabel')}</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>{t('video.studio.commentsLabel')}</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>{t('video.studio.formatLabel')}</span><div className="creator-studio-row-actions"><button type="button" className="btn-icon" onClick={() => onEditPost(post)} title={t('video.edit.edit')}><Pencil size={15} /></button><button type="button" className="btn btn-ghost pill-sm" onClick={() => void updateWorkflow(post, post.workflowStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}>{post.workflowStatus === 'PUBLISHED' ? t('video.studio.draft') : t('video.studio.publish')}</button><button type="button" className="btn btn-ghost pill-sm" onClick={() => void updateWorkflow(post, 'SCHEDULED')}>{t('video.studio.schedule')}</button><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title={t('video.studio.deleteTitle')}><Trash2 size={15} /></button></div></div>)}
+          {posts.map((post) => <div className="creator-studio-row" key={post.id}><div className="creator-studio-row-title"><div><b>{post.title || t('video.common.untitledPost')}</b><small>{new Date(post.createdAt).toLocaleDateString()} · {post.workflowStatus ?? 'PUBLISHED'}</small></div></div><span className="creator-studio-row-stat"><strong>{post.likes}</strong>{t('video.studio.likesLabel')}</span><span className="creator-studio-row-stat"><strong>{post.saves}</strong>{t('video.studio.savesLabel')}</span><span className="creator-studio-row-stat"><strong>{post.comments}</strong>{t('video.studio.commentsLabel')}</span><span className="creator-studio-row-stat"><strong>{post.kind}</strong>{t('video.studio.formatLabel')}</span><div className="creator-studio-row-actions"><button type="button" className="btn-icon" onClick={() => onEditPost(post)} title={t('video.edit.edit')}><Pencil size={15} /></button><button type="button" className="btn btn-ghost pill-sm" onClick={() => void updateWorkflow(post, post.workflowStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}>{post.workflowStatus === 'PUBLISHED' ? t('video.studio.draft') : t('video.studio.publish')}</button><button type="button" className="btn btn-ghost pill-sm" onClick={() => openScheduler(post)}>{t('video.studio.schedule')}</button><button type="button" className="btn-icon danger" onClick={() => onDelete(post)} title={t('video.studio.deleteTitle')}><Trash2 size={15} /></button></div></div>)}
         </div>
         <CreatorCollabStudio posts={posts.map((post) => ({ id: post.id, title: post.title, kind: post.kind }))} />
       </>}

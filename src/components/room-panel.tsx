@@ -12,13 +12,14 @@ import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/m
 import { useContextMenu, type CmItem } from '@/components/context-menu';
 import { MusicPlayer } from '@/components/music-player';
 import { CinemaPlayer } from '@/components/cinema-player';
+import { AnimePlayer } from '@/components/anime-player';
 import { usePanelResize } from '@/lib/use-panel-resize';
 import { api } from '@/lib/client-api';
 import { connectLive, emitLive, emitWhenConnected, onLive, onLiveConnect, liveConnected, liveSocketId } from '@/lib/live';
 import { toast } from '@/components/toast';
 import { JamWorldPanel } from '@/components/jam-world-panel';
 import { ReportMessageModal } from '@/components/report-message-modal';
-import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Hammer, Trash2, MessageCircle, Flag } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Tv2, Hammer, Trash2, MessageCircle, Flag } from 'lucide-react';
 
 interface ChatUser {
   id: number;
@@ -63,6 +64,7 @@ const KIND_ICON: Record<string, React.ReactNode> = {
   MOVIE: <Film size={13} />,
   MUSIC: <Music2 size={13} />,
   HANGOUT: <UsersIcon size={13} />,
+  ANIME: <Tv2 size={13} />,
 };
 
 export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void }) {
@@ -79,6 +81,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [mobilePane, setMobilePane] = useState<'chat' | 'members' | 'music'>('chat');
+  const mediaKind = jam?.kind === 'MUSIC' || jam?.kind === 'MOVIE' || jam?.kind === 'ANIME';
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -318,7 +321,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
     return items;
   };
 
-  const { gridRef, gridStyle, beginResize, beginVertical } = usePanelResize(jam?.kind === 'MUSIC' || jam?.kind === 'MOVIE');
+  const { gridRef, gridStyle, beginResize, beginVertical } = usePanelResize(mediaKind);
 
   if (!jam) return <div className="empty-state" style={{ padding: 48 }}>…</div>;
   const isOwner = jam.ownerId === me?.id;
@@ -354,7 +357,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           <div style={{ minWidth: 0 }}>
             <div className="room-title">{jam.name}</div>
             <div className="room-members">
-              <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind]} {t(`jams.kind${jam.kind.charAt(0)}${jam.kind.slice(1).toLowerCase()}`)}</span>
+               <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind] ?? <Hammer size={13} />} {t(`jams.kind${jam.kind.charAt(0)}${jam.kind.slice(1).toLowerCase()}`)}</span>
               {jam.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
               {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
             </div>
@@ -410,9 +413,10 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         <button type="button" className={mobilePane === 'members' ? 'active' : ''} onClick={() => setMobilePane('members')}>
           <UsersIcon size={15} /> {t('room.tabMembers')}
         </button>
-        {(jam.kind === 'MUSIC' || jam.kind === 'MOVIE') && (
+        {(jam.kind === 'MUSIC' || jam.kind === 'MOVIE' || jam.kind === 'ANIME') && (
           <button type="button" className={mobilePane === 'music' ? 'active' : ''} onClick={() => setMobilePane('music')}>
-            {jam.kind === 'MUSIC' ? <Music2 size={15} /> : <Film size={15} />} {jam.kind === 'MUSIC' ? t('room.tabMusic') : t('room.tabCinema')}
+            {jam.kind === 'MUSIC' ? <Music2 size={15} /> : jam.kind === 'ANIME' ? <Tv2 size={15} /> : <Film size={15} />}{' '}
+            {jam.kind === 'MUSIC' ? t('room.tabMusic') : jam.kind === 'ANIME' ? t('room.tabAnime') : t('room.tabCinema')}
           </button>
         )}
       </div>
@@ -527,6 +531,14 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
             <div className="resize-gutter resize-gutter-music" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label="Resize cinema" />
             <aside className="room-col-music room-col-cinema">
               <CinemaPlayer jamId={jam.id} chatSlot={chatPreview} />
+            </aside>
+          </>
+        )}
+        {jam.kind === 'ANIME' && (
+          <>
+            <div className="resize-gutter resize-gutter-music" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label="Resize anime" />
+            <aside className="room-col-music room-col-anime">
+              <AnimePlayer jamId={jam.id} chatSlot={chatPreview} />
             </aside>
           </>
         )}

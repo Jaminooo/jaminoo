@@ -1,4 +1,6 @@
-import { handle, json, err, requireAdmin } from '@/lib/api';
+import { handle, json, err } from '@/lib/api';
+import { requireHubAdmin } from '@/lib/roles';
+const ADMIN_SCOPE = 'CINEMA';
 import { prisma } from '@/lib/prisma';
 import { cinemaPayload } from '@/lib/jam-cinema';
 import { pushAdminEvent } from '@/lib/admin';
@@ -18,7 +20,7 @@ function safeUrl(value: unknown, max = 1800) {
 }
 
 export const PATCH = handle(async (req, { params }: Ctx) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Invalid cinema item', 400);
   const body = await req.json().catch(() => ({}));
@@ -44,7 +46,7 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
 });
 
 export const DELETE = handle(async (_req, { params }: Ctx) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Invalid cinema item', 400);
   const existing = await prisma.cinemaVideo.findUnique({ where: { id } }).catch(() => null);

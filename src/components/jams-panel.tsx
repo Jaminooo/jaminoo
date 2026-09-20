@@ -7,7 +7,7 @@ import { JaminoAvatar } from '@/components/jamino-avatar';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { loadUnread } from '@/lib/unread';
-import { Plus, Radio, Globe, Lock, Users as UsersIcon, Music2, Check, X, Hammer, Film, LogIn, Copy } from 'lucide-react';
+import { Plus, Radio, Globe, Lock, Users as UsersIcon, Music2, Check, X, Hammer, Film, Tv2, LogIn, Copy } from 'lucide-react';
 import { JAM_KINDS } from '@/lib/constants';
 
 interface JamRow {
@@ -48,6 +48,7 @@ const KIND_ICON: Record<string, React.ReactNode> = {
   CHAT: <Hammer size={13} />,
   MOVIE: <Film size={13} />,
   MUSIC: <Music2 size={13} />,
+  ANIME: <Tv2 size={13} />,
   HANGOUT: <UsersIcon size={13} />,
 };
 

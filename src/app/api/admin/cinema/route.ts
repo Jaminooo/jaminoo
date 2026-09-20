@@ -1,4 +1,6 @@
-import { handle, json, err, requireAdmin } from '@/lib/api';
+import { handle, json, err } from '@/lib/api';
+import { requireHubAdmin } from '@/lib/roles';
+const ADMIN_SCOPE = 'CINEMA';
 import { prisma } from '@/lib/prisma';
 import { cinemaPayload } from '@/lib/jam-cinema';
 import { pushAdminEvent } from '@/lib/admin';
@@ -16,13 +18,13 @@ function safeUrl(value: unknown, max = 1800) {
 }
 
 export const GET = handle(async () => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const rows = await prisma.cinemaVideo.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
   return json({ items: rows.map(cinemaPayload) });
 });
 
 export const POST = handle(async (req) => {
-  await requireAdmin();
+  await requireHubAdmin(ADMIN_SCOPE);
   const body = await req.json().catch(() => ({}));
   const title = typeof body.title === 'string' ? body.title.trim().slice(0, 180) : '';
   const kind = typeof body.kind === 'string' && body.kind.toUpperCase() === 'SERIES' ? 'SERIES' : 'MOVIE';

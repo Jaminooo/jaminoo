@@ -20,9 +20,10 @@ model User {
   githubLogin  String?   @unique
   status       String    @default("ONLINE") // ONLINE | IDLE | BUSY | OFFLINE
   statusText   String    @default("")
-  createdAt    DateTime  @default(now())
-  isAdmin      Boolean   @default(false)
-  bannedUntil  DateTime?
+   createdAt    DateTime  @default(now())
+   isAdmin      Boolean   @default(false)
+   adminRoles   AdminRole[]
+   bannedUntil  DateTime?
   bannedReason String    @default("")
 
   profilePhotoId String?  @unique
@@ -92,6 +93,19 @@ model User {
   pinnedTweetId Int? @unique
 }
 
+model AdminRole {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  role      String   @default("HUB") // SUPER | HUB
+  scope     String   @default("")    // "" for SUPER, otherwise a hub scope (MUSIC | VIDEO | ANIME | CINEMA | TWEET | COMMUNITY | ALL)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([role, scope])
+}
+
 model Session {
   token     String   @id
   userId    Int
@@ -145,6 +159,11 @@ model Jam {
   currentCinemaPlaying Boolean @default(false)
   currentCinemaPosition Int @default(0)
 
+  currentAnimeEpisodeId   Int?
+  currentAnimePlaying     Boolean @default(false)
+  currentAnimePosition    Int     @default(0)
+  currentAnimeStartedAt   DateTime?
+
   owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members      JamMember[]
   messages     JamMessage[]
@@ -153,7 +172,8 @@ model Jam {
   queueItems   JamQueueItem[]
   queueVotes   JamQueueVote[]
   currentSong  Song?         @relation(fields: [currentSongId], references: [id], onDelete: SetNull)
-  currentCinemaVideo CinemaVideo? @relation("JamCinemaVideo", fields: [currentCinemaVideoId], references: [id], onDelete: SetNull)
+  currentCinemaVideo  CinemaVideo? @relation("JamCinemaVideo", fields: [currentCinemaVideoId], references: [id], onDelete: SetNull)
+  currentAnimeEpisode AnimeEpisode? @relation("JamAnimeEpisode", fields: [currentAnimeEpisodeId], references: [id], onDelete: SetNull)
 }
 
 model JamMember {
@@ -673,6 +693,66 @@ model CinemaVideo {
   jams Jam[] @relation("JamCinemaVideo")
 
   @@index([kind, visibility, id])
+}
+
+enum AnimeType {
+  TV
+  MOVIE
+  OVA
+  SPECIAL
+}
+
+enum AnimeStatus {
+  FINISHED
+  AIRING
+  UPCOMING
+}
+
+model Anime {
+  id          Int            @id @default(autoincrement())
+  slug        String         @unique
+  title       String
+  original    String         @default("")
+  overview    String         @default("")
+  coverFile   String         @default("")
+  trailerUrl  String         @default("")
+  type        AnimeType      @default(TV)
+  status      AnimeStatus    @default(FINISHED)
+  year        Int            @default(0)
+  episodes    Int            @default(0)
+  rating      Float          @default(0)
+  genres      String         @default("[]") // JSON array of genre strings
+  studio      String         @default("")
+  colorFrom   Int            @default(260)
+  colorTo     Int            @default(340)
+  visibility  String         @default("PUBLIC") // PUBLIC | HIDDEN
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  episodes_   AnimeEpisode[]
+
+  @@index([visibility, id])
+  @@index([type, status])
+  @@index([rating])
+  @@index([year])
+}
+
+model AnimeEpisode {
+  id          Int      @id @default(autoincrement())
+  animeId     Int
+  slug        String   @default("") // e.g. "e01" / "s01e01"
+  title       String
+  number      Int      @default(0)
+  externalUrl String   @default("")
+  thumbnailUrl String   @default("")
+  subtitlesUrl String   @default("")
+  durationSec Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  anime Anime @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  jamCurrent Jam[] @relation("JamAnimeEpisode")
+
+  @@index([animeId, number])
 }
 
 model Tweet {
