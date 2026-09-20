@@ -128,13 +128,44 @@
   .spacer { flex: 1; }
 
   .vol-pop-wrap { position: relative; }
-  .vol-pop { position: absolute; bottom: calc(100% + 8px); right: 0; display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius-card); padding: 14px; box-shadow: var(--elev-3); opacity: 0; translate: 0 6px; pointer-events: none; transition: opacity 0.14s ease, translate 0.14s ease; z-index: 20; touch-action: none; }
+  /* Keep a continuous hover zone between the volume button and popup.
+     The old 8px gap triggered pointerleave before the cursor reached the slider. */
+  .vol-pop-wrap::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    width: 100%;
+    height: 10px;
+    pointer-events: auto;
+  }
+  .vol-pop {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 14px;
+    box-shadow: var(--elev-3);
+    opacity: 0;
+    translate: 0 6px;
+    pointer-events: none;
+    transition: opacity 0.14s ease, translate 0.14s ease;
+    z-index: 20;
+    touch-action: none;
+    max-width: min(calc(100vw - 16px), 260px);
+  }
   .vol-pop.open { opacity: 1; translate: 0 0; pointer-events: auto; }
   .vol-pop .slider { width: 130px; flex: none; }
 
   .pop-host { position: relative; }
   .pop { position: absolute; bottom: calc(100% + 8px); right: 0; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius-card); padding: 6px; min-width: 178px; box-shadow: var(--elev-3); opacity: 0; translate: 0 6px; pointer-events: none; transition: opacity 0.14s ease, translate 0.14s ease; z-index: 20; }
   .pop.open { opacity: 1; translate: 0 0; pointer-events: auto; }
+  .top-acts .pop { top: calc(100% + 8px); bottom: auto; min-width: 185px; max-width: 230px; max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; }
   .pop .pop-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-2); padding: 6px 10px 4px; }
   .pop-item { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 10px; border-radius: 5px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; background: transparent; border: 0; text-align: left; width: 100%; white-space: nowrap; }
   .pop-item:hover { color: var(--text); background: var(--carbon); }
@@ -206,6 +237,39 @@
     .slider { height: 34px; }
     .seek-preview { display: none; }
     .meta h1 { font-size: 15px; }
+  }
+  @media (max-width: 520px) {
+    .stage { border-radius: 0; }
+    .stage-head { flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+    .stage-head .brand-chip b { font-size: 15px; }
+    .stage-head .kicker { display: none; }
+    .top-acts { gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .top-acts .ibtn { width: var(--hit); height: var(--hit); }
+    .meta { padding: 60px 10px 12px; }
+    .meta h1 { font-size: 15px; line-height: 1.3; }
+    .meta p { display: none; }
+    .pop { max-width: calc(100vw - 16px); }
+    .vol-pop { max-width: calc(100vw - 8px); max-height: 40vh; overflow-y: auto; overscroll-behavior: contain; }
+    .vol-pop .slider { width: min(116px, 38vw); }
+    .ibtn { --hit: 46px; }
+    .ibtn svg { width: 19px; height: 19px; }
+    .slider { height: 32px; }
+    .seek-row .slider { height: 24px; }
+    .ibtn.play-ctl { width: 52px; height: 52px; }
+    .hide-ph { display: none; }
+    .hold-row { gap: 8px; }
+    .pos-actions { gap: 0; }
+    .ctr-row { padding-inline: 8px; }
+    .end-card .next-thumb, .end-card .play-btn { flex: none; }
+    .series-chip b, .count-chip b { font-size: 12px; }
+    .topbar-fixes:not(.hide) .top-acts .ibtn:not(.play-ctl) { width: var(--hit); height: var(--hit); }
+  }
+  @media (pointer: coarse) and (max-width: 520px) {
+    .vol-pop { bottom: calc(100% + 10px); padding: 12px; }
+    .vol-pop .slider { width: min(108px, 36vw); }
+    .ibtn { --hit: 48px; }
+    .seek-row .slider { height: 30px; }
+    .ibtn.play-ctl { width: 56px; height: 56px; }
   }
   @media (pointer: fine) {
     .viewport.hovering .topbar, .viewport.hovering .overlay { opacity: 1; }
@@ -697,7 +761,13 @@ viewport.addEventListener('pointerleave', () => {
   const setVolPop = (open) => { volOpen = open; volPop.classList.toggle('open', open); muteBtn.classList.toggle('active', open); };
   const toggleVolPop = () => setVolPop(!volOpen);
   muteBtn.addEventListener('pointerenter', () => { if (!COARSE) setVolPop(true); });
-  volPopWrap.addEventListener('pointerleave', () => { if (!COARSE) setVolPop(false); });
+  volPopWrap.addEventListener('pointerleave', (e) => {
+    if (COARSE) return;
+    // Only close when the pointer really leaves the whole volume control.
+    if (!e.relatedTarget || !volPopWrap.contains(e.relatedTarget)) {
+      setVolPop(false);
+    }
+  });
 
   /* ---------- fullscreen / theater / pip ---------- */
   const iosFs = () => { try { video.webkitEnterFullscreen(); return true; } catch { return false; } };
@@ -820,7 +890,7 @@ viewport.addEventListener('pointerleave', () => {
 
   const goNext = () => { stopAutoNext(); loadItem(index + 1, true); };
   const goPrev = () => { stopAutoNext(); loadItem(index - 1, true); };
-  const goRep = () => { stopAutoNext(); video.currentTime = 0; video.play().catch(() => {}); };
+  const goRep = () => { stopAutoNext(); endScreen.classList.remove('show'); video.currentTime = 0; video.play().catch(() => {}); };  // also close the end screen so "repeat" doesn't stay on top
   prevBtn.addEventListener('click', (e) => { e.stopPropagation(); goPrev(); });
   nextBtn2.addEventListener('click', (e) => { e.stopPropagation(); goNext(); });
   nextBtn.addEventListener('click', (e) => { e.stopPropagation(); goNext(); });
