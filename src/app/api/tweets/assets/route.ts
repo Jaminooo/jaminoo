@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
+import { kindForMime } from '@/lib/media-kinds';
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -50,7 +51,7 @@ export const POST = handle(async (req: Request) => {
   await writeFile(path.join(UPLOAD_DIR, filename), buffer);
 
   const record = await prisma.media.create({
-    data: { id, userId: me.id, kind: mime.startsWith('image/') ? 'IMAGE_ASSET' : 'VIDEO_ASSET', filename, mime, size: file.size },
+    data: { id, userId: me.id, kind: kindForMime(mime), filename, mime, size: file.size },
   });
 
   return json({

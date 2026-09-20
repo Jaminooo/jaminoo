@@ -1,6 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { serializeNotification, safePayload, notifActorId } from '@/lib/notifications';
+import { serializeNotification, safePayload, notifActorId, TWEET_NOTIF_KINDS } from '@/lib/notifications';
 
 export const GET = handle(async (req) => {
   const me = await requireUser();
@@ -8,14 +8,19 @@ export const GET = handle(async (req) => {
   const cursor = Number(params.get('cursor') ?? 0);
   const take = Math.min(60, Math.max(1, Number(params.get('take') ?? 40)));
   const filter = params.get('filter');
+  const tweetsOnly = filter === 'tweets';
 
   const where: any = { userId: me.id };
+  if (tweetsOnly) where.kind = { in: [...TWEET_NOTIF_KINDS] };
   if (filter === 'unread') where.readAt = null;
   if (Number.isInteger(cursor) && cursor > 0) where.id = { lt: cursor };
 
+  const baseUnread = { userId: me.id, readAt: null };
   const [rows, unread] = await Promise.all([
     prisma.notification.findMany({ where, orderBy: { id: 'desc' }, take: take + 1 }),
-    prisma.notification.count({ where: { userId: me.id, readAt: null } }),
+    tweetsOnly
+      ? prisma.notification.count({ where: { ...baseUnread, kind: { in: [...TWEET_NOTIF_KINDS] } } })
+      : prisma.notification.count({ where: baseUnread }),
   ]);
   const hasMore = rows.length > take;
   const page = hasMore ? rows.slice(0, take) : rows;

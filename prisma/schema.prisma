@@ -68,12 +68,28 @@ model User {
   tweets            Tweet[] @relation("UserTweets")
   tweetLikes        TweetLike[] @relation("TweetLikes")
   tweetBookmarks    TweetBookmark[] @relation("TweetBookmarks")
+  bookmarkCollections TweetBookmarkCollection[] @relation("TweetBookmarkCollections")
   tweetFollowing    TweetFollow[] @relation("TweetFollowing")
-  tweetFollowers    TweetFollow[] @relation("TweetFollowers")
+  tweetFollowers   TweetFollow[] @relation("TweetFollowers")
+  followRequestsSent    TweetFollowRequest[] @relation("FollowRequestSent")
+  followRequestsReceived TweetFollowRequest[] @relation("FollowRequestReceived")
   tweetBlocks       TweetBlock[]  @relation("TweetBlocking")
   tweetBlockedBy    TweetBlock[]  @relation("TweetBlocked")
   tweetMutes        TweetMute[]   @relation("TweetMuting")
   tweetMutedBy      TweetMute[]   @relation("TweetMuted")
+  notificationPrefs NotificationPreference[]
+  drafts            Draft[]
+  scheduledTweets   ScheduledTweet[]
+  tweetViews        TweetView[] @relation("TweetViewer")
+  pollVotes         PollVote[] @relation("PollVoter")
+  tweetMentioned    TweetMention[] @relation("TweetMentioned")
+  tweetListsOwned   TweetList[] @relation("TweetListOwner")
+  tweetListMemberships TweetListMember[] @relation("TweetListMemberships")
+  pinnedTweet       Tweet? @relation("UserPinnedTweet", fields: [pinnedTweetId], references: [id], onDelete: SetNull)
+  tweetMods         TweetMod[]
+
+  isPrivate Boolean @default(false)
+  pinnedTweetId Int? @unique
 }
 
 model Session {
@@ -434,6 +450,21 @@ model Notification {
   @@index([userId, readAt, createdAt])
 }
 
+model TweetMod {
+  id        Int      @id @default(autoincrement())
+  tweetId   Int?
+  adminId   Int
+  action    String
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  tweet Tweet? @relation(fields: [tweetId], references: [id], onDelete: SetNull)
+  admin User   @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([tweetId, createdAt])
+  @@index([adminId, createdAt])
+}
+
 
 model MessageReport {
   id             Int       @id @default(autoincrement())
@@ -652,6 +683,7 @@ model Tweet {
   retweetOfId  Int?
   quotedTweetId Int?
   visibility   String   @default("PUBLIC")
+  views        Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -662,10 +694,18 @@ model Tweet {
   retweets  Tweet[]       @relation("TweetRetweets")
   quoted    Tweet?        @relation("TweetQuotes", fields: [quotedTweetId], references: [id], onDelete: SetNull)
   quotes    Tweet[]       @relation("TweetQuotes")
+  pinnedBy  User?         @relation("UserPinnedTweet")
+  mods      TweetMod[]
   assets    TweetAsset[]
   likes     TweetLike[]
   bookmarks TweetBookmark[]
   reports   MessageReport[]
+  hashtags  TweetHashtag[]
+  mentions  TweetMention[]
+  poll      Poll?
+  pollVotes PollVote[]
+  viewsLog  TweetView[]
+  listItems TweetListTweet[]
 
   @@index([authorId, createdAt])
   @@index([visibility, id])
@@ -691,13 +731,31 @@ model TweetBookmark {
   id        Int      @id @default(autoincrement())
   tweetId   Int
   userId    Int
+  collectionId Int?
   createdAt DateTime @default(now())
 
-  tweet Tweet @relation(fields: [tweetId], references: [id], onDelete: Cascade)
-  user  User  @relation("TweetBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  tweet      Tweet                    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  user       User                    @relation("TweetBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  collection TweetBookmarkCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
 
   @@unique([tweetId, userId])
   @@index([userId, createdAt])
+  @@index([collectionId, createdAt])
+}
+
+// Bookmark folders — organizing saved tweets.
+model TweetBookmarkCollection {
+  id        Int      @id @default(autoincrement())
+  ownerId   Int
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User           @relation("TweetBookmarkCollections", fields: [ownerId], references: [id], onDelete: Cascade)
+  bookmarks TweetBookmark[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId, createdAt])
 }
 
 model TweetFollow {
@@ -711,6 +769,22 @@ model TweetFollow {
 
   @@unique([followerId, followingId])
   @@index([followingId, createdAt])
+}
+
+// Follow-request handshake for private accounts.
+model TweetFollowRequest {
+  id          Int      @id @default(autoincrement())
+  requesterId Int
+  targetId    Int
+  status      String   @default("PENDING") // PENDING | ACCEPTED | DECLINED | CANCELED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User @relation("FollowRequestSent", fields: [requesterId], references: [id], onDelete: Cascade)
+  target    User @relation("FollowRequestReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, targetId])
+  @@index([targetId, status])
 }
 
 model TweetBlock {
@@ -752,4 +826,195 @@ model TweetAsset {
   @@unique([tweetId, mediaId])
   @@index([tweetId, pos])
   @@index([mediaId])
+}
+
+// Persistent hashtag registry — normalized lowercase keys, unique.
+model Hashtag {
+  id        Int           @id @default(autoincrement())
+  tag       String        @unique
+  createdAt DateTime      @default(now())
+
+  tweets    TweetHashtag[]
+
+  @@index([id])
+}
+
+// Join table: a tweet "contains" hashtags (extracted at post time).
+model TweetHashtag {
+  id        Int      @id @default(autoincrement())
+  tweetId   Int
+  hashtagId Int
+  pos       Int      @default(0)
+
+  tweet   Tweet   @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([tweetId, hashtagId])
+  @@index([hashtagId, id])
+  @@index([tweetId, id])
+}
+
+// Persistent mention registry — extra dedupe + "mentions you" search.
+model TweetMention {
+  id          Int      @id @default(autoincrement())
+  tweetId     Int
+  mentionedId Int
+  createdAt   DateTime @default(now())
+
+  tweet     Tweet @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  mentioned User  @relation("TweetMentioned", fields: [mentionedId], references: [id], onDelete: Cascade)
+
+  @@unique([tweetId, mentionedId])
+  @@index([mentionedId, id])
+}
+
+// Polls attached to a tweet (up to 4 options, optional duration).
+model Poll {
+  id        Int       @id @default(autoincrement())
+  tweetId   Int       @unique
+  question  String    @default("")
+  durationMinutes Int @default(1440) // 0 = never expires
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  tweet   Tweet        @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+}
+
+model PollOption {
+  id     Int    @id @default(autoincrement())
+  pollId Int
+  text   String
+
+  poll  Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([pollId]) 
+}
+
+model PollVote {
+  id       Int      @id @default(autoincrement())
+  tweetId  Int
+  pollId   Int
+  optionId Int
+  userId   Int
+  createdAt DateTime @default(now())
+
+  tweet  Tweet      @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation("PollVoter", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([tweetId, userId])
+  @@index([optionId])
+}
+
+// Tweet views/impressions — one row per (tweet, viewer-scope, day) to avoid
+// unbounded growth; count aggregates into Tweet.views on read paths.
+model TweetView {
+  id        Int      @id @default(autoincrement())
+  tweetId   Int
+  viewerId  Int?
+  scope     String   @default("unique") // unique | guest
+  day       DateTime @default(now())
+  count     Int      @default(1)
+
+  tweet Tweet @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  user  User? @relation("TweetViewer", fields: [viewerId], references: [id], onDelete: SetNull)
+
+  @@unique([tweetId, viewerId, scope, day])
+  @@index([tweetId, day])
+}
+
+// Per-kind, per-user notification opt-out. Absent row = opted-in.
+model NotificationPreference {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  kind      String  // TWEET_LIKE | TWEET_REPLY | ... (or "ALL" for master switch)
+  enabled   Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind])
+  @@index([userId])
+}
+
+// Autosaved draft — latest text + media per user.
+model Draft {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  text      String   @default("")
+  mediaIds  String   @default("[]")
+  quotedTweetId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+}
+
+// Scheduled tweet queue — published by a server worker / Scheduler.
+model ScheduledTweet {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  text         String   @default("")
+  mediaIds     String   @default("[]")
+  replyToId    Int?
+  publishAt    DateTime
+  status       String   @default("PENDING") // PENDING | PUBLISHED | CANCELED | FAILED
+  createdAt    DateTime @default(now())
+  publishedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, publishAt])
+  @@index([userId, publishAt])
+}
+
+// Reward/creator-like lists — public curated collections of users.
+model TweetList {
+  id          Int      @id @default(autoincrement())
+  ownerId     Int
+  name        String
+  description String   @default("")
+  isPrivate   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  owner   User              @relation("TweetListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members TweetListMember[]
+  tweets  TweetListTweet[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId, createdAt])
+}
+
+model TweetListMember {
+  id        Int      @id @default(autoincrement())
+  listId    Int
+  memberId  Int
+  createdAt DateTime @default(now())
+
+  list   TweetList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  member User      @relation("TweetListMemberships", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, memberId])
+  @@index([memberId])
+}
+
+// A bookmarked/curated tweet inside a list.
+model TweetListTweet {
+  id        Int      @id @default(autoincrement())
+  listId    Int
+  tweetId   Int
+  addedBy   Int
+  createdAt DateTime @default(now())
+
+  list TweetList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  tweet Tweet    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, tweetId])
+  @@index([tweetId])
 }

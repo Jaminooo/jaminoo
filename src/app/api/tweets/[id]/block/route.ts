@@ -1,10 +1,12 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { rateLimit } from '@/lib/rate-limit';
 
 type Ctx = { params: { id: string } };
 
 export const POST = handle(async (_req, { params }: Ctx) => {
   const me = await requireUser();
+  rateLimit(`tweets:block:${me.id}`, 30, 60 * 60 * 1000);
   const blockedId = Number(params.id);
   if (!Number.isInteger(blockedId) || blockedId <= 0) return err('Invalid user', 400);
   if (blockedId === me.id) return err('You cannot block yourself');

@@ -4,9 +4,11 @@ import { TWEET_ACTOR_SELECT } from '@/lib/tweet-db';
 
 type Ctx = { params: { id: string } };
 
-function toUserRow(u: any, followerIds: Set<number>, queryUserId: number, isMe: boolean) {
+function toUserRow(u: any, followerIds: Set<number>, followsYouIds: Set<number>, queryUserId: number, isMe: boolean) {
   const id = typeof u.followerId === 'number' ? u.follower.id : u.following.id;
   const user = u.follower ?? u.following;
+  const followsYou = followsYouIds.has(id);
+  const following = followerIds.has(id);
   return {
     id,
     username: user.username,
@@ -17,7 +19,9 @@ function toUserRow(u: any, followerIds: Set<number>, queryUserId: number, isMe: 
     tweets: user._count?.tweets ?? 0,
     followersCount: user._count?.tweetFollowers ?? 0,
     isMe,
-    following: followerIds.has(id),
+    following,
+    followsYou,
+    mutual: following && followsYou,
     isTarget: id === queryUserId,
   };
 }
@@ -49,14 +53,23 @@ async function list(req: Request, { params }: Ctx, mode: 'followers' | 'followin
   const page = hasMore ? rows.slice(0, 25) : rows;
 
   const ids = page.map((r) => (mode === 'followers' ? r.follower.id : r.following.id));
-  const mine = await prisma.tweetFollow.findMany({
-    where: { followerId: me.id, followingId: { in: ids } },
-    select: { followingId: true },
-  });
+  const [mine, theyFollowMe] = await Promise.all([
+    prisma.tweetFollow.findMany({
+      where: { followerId: me.id, followingId: { in: ids } },
+      select: { followingId: true },
+    }),
+    ids.length > 0
+      ? prisma.tweetFollow.findMany({
+          where: { followerId: { in: ids }, followingId: me.id },
+          select: { followerId: true },
+        })
+      : [],
+  ]);
   const followerSet = new Set(mine.map((m) => m.followingId));
+  const followsYouSet = new Set(theyFollowMe.map((m) => m.followerId));
 
   return json({
-    users: page.map((r) => toUserRow(r, followerSet, userId, userId === me.id)),
+    users: page.map((r) => toUserRow(r, followerSet, followsYouSet, userId, userId === me.id)),
     nextCursor: hasMore ? String(page[page.length - 1].id) : null,
     hasMore,
   });
