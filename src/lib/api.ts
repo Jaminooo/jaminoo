@@ -40,6 +40,12 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export function forbidden(message = 'Forbidden') {
+  const e = new Error(message);
+  (e as any).adminOnly = true;
+  return e;
+}
+
 export class BadRequestError extends Error {
   constructor(message: string) {
     super(message);

@@ -159,6 +159,22 @@ export function AdminPanel() {
     [reload]
   );
 
+  const visibleTabs = useMemo(() => {
+    if (!meta) return TABS;
+    if (meta.isSuper) return TABS;
+    const scopes = new Set(meta.hubScopes);
+    return TABS.filter((t) => {
+      if (t.id === 'roles') return false;
+      const allowed = SCOPE_TABS[t.id];
+      if (!allowed) return true;
+      return allowed.some((s) => scopes.has(s));
+    });
+  }, [meta]);
+
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) setTab(visibleTabs[0].id);
+  }, [visibleTabs, tab]);
+
   if (state === 'loading') {
     return (
       <div className="admin-gate">
@@ -186,22 +202,6 @@ export function AdminPanel() {
     setTab(nextTab);
     setMobileOpen(false);
   };
-
-  const visibleTabs = useMemo(() => {
-    if (!meta) return TABS;
-    if (meta.isSuper) return TABS;
-    const scopes = new Set(meta.hubScopes);
-    return TABS.filter((t) => {
-      if (t.id === 'roles') return false;
-      const allowed = SCOPE_TABS[t.id];
-      if (!allowed) return true;
-      return allowed.some((s) => scopes.has(s));
-    });
-  }, [meta]);
-
-  useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) setTab(visibleTabs[0].id);
-  }, [visibleTabs, tab]);
 
   return (
     <div className="admin-root">

@@ -7,7 +7,7 @@ import { toast } from '@/components/toast';
 import { useTranslations } from '@/providers/use-translations';
 import { connectLive, onLive } from '@/lib/live';
 import { Badge, ConfirmModal, EmptyRow, LoadingRow, StatCard, useConfirm } from './admin-ui';
-import { HUB_ADMIN_SCOPES } from '@/lib/roles';
+import { HUB_ADMIN_SCOPES } from '@/lib/roles-shared';
 
 interface RoleRow {
   id: number;
