@@ -5,6 +5,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent
 import {
   Captions,
   Gauge,
+  Heart,
   Maximize,
   Minimize,
   Pause,
@@ -31,6 +32,57 @@ import './vinyl-player.css';
 const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 const IDLE_MS = 2600;
 const AUTO_NEXT_S = 10;
+const DOUBLE_TAP_MS = 280;
+const MEM_KEY = 'jamino.player.memory';
+
+function readMemory(): { volume?: number; muted?: boolean; rate?: number } {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(MEM_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function writeMemory(patch: { volume?: number; muted?: boolean; rate?: number }) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(MEM_KEY, JSON.stringify({ ...readMemory(), ...patch }));
+  } catch {}
+}
+
+/** Persisted resume points, keyed by src, capped to the last 40 entries. */
+const RESUME_KEY = 'jamino.player.resume';
+function readResumeMap(): Record<string, number> {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(RESUME_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+function saveResumePoint(src: string, seconds: number) {
+  if (typeof window === 'undefined' || !src) return;
+  try {
+    const map = readResumeMap();
+    map[src] = Math.floor(seconds);
+    const entries = Object.entries(map);
+    if (entries.length > 40) {
+      const trimmed = Object.fromEntries(entries.slice(-40));
+      window.localStorage.setItem(RESUME_KEY, JSON.stringify(trimmed));
+    } else {
+      window.localStorage.setItem(RESUME_KEY, JSON.stringify(map));
+    }
+  } catch {}
+}
+function clearResumePoint(src: string) {
+  if (typeof window === 'undefined' || !src) return;
+  try {
+    const map = readResumeMap();
+    delete map[src];
+    window.localStorage.setItem(RESUME_KEY, JSON.stringify(map));
+  } catch {}
+}
 
 function formatTime(value: number) {
   const s = Number.isFinite(value) && value > 0 ? value : 0;
@@ -64,8 +116,19 @@ export interface VinylPlayerProps {
   fill?: boolean;
   /** Persistent mute chip (shorts) so sound can be restored in one tap. */
   soundToggle?: boolean;
+  /** Size the box to the video's real aspect ratio once metadata loads. */
+  dynamicAspect?: boolean;
+  /** Aspect used before metadata arrives, e.g. '9 / 16'. */
+  defaultAspect?: string;
+  /** Double-tap on the video fires this (shorts: like). */
+  onDoubleTap?: () => void;
+  /** Seconds to start from (shared links with &t=). */
+  startAt?: number;
+  /** Remember the position and offer to resume on revisit. */
+  rememberPosition?: boolean;
   className?: string;
   onEnded?: () => void;
+  onTimeUpdate?: (seconds: number) => void;
   upNext?: VinylUpNext;
 }
 
@@ -81,8 +144,14 @@ export function VinylPlayer({
   variant = 'card',
   fill = false,
   soundToggle = false,
+  dynamicAspect = false,
+  defaultAspect = '16 / 9',
+  onDoubleTap,
+  startAt,
+  rememberPosition = false,
   className = '',
   onEnded,
+  onTimeUpdate,
   upNext,
 }: VinylPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -115,6 +184,10 @@ export function VinylPlayer({
   const [showPoster, setShowPoster] = useState(true);
   const [seekPreview, setSeekPreview] = useState<{ left: number; text: string } | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [aspect, setAspect] = useState<string | null>(null);
+  const [heart, setHeart] = useState<{ x: number; y: number; key: number } | null>(null);
+  const tapTimer = useRef<number | null>(null);
+  const resumeApplied = useRef(false);
 
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
@@ -130,14 +203,20 @@ export function VinylPlayer({
     setPipOk(typeof document.pictureInPictureEnabled === 'boolean' && document.pictureInPictureEnabled);
   }, []);
 
-  /* ---------- element init: never native controls ---------- */
+  /* ---------- element init: never native controls, restore memory ---------- */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.muted = !startUnmuted;
-    video.volume = 0.9;
-    setMuted(!startUnmuted);
-    setVolume(0.9);
+    const mem = readMemory();
+    const startVol = typeof mem.volume === 'number' ? Math.min(1, Math.max(0, mem.volume)) : 0.9;
+    const startMuted = startUnmuted ? false : mem.muted !== false;
+    const startRate = typeof mem.rate === 'number' && RATES.includes(mem.rate) ? mem.rate : 1;
+    video.volume = startVol;
+    video.muted = startMuted;
+    video.playbackRate = startRate;
+    setVolume(startVol);
+    setMuted(startMuted);
+    setRate(startRate);
   }, [startUnmuted, src]);
 
   /* ---------- src changes reset the transient state ---------- */
@@ -149,7 +228,16 @@ export function VinylPlayer({
     setShowPoster(true);
     setUiOn(true);
     setCountdown(null);
+    setAspect(null);
+    resumeApplied.current = false;
   }, [src]);
+
+  /* ---------- heart burst auto-dismiss ---------- */
+  useEffect(() => {
+    if (!heart) return;
+    const timer = window.setTimeout(() => setHeart(null), 850);
+    return () => window.clearTimeout(timer);
+  }, [heart]);
 
   /* ---------- visibility-driven autoplay (feed cards) ---------- */
   useEffect(() => {
@@ -225,8 +313,14 @@ export function VinylPlayer({
   useEffect(() => () => {
     if (uiTimer.current) window.clearTimeout(uiTimer.current);
     if (previewTimer.current) window.clearTimeout(previewTimer.current);
-    videoRef.current?.pause();
-  }, []);
+    if (tapTimer.current) window.clearTimeout(tapTimer.current);
+    const video = videoRef.current;
+    if (video && rememberPosition && Number.isFinite(video.duration)) {
+      if (video.currentTime > 5 && video.currentTime < video.duration - 10) saveResumePoint(src, video.currentTime);
+      else if (video.currentTime >= video.duration - 10) clearResumePoint(src);
+    }
+    video?.pause();
+  }, [rememberPosition, src]);
 
   /* ---------- helpers ---------- */
   const armHide = useCallback(() => {
