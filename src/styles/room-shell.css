@@ -1,0 +1,345 @@
+/* ============================================================
+   AUTHKIT Ã¢â‚¬â€ midnight glass theme (room screen only)
+   Frosted surfaces, inset hairline edges, single violet accent
+   ============================================================ */
+.authkit-room {
+  --color-frost: var(--text);
+  --color-ice: var(--text);
+  --color-moon: var(--muted);
+  --color-fog: var(--muted);
+  --color-steel: var(--line-strong, var(--line));
+  --color-violet: var(--accent-strong);
+  --color-violet-strong: var(--accent-strong);
+  --color-violet-light: var(--accent);
+  --gridline: color-mix(in srgb, var(--text) 10%, transparent);
+  --hairline: color-mix(in srgb, var(--text) 10%, transparent);
+  background: var(--panel);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  box-shadow:
+    inset 0 1px 1px color-mix(in srgb, var(--text) 12%, transparent),
+    0 24px 48px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.authkit-room ::selection {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: #fff;
+}
+
+/* ---- room shell ---- */
+.authkit-room .room-head {
+  background: transparent;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  padding-block: 14px;
+}
+.authkit-room .room-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  -webkit-text-fill-color: transparent;
+  background: linear-gradient(180deg, var(--text) 0%, var(--muted) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.authkit-room .room-members {
+  color: var(--muted);
+}
+.authkit-room .jam-kind-badge {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+  border: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent) inset;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-weight: 500;
+}
+.authkit-room .closed-tag {
+  background: rgba(228, 109, 76, 0.16);
+  color: var(--danger);
+  border: none;
+  box-shadow: 0 0 0 1px rgba(228, 109, 76, 0.4) inset;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-weight: 500;
+}
+.authkit-room .live-tag {
+  background: rgba(38, 150, 132, 0.18);
+  color: var(--accent);
+  border: none;
+  box-shadow: 0 0 0 1px rgba(38, 150, 132, 0.4) inset;
+  border-radius: 999px;
+  padding: 1px 9px;
+  font-weight: 500;
+}
+.authkit-room .live-dot {
+  background: var(--accent);
+}
+
+/* ---- buttons & pills ---- */
+.authkit-room .btn,
+.authkit-room .btn-ghost,
+.authkit-room .btn-icon,
+.authkit-room .pill-sm {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  border: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+  border-radius: 999px;
+  font-weight: 500;
+}
+.authkit-room .btn:hover,
+.authkit-room .btn-ghost:hover,
+.authkit-room .btn-icon:hover,
+.authkit-room .pill-sm:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+.authkit-room .btn-violet {
+  background: var(--color-violet);
+  color: #fff;
+  box-shadow: none;
+}
+.authkit-room .btn-violet:hover {
+  background: var(--color-violet-strong);
+}
+.authkit-room .pill-sm.active {
+  background: var(--color-violet);
+  color: #fff;
+  box-shadow: none;
+}
+.authkit-room .btn.danger {
+  color: var(--danger);
+  box-shadow: 0 0 0 1px rgba(228, 109, 76, 0.4) inset;
+  background: rgba(228, 109, 76, 0.08);
+}
+.authkit-room .btn-danger {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: none;
+}
+.authkit-room .btn-danger:hover {
+  background: var(--danger);
+}
+.authkit-room .room-layouts-label {
+  color: var(--muted);
+}
+.authkit-room .room-confirm {
+  border: none;
+  box-shadow: 0 0 0 1px rgba(228, 109, 76, 0.4) inset;
+  background: rgba(228, 109, 76, 0.1);
+}
+.authkit-room .room-confirm-text {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+/* ---- actions row ---- */
+.authkit-room .room-actions-row {
+  background: color-mix(in srgb, var(--panel) 55%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .room-desc {
+  color: var(--muted);
+}
+
+/* ---- columns ---- */
+.authkit-room .room-grid {
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .room-col-members {
+  background: rgba(0, 0, 0, 0.28);
+  border-inline-end: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .room-col-music {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 10%, transparent), rgba(0, 0, 0, 0.4));
+  border-inline-start: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .room-col-title {
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+.authkit-room .member-chip {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--color-frost);
+  border: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+  border-radius: 999px;
+  font-weight: 500;
+}
+.authkit-room .member-chip.me {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent) inset;
+}
+.authkit-room .member-chip:hover {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .member-role.host {
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+  color: var(--text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent) inset;
+  border-radius: 9999px;
+}
+.authkit-room .member-role.mini {
+  background: rgba(38, 150, 132, 0.2);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(38, 150, 132, 0.4) inset;
+  border-radius: 9999px;
+}
+.authkit-room .mini-host-row {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  border: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+  border-radius: 12px;
+}
+.authkit-room .room-role-hint {
+  color: var(--muted);
+}
+.authkit-room .friend-row {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+  border-radius: 999px;
+}
+.authkit-room .friend-name {
+  color: var(--text);
+}
+.authkit-room .empty-state {
+  color: var(--muted);
+}
+.authkit-room .typing-hint {
+  color: var(--muted);
+}
+
+/* ---- chat ---- */
+.authkit-room .room-body {
+  background: rgba(0, 0, 0, 0.25);
+}
+.authkit-room .resize-gutter::after {
+  width: 5px;
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+}
+.authkit-room .resize-gutter:hover::after {
+  background: var(--color-violet);
+  width: 6px;
+}
+.authkit-room .room-resize-y span {
+  width: 72px;
+  height: 4px;
+  background: color-mix(in srgb, var(--text) 28%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent) inset;
+}
+.authkit-room .room-resize-y:hover span,
+.authkit-room .room-resize-y:active span {
+  width: 96px;
+  background: var(--color-violet);
+}
+.authkit-room .msg-bubble {
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: none;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset,
+    inset 0 1px 1px color-mix(in srgb, var(--text) 8%, transparent);
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+}
+.authkit-room .msg.me .msg-bubble {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent) inset;
+  border-radius: 16px;
+  border-bottom-right-radius: 4px;
+}
+.authkit-room .msg-name {
+  color: var(--muted);
+  font-weight: 600;
+}
+.authkit-room .msg-text {
+  color: var(--color-frost);
+}
+.authkit-room .msg-time {
+  color: var(--muted);
+}
+
+/* ---- composer ---- */
+.authkit-room .composer-row {
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .auth-input,
+.authkit-room input.auth-input,
+.authkit-room textarea.auth-input {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+  border-radius: 6px;
+}
+.authkit-room .auth-input::placeholder {
+  color: rgba(199, 211, 234, 0.6);
+}
+.authkit-room .auth-input:focus {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 24%, transparent) inset;
+}
+.authkit-room .send-btn {
+  background: var(--color-violet);
+  color: #fff;
+  border: none;
+  box-shadow: none;
+  border-radius: 999px;
+}
+.authkit-room .send-btn:hover {
+  background: var(--color-violet-strong);
+}
+.authkit-room .emoji-pop-grid {
+  background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 12px;
+}
+.authkit-room .emoji-pop-tabs button {
+  color: var(--muted);
+}
+.authkit-room .emoji-pop-tabs button.active {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent) inset;
+}
+.authkit-room .emoji-cell:hover {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+}
+.authkit-room .rec-time {
+  color: var(--muted);
+}
+
+/* ---- voice message bubbles in chat ---- */
+.authkit-room .voice-player {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent) inset;
+  border-radius: 999px;
+}
+.authkit-room .voice-player .voice-play {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent) inset;
+  border-radius: 9999px;
+}
+.authkit-room .voice-player .voice-wave {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+/* ---- scrollbars inside room ---- */
+.authkit-room .room-col-members::-webkit-scrollbar,
+.authkit-room .room-col-music::-webkit-scrollbar,
+.authkit-room .room-body::-webkit-scrollbar,
+.authkit-room .music-queue::-webkit-scrollbar,
+.authkit-room .music-lyrics::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.authkit-room .room-col-members::-webkit-scrollbar-thumb,
+.authkit-room .room-col-music::-webkit-scrollbar-thumb,
+.authkit-room .room-body::-webkit-scrollbar-thumb,
+.authkit-room .music-queue::-webkit-scrollbar-thumb,
+.authkit-room .music-lyrics::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text) 28%, transparent);
+  border-radius: 999px;
+}
+

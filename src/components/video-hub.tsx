@@ -35,8 +35,6 @@ import {
   UserPlus,
   UserRoundCheck,
   UsersRound,
-  Volume2,
-  VolumeX,
   X,
 } from 'lucide-react';
 import { api, uploadWithProgress } from '@/lib/client-api';
@@ -50,6 +48,7 @@ import { CreatorProfileModal } from '@/components/creator-profile-modal';
 import { VideoEditorModal, VideoEditorWorkspace } from '@/components/video-editor-modal';
 import { CreatorCollabStudio } from '@/components/creator-collab-studio';
 import { CreatorInsights } from '@/components/creator-insights';
+import { VinylPlayer } from '@/components/vinyl-player';
 import { connectLive, onLive } from '@/lib/live';
 
 type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists' | 'edit' | 'editor';
@@ -144,43 +143,33 @@ function timeAgo(value: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function VideoMedia({ post }: { post: VideoPost }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(post.kind !== 'SHORT');
-  const [audioBlocked, setAudioBlocked] = useState(false);
-
-  useEffect(() => {
-    if (post.mediaType !== 'VIDEO' || !videoRef.current) return;
-    const video = videoRef.current;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) {
-        video.pause();
-        return;
-      }
-      video.muted = post.kind === 'SHORT' ? false : muted;
-      video.play().then(() => setAudioBlocked(false)).catch(() => {
-        if (post.kind === 'SHORT') {
-          video.muted = true;
-          setMuted(true);
-          setAudioBlocked(true);
-        }
-        video.play().catch(() => {});
-      });
-    }, { threshold: 0.55 });
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [muted, post.id, post.kind, post.mediaType]);
-
+function VideoMedia({ post, feature = false }: { post: VideoPost; feature?: boolean }) {
   if (post.mediaType === 'IMAGE' && (post.assetUrl || post.externalUrl)) {
     return <div className="video-card-media video-card-image"><Image src={post.assetUrl || post.externalUrl || ''} alt={post.title || 'Video post'} fill unoptimized loading="lazy" /></div>;
   }
   if (post.mediaType === 'VIDEO' && (post.assetUrl || post.externalUrl)) {
-    return <div className="video-card-media video-card-video-wrap"><video ref={videoRef} src={post.assetUrl || post.externalUrl || ''} poster={post.thumbnailUrl || undefined} muted={muted} playsInline loop preload="metadata" controls={post.kind === 'LONG'}><track kind="subtitles" src={post.subtitlesUrl || undefined} srcLang="en" label="English" default={!!post.subtitlesUrl} /></video>{post.kind === 'LONG' && <span className="video-play-fab" aria-hidden="true"><Play size={20} /></span>}{post.kind === 'LONG' && post.durationSec > 0 && <span className="video-duration-badge">{durationLabel(post.durationSec)}</span>}{post.kind === 'LONG' && <span className="video-progress-bar"><span /></span>}{post.kind === 'SHORT' && <><button type="button" className="video-sound-button" onClick={(event) => { event.stopPropagation(); const next = !muted; setMuted(next); setAudioBlocked(false); if (videoRef.current) { videoRef.current.muted = next; videoRef.current.play().catch(() => {}); } }} title={muted ? 'Turn sound on' : 'Mute sound'}>{muted ? <VolumeX size={17} /> : <Volume2 size={17} />}</button>{audioBlocked && muted && <span className="video-sound-hint">Tap for sound</span>}</>}</div>;
+    return (
+      <div className="video-card-media video-card-video-wrap">
+        <VinylPlayer
+          fill
+          variant={feature ? 'feature' : 'card'}
+          src={post.assetUrl || post.externalUrl || ''}
+          poster={post.thumbnailUrl}
+          title={post.title || 'Untitled post'}
+          badge={[post.kind, post.durationSec > 0 ? durationLabel(post.durationSec) : null].filter(Boolean).join(' · ')}
+          subtitlesUrl={post.subtitlesUrl}
+          autoplayInView
+          startUnmuted={post.kind === 'SHORT'}
+          loop={post.kind !== 'LONG'}
+          soundToggle={post.kind === 'SHORT'}
+        />
+      </div>
+    );
   }
   return <div className="video-card-media video-card-text"><Sparkles size={25} /><p>{post.description || post.title || 'A new thought from Jamino.'}</p></div>;
 }
 
-function VideoCard({ post, compact = false, onOpen, onOpenPost, onOpenCreator, onLike, onSave, onComment, onShare, onReport, onSaveToPlaylist }: { post: VideoPost; compact?: boolean; onOpen?: () => void; onOpenPost?: () => void; onOpenCreator?: () => void; onLike: () => void; onSave: () => void; onComment: () => void; onShare: () => void; onReport?: () => void; onSaveToPlaylist?: () => void }) {
+function VideoCard({ post, compact = false, feature = false, onOpen, onOpenPost, onOpenCreator, onLike, onSave, onComment, onShare, onReport, onSaveToPlaylist }: { post: VideoPost; compact?: boolean; feature?: boolean; onOpen?: () => void; onOpenPost?: () => void; onOpenCreator?: () => void; onLike: () => void; onSave: () => void; onComment: () => void; onShare: () => void; onReport?: () => void; onSaveToPlaylist?: () => void }) {
   const openPost = onOpenPost ?? onOpen ?? (() => {});
   const openCreator = onOpenCreator ?? onOpen ?? openPost;
   return (
@@ -196,7 +185,7 @@ function VideoCard({ post, compact = false, onOpen, onOpenPost, onOpenCreator, o
         <strong>{post.title || 'Untitled post'}</strong>
         {post.description && <span>{post.description}</span>}
       </button>
-      <VideoMedia post={post} />
+      <VideoMedia post={post} feature={feature} />
       <div className="video-post-actions">
         <button type="button" className={post.liked ? 'active' : ''} onClick={onLike} title="Like"><Heart size={17} fill={post.liked ? 'currentColor' : 'none'} /><span>{post.likes}</span></button>
         <button type="button" onClick={onComment} title="Comments"><MessageCircle size={17} /><span>{post.comments}</span></button>
@@ -1150,7 +1139,7 @@ export function VideoHub() {
 
           {view === 'edit' && <EditView onEditPost={setEditPost} />}
           {view === 'editor' && <VideoEditorView />}
-          {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><video controls playsInline src={activeUrl} /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}
+          {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><VinylPlayer key={activeUrl} variant="feature" src={activeUrl} title="Shared video" badge="Direct link" /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}
 
           {feedView && <section className={`video-feed-section ${view === 'shorts' ? 'is-shorts' : ''} ${view === 'long' ? 'is-long' : ''}`}>
             <div className="video-feed-toolbar">
@@ -1181,7 +1170,7 @@ export function VideoHub() {
       <PlaylistDetailModal playlistId={openPlaylistId} open={openPlaylistId !== null} onClose={() => setOpenPlaylistId(null)} onChanged={loadPlaylists} onDeleted={loadPlaylists} onPlayPost={(post) => { setOpenPlaylistId(null); openPost(post); }} />
       <EditPostModal post={editPost} open={!!editPost} onClose={() => setEditPost(null)} onSaved={(post) => updatePost(post.id, post)} />
       <CreatorProfileModal creatorId={creatorProfileId} open={creatorProfileId !== null} onClose={() => setCreatorProfileId(null)} />
-      {activePost && <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => { setActivePost(null); window.history.replaceState({}, '', '/?hub=video'); }}><section className="video-post-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{activePost.kind} · VIDEO HUB</div><h2>{activePost.title || 'Post'}</h2></div><button type="button" className="btn-icon" onClick={() => { setActivePost(null); window.history.replaceState({}, '', '/?hub=video'); }} aria-label="Close"><X size={18} /></button></header><div className="video-post-modal-body"><VideoCard post={activePost} onOpen={() => {}} onLike={() => toggleLike(activePost)} onSave={() => toggleSave(activePost)} onComment={() => setCommentsPost(activePost)} onShare={() => sharePost(activePost)} /></div></section></div>}
+      {activePost && <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => { setActivePost(null); window.history.replaceState({}, '', '/?hub=video'); }}><section className="video-post-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{activePost.kind} · VIDEO HUB</div><h2>{activePost.title || 'Post'}</h2></div><button type="button" className="btn-icon" onClick={() => { setActivePost(null); window.history.replaceState({}, '', '/?hub=video'); }} aria-label="Close"><X size={18} /></button></header><div className="video-post-modal-body"><VideoCard post={activePost} feature onOpen={() => {}} onLike={() => toggleLike(activePost)} onSave={() => toggleSave(activePost)} onComment={() => setCommentsPost(activePost)} onShare={() => sharePost(activePost)} /></div></section></div>}
     </div>
   );
 }

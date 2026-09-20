@@ -1,0 +1,60 @@
+/* ===== Music signals ===== */
+.pill-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--color-steel);
+  color: var(--color-fog);
+  border: 1px solid var(--gridline);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pill-sm.on {
+  background: color-mix(in srgb, var(--color-violet) 22%, transparent);
+  color: var(--color-frost);
+  border-color: color-mix(in srgb, var(--color-violet) 45%, transparent);
+}
+.pill-sm:hover {
+  color: var(--color-frost);
+}
+.pill-sm svg {
+  flex: none;
+}
+.badge-explicit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  background: rgba(255, 90, 90, 0.18);
+  color: #ff7a7a;
+  border: 1px solid rgba(255, 90, 90, 0.35);
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+.badge-featured {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255, 190, 90, 0.14);
+  color: #ffc26a;
+  border: 1px solid rgba(255, 190, 90, 0.3);
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+.star-on {
+  color: #ffc26a;
+  fill: #ffc26a;
+}
+

@@ -1,0 +1,66 @@
+/* light theme refinements */
+[data-theme='light'] .side-foot-card {
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 12%, transparent), rgba(0, 0, 0, 0) 60%);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .side-item {
+  color: var(--color-moon);
+}
+
+[data-theme='light'] .friend-row {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .friend-row:hover {
+  background: var(--fill-hover);
+}
+
+[data-theme='light'] .ctx-menu,
+[data-theme='light'] .reaction-quick {
+  background: rgba(247, 249, 252, 0.98);
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .ctx-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--color-frost);
+}
+
+[data-theme='light'] .reaction-quick button:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .unread-row {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+[data-theme='light'] .emoji-pop-grid {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .emoji-cell:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .voice-player,
+[data-theme='light'] .message-composer,
+[data-theme='light'] .chat-composer {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='light'] .panel-body {
+  background:
+    radial-gradient(1100px 500px at 50% -10%, var(--section-tint, color-mix(in srgb, var(--accent) 6%, transparent)), transparent 70%),
+    var(--color-midnight);
+}
+
+[data-theme='light'] .ctx-menu {
+  color: var(--color-frost);
+}
+
