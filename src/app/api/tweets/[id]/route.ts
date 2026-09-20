@@ -1,7 +1,9 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { serializeTweet, extractMentions } from '@/lib/tweet';
-import { tweetIncludes } from '@/lib/tweet-db';
+import { serializeTweet } from '@/lib/tweet';
+import { tweetIncludes, recordTweetView, canViewAuthor } from '@/lib/tweet-db';
+import { persistTweetTags, persistTweetMentions } from '@/lib/tweet-create';
+import { livePublish } from '@/lib/live-publish';
 
 type Ctx = { params: { id: string } };
 
@@ -16,9 +18,11 @@ async function findTweet(id: number, userId: number) {
     },
   });
   if (!tweet) return null;
+  if (!(await canViewAuthor(tweet.authorId, userId))) return null;
   const myRetweet = await prisma.tweet.findFirst({ where: { retweetOfId: tweet.id, authorId: userId }, select: { id: true } });
   const retweeted = !!myRetweet;
-  const replyParent = tweet.replyTo ? serializeTweet(tweet.replyTo, false) : null;
+  const revealParent = tweet.replyTo && await canViewAuthor(tweet.replyTo.authorId, userId);
+  const replyParent = tweet.replyTo && revealParent ? serializeTweet(tweet.replyTo, false) : null;
   return { tweet: serializeTweet(tweet, retweeted), replyParent };
 }
 
@@ -28,6 +32,11 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   if (!Number.isInteger(id) || id <= 0) return err('Invalid tweet', 400);
   const found = await findTweet(id, me.id);
   if (!found) return err('Tweet not found', 404);
+  // Count impressions once per viewer per day (deduped), skip own content.
+  if (found.tweet.author.id !== me.id) {
+    void recordTweetView(id, me.id).catch(() => {});
+    found.tweet.views += 1;
+  }
   return json(found);
 });
 
@@ -50,7 +59,18 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
     data: { text },
     include: tweetIncludes(me.id),
   });
-  return json({ tweet: serializeTweet(updated, false) });
+
+  // Refresh persistent registries from the new text.
+  await prisma.$transaction([
+    prisma.tweetHashtag.deleteMany({ where: { tweetId: id } }),
+    prisma.tweetMention.deleteMany({ where: { tweetId: id } }),
+  ]);
+  if (text) {
+    await Promise.all([persistTweetTags(id, text), persistTweetMentions(id, text)]);
+  }
+  const result = { tweet: serializeTweet(updated, false) };
+  livePublish(['tweet:public', `user:${me.id}`], 'tweet:update', { tweetId: id, authorId: me.id, text });
+  return json(result);
 });
 
 export const DELETE = handle(async (_req, { params }: Ctx) => {
@@ -61,5 +81,6 @@ export const DELETE = handle(async (_req, { params }: Ctx) => {
   if (!tweet) return err('Tweet not found', 404);
   if (tweet.authorId !== me.id && !me.isAdmin) return err('Forbidden', 403);
   await prisma.tweet.delete({ where: { id } });
+  livePublish(['tweet:public', `user:${tweet.authorId}`], 'tweet:delete', { tweetId: id, authorId: tweet.authorId });
   return json({ ok: true });
 });

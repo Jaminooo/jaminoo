@@ -1,0 +1,319 @@
+/* jams panel create / browse */
+.create-jam {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  animation: slideUp 240ms ease both;
+}
+
+.type-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.type-toggle button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  background: transparent;
+  color: var(--color-fog);
+  font-size: 13px;
+  transition: all 120ms ease;
+}
+
+.type-toggle button.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--color-frost);
+}
+
+.kind-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.kind-toggle {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.kind-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  background: transparent;
+  color: var(--color-fog);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  transition: all 120ms ease;
+}
+
+.kind-toggle button.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--color-frost);
+}
+
+.invites-box {
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invite-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-toggle {
+  display: flex;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--color-fog);
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.view-toggle button.active {
+  background: color-mix(in srgb, var(--accent) 90%, transparent);
+  color: #fff;
+}
+
+/* friend profile */
+.friend-profile {
+  margin-top: 24px;
+}
+
+.fp-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 72px 20px 16px;
+}
+
+.fp-banner {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 150px;
+  background:
+    radial-gradient(120% 160% at 15% 0%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 55%),
+    radial-gradient(120% 160% at 85% 10%, rgba(48, 164, 108, 0.18), transparent 50%),
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 16%, transparent), rgba(0, 0, 0, 0));
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  pointer-events: none;
+}
+
+.fp-avatar {
+  position: relative;
+  margin: 0 auto 14px;
+  width: 104px;
+  height: 104px;
+  border-radius: 28px;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.fp-avatar .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 26px;
+  border: none;
+}
+
+.fp-presence {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--color-midnight);
+}
+
+.fp-name {
+  font-size: 28px;
+  color: #fff;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.fp-uid {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-fog);
+  font-family: var(--font-mono);
+}
+
+.fp-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-fog);
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.fp-bio {
+  max-width: 520px;
+  margin: 16px auto 0;
+  color: var(--color-moon);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.fp-nobio {
+  color: var(--color-fog);
+  font-style: italic;
+}
+
+.fp-meta {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  color: var(--color-fog);
+  font-size: 13px;
+  margin-top: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fp-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  padding: 6px 11px;
+  border-radius: 999px;
+}
+
+.fp-gh {
+  color: var(--color-violet-light);
+}
+
+.fp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  margin: 26px auto 0;
+  max-width: 640px;
+}
+
+.fp-stat {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 16px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--color-violet-light);
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.fp-stat:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.fp-stat b {
+  font-size: 22px;
+  color: #fff;
+  font-family: var(--font-display);
+  line-height: 1.15;
+}
+
+.fp-stat span {
+  font-size: 11px;
+  color: var(--color-fog);
+}
+
+.fp-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+/* dm badges & unread */
+.dm-badge {
+  flex-shrink: 0;
+  background: var(--color-violet);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 6px;
+}
+
+.unread-row {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* emoji category tabs */
+.emoji-pop-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 0 8px;
+  flex-wrap: wrap;
+}
+
+.emoji-pop-tabs button {
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 5px 7px;
+  border-radius: 9px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.emoji-pop-tabs button.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+}
+

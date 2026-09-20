@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { api } from '@/lib/client-api';
-import { Flag, Check, Eye } from 'lucide-react';
+import { Flag, Check, Eye, Ban } from 'lucide-react';
 import { useTranslations } from '@/providers/use-translations';
 import { useAdminList, SearchBar, Pager, LoadingRow, EmptyRow, Badge, fmtDateTime, useSelection, SelectCheckbox, SelectionToolbar } from './admin-ui';
 
@@ -34,6 +34,11 @@ export function AdminReports() {
     list.reload();
   }
 
+  async function hideTweet(id: number) {
+    await api(`/api/admin/tweets/${id}`, { method: 'POST', body: JSON.stringify({ action: 'HIDE' }) });
+    list.reload();
+  }
+
   return (
     <div className="admin-card admin-table-card">
       <div className="admin-toolbar">
@@ -61,6 +66,7 @@ export function AdminReports() {
             {list.rows.map((row) => {
               const messageUser = row.message?.user?.username ?? row.message?.sender?.username ?? row.message?.author?.username ?? 'unknown';
               const messageText = row.kind === 'video' ? `[${t('admin.video')}] ${row.message?.title || t('admin.untitled')}` : row.kind === 'tweet' ? `[tweet] ${row.message?.text || ''}` : row.message?.text || `[${t('admin.voice')}]`;
+              const tweetId = row.kind === 'tweet' ? row.message?.id : undefined;
               return <tr key={row.id}>
                 <td className="admin-check-cell"><SelectCheckbox checked={selection.isSelected(row.id)} onChange={() => selection.toggle(row.id)} label={String(row.id)} /></td>
                 <td className="admin-mono"><Flag size={13} /> {row.id}</td>
@@ -70,6 +76,7 @@ export function AdminReports() {
                 <td><Badge tone={row.status === 'OPEN' ? 'red' : row.status === 'RESOLVED' ? 'green' : 'amber'}>{statusLabel(t, row.status)}</Badge></td>
                 <td className="admin-dim">{fmtDateTime(row.createdAt)}</td>
                 <td className="admin-actions">
+                  {typeof tweetId === 'number' && <button className="btn-icon" title={t('admin.hideTweet')} onClick={() => void hideTweet(tweetId)}><Ban size={14} /></button>}
                   {row.status === 'OPEN' && <button className="btn-icon" title={t('admin.markReviewed')} onClick={() => update(row.id, 'REVIEWED')}><Eye size={14} /></button>}
                   {row.status !== 'RESOLVED' && <button className="btn-icon" title={t('admin.resolve')} onClick={() => update(row.id, 'RESOLVED')}><Check size={14} /></button>}
                 </td>

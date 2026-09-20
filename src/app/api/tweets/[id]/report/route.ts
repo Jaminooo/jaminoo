@@ -1,21 +1,13 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { TWEET_REPORT_REASONS, isTweetReportReason, TWEET_REASON_LABELS } from '@/lib/report-reasons';
+import { rateLimit } from '@/lib/rate-limit';
 
 type Ctx = { params: { id: string } };
 
-const REASONS = ['SPAM', 'HARASSMENT', 'HATE', 'VIOLENCE', 'SEXUAL', 'FRAUD', 'OTHER'] as const;
-const REASON_LABELS: Record<string, string> = {
-  SPAM: 'Spam',
-  HARASSMENT: 'Harassment',
-  HATE: 'Hateful content',
-  VIOLENCE: 'Violence',
-  SEXUAL: 'Sexual content',
-  FRAUD: 'Scam or fraud',
-  OTHER: 'Something else',
-};
-
 export const POST = handle(async (req, { params }: Ctx) => {
   const me = await requireUser();
+  rateLimit(`tweets:report:${me.id}`, 20, 60 * 60 * 1000);
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Invalid tweet', 400);
 
@@ -25,7 +17,7 @@ export const POST = handle(async (req, { params }: Ctx) => {
   const body = await req.json().catch(() => ({}));
   const category = typeof body.reason === 'string' ? body.reason.toUpperCase() : '';
   const details = typeof body.details === 'string' ? body.details.trim().slice(0, 300) : '';
-  if (!REASONS.includes(category as any)) return err('Choose a report reason');
+  if (!isTweetReportReason(category)) return err('Choose a report reason');
 
   const existing = await prisma.messageReport.findFirst({
     where: { reporterId: me.id, tweetId: id, status: 'OPEN' },
@@ -38,7 +30,7 @@ export const POST = handle(async (req, { params }: Ctx) => {
       reporterId: me.id,
       tweetId: id,
       reasonCategory: category,
-      reason: details || REASON_LABELS[category],
+      reason: details || TWEET_REASON_LABELS[category],
     },
   });
   return json({ ok: true }, 201);

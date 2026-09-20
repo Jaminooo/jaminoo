@@ -1,0 +1,291 @@
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: #fff;
+}
+
+.screen {
+  min-height: 100vh;
+  position: relative;
+}
+
+.app-root {
+  height: 100vh;
+  height: var(--dvh-support, 100dvh);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  position: relative;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 70%);
+}
+
+.bg-halo {
+  position: fixed;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 900px;
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(from 0deg at 50% 50%, transparent 45%, rgba(124, 145, 182, 0.3) 49%, rgba(124, 145, 182, 0.5) 50%, rgba(124, 145, 182, 0.3) 51%, transparent 55%);
+  opacity: 0.5;
+  mask-image: radial-gradient(circle, black 10%, transparent 50%);
+  -webkit-mask-image: radial-gradient(circle, black 10%, transparent 50%);
+}
+
+.gradient-text {
+  background: linear-gradient(0deg, var(--text) 0%, var(--muted) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.wordmark {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-frost);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wordmark-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--color-violet);
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+
+.wordmark-mark svg {
+  width: 13px;
+  height: 13px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.btn-violet {
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  font-weight: 600;
+}
+
+.btn-violet:hover {
+  background: var(--text);
+  color: var(--bg);
+  opacity: .85;
+}
+
+.btn-ghost {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.btn-ghost:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  border-color: color-mix(in srgb, var(--text) 24%, transparent);
+}
+
+.btn-social {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 999px;
+}
+
+.btn-social:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-violet-light);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.gh-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-frost);
+  display: grid;
+  place-items: center;
+}
+
+.gh-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--color-frost);
+  display: grid;
+  place-items: center;
+  transition: background 150ms ease;
+}
+
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: color-mix(in srgb, var(--text) 24%, transparent) 0 0 0 1px inset;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-frost);
+  letter-spacing: 0.01em;
+}
+
+.badge.violet {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: none;
+}
+
+.card {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 1px color-mix(in srgb, var(--text) 12%, transparent), inset 0 24px 48px color-mix(in srgb, var(--text) 5%, transparent), 0 24px 32px rgba(0, 0, 0, 0.7);
+  transition: border-color 150ms ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+.card-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  color: #fff;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--color-fog);
+}
+
+.count-chip {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-moon);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.count-chip.violet {
+  color: #fff;
+  background: var(--color-violet);
+  border-color: transparent;
+}
+
+.auth-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 48px;
+  align-items: center;
+}
+
