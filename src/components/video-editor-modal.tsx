@@ -11,6 +11,13 @@ interface VideoEditorModalProps {
   onSaved: (file: File) => void;
 }
 
+interface VideoEditorWorkspaceProps {
+  file: File;
+  onRenderDone: (file: File) => void;
+  renderDoneCopy?: string;
+  renderHelperCopy?: string;
+}
+
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
   const h = Math.floor(seconds / 3600);
@@ -47,7 +54,7 @@ function VolumeSlider({ label, value, onChange }: { label: string; value: number
   );
 }
 
-export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorModalProps) {
+export function VideoEditorWorkspace({ file, onRenderDone, renderDoneCopy, renderHelperCopy }: VideoEditorWorkspaceProps) {
   const previewRef = useRef<HTMLVideoElement>(null);
   const filmstripRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -85,7 +92,6 @@ export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorMo
   const supported = useMemo(() => typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined' && typeof (HTMLCanvasElement.prototype as HTMLCanvasElement).captureStream === 'function', []);
 
   useEffect(() => {
-    if (!open || !file) return;
     const url = URL.createObjectURL(file);
     if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
     videoUrlRef.current = url;
@@ -106,7 +112,7 @@ export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorMo
     setRenderProgress(0);
     setDone(false);
     setError('');
-  }, [open, file]);
+  }, [file]);
 
   useEffect(() => () => {
     if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
@@ -297,7 +303,7 @@ export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorMo
 
   const render = useCallback(async () => {
     const v = previewRef.current;
-    if (!v || !ready || rendering || !supported || !file) return;
+    if (!v || !ready || rendering || !supported) return;
     const s = tStart;
     const e = tEnd;
     if (e - s < 0.1) { setError('Clip is too short to render.'); return; }
@@ -410,7 +416,7 @@ export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorMo
       const editedFile = new File([blob], `${base}-edited.${ext}`, { type: mimeType || 'video/mp4' });
       setRenderProgress(100);
       setDone(true);
-      onSaved(editedFile);
+      onRenderDone(editedFile);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not render this video.');
     } finally {
@@ -418,13 +424,105 @@ export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorMo
       try { audioCtx?.close(); } catch { /* noop */ }
       setRendering(false);
     }
-  }, [ready, rendering, supported, tStart, tEnd, file, videoUrl, music, muted, musicVol, videoVol, onSaved]);
+  }, [ready, rendering, supported, tStart, tEnd, file, videoUrl, music, muted, musicVol, videoVol, onRenderDone]);
 
-  if (!open || !file) return null;
   const playFraction = duration > 0 ? current / duration : 0;
-  const leftFrac = duration > 0 ? (tStart / duration) * 100 : 0;
-  const widthFrac = duration > 0 ? Math.max(0, ((tEnd - tStart) / duration) * 100) : 100;
 
+  return (
+    <div className="video-editor-grid">
+      <div className="video-editor-main">
+        <div className="video-editor-preview">
+          <video ref={previewRef} playsInline preload="metadata" muted={muted} />
+          {!ready && <div className="video-editor-loading"><Loader2 size={22} className="video-editor-spin" /> Loading preview…</div>}
+          {ready && <span className={`video-editor-trim-note ${tStart > 0 || tEnd < duration ? 'show' : ''}`}><Scissors size={12} /> Trim active</span>}
+          <div className="video-editor-seek">
+            <span className="video-editor-time is-current">{formatTime(current)}</span>
+            <div ref={sliderRef} className="video-editor-slider" onPointerDown={onSeekDown} onPointerMove={onSeekMove} onPointerUp={onSeekUp} onPointerCancel={onSeekUp}>
+              <div className="video-editor-track"><span className="video-editor-progress" style={{ width: `${playFraction * 100}%` }} /></div>
+              <span className="video-editor-thumb" style={{ ['--video-editor-thumb' as string]: `${playFraction * 100}%` }} />
+            </div>
+            <span className="video-editor-time">{formatTime(duration)}</span>
+          </div>
+          <div className="video-editor-ctls">
+            <button type="button" className="video-editor-play" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}</button>
+            <button type="button" className={`video-editor-chip ${loop ? 'on' : ''}`} onClick={() => setLoop((value) => !value)}><Repeat size={14} /> Loop preview</button>
+            <button type="button" className={`video-editor-chip ${muted ? 'on' : ''}`} onClick={() => setMuted((value) => !value)}>{muted ? <VolumeX size={14} /> : <Volume2 size={14} />} Video sound</button>
+            <button type="button" className="video-editor-chip ipt-right" onClick={resetTrim}><RotateCcw size={14} /> Reset</button>
+          </div>
+        </div>
+
+        <div className="video-editor-timeline-card">
+          <div className="video-editor-timeline-head"><span>Timeline</span><b>{ready ? `${formatTime(tStart)} — ${formatTime(tEnd)} · ${formatTime(tEnd - tStart)}` : 'Loading…'}</b></div>
+          <div
+            ref={timelineRef}
+            className="video-editor-timeline"
+            onPointerDown={onTimelineDown}
+            onPointerMove={onTimelineMove}
+            onPointerUp={onTimelineUp}
+            onPointerCancel={onTimelineUp}
+          >
+            <div ref={filmstripRef} className="video-editor-filmstrip" />
+            <div className="video-editor-trim-region">
+              <span className="video-editor-shadow left" />
+              <span className="video-editor-shadow right" />
+              <span className="video-editor-trim-tag left">{formatTime(tStart)}</span>
+              <span className="video-editor-trim-tag right">{formatTime(tEnd)}</span>
+            </div>
+            <div ref={handleLRef} className="video-editor-handle left" onPointerDown={onHandleDown(true)} onPointerMove={onHandleMove(true)} onPointerUp={onHandleUp(true)} onPointerCancel={onHandleUp(true)}><span className="video-editor-grip" /></div>
+            <div ref={handleRRef} className="video-editor-handle right" onPointerDown={onHandleDown(false)} onPointerMove={onHandleMove(false)} onPointerUp={onHandleUp(false)} onPointerCancel={onHandleUp(false)}><span className="video-editor-grip" /></div>
+            <div className="video-editor-playhead" style={{ left: `${playFraction * 100}%` }} />
+          </div>
+          <div className="video-editor-timeline-foot">
+            <div className="video-editor-trim-summary">Clip: <b>{formatTime(tStart)}</b> → <b>{formatTime(tEnd)}</b> · Length <b>{formatTime(tEnd - tStart)}</b> / <b>{formatTime(duration)}</b></div>
+            <div className="video-editor-chip-row">
+              <button type="button" className="video-editor-chip" onClick={setAsStart}><Scissors size={14} /> Trim start</button>
+              <button type="button" className="video-editor-chip" onClick={setAsEnd}><Scissors size={14} /> Trim end</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="video-editor-side">
+        <div className="video-editor-panel">
+          <div className="video-editor-panel-head"><b>Sound</b><span>Mix a soundtrack</span></div>
+          <div className="video-editor-step"><span className="video-editor-step-n">1</span> Add music</div>
+          {music ? (
+            <div className="video-editor-sound-row">
+              <div className="video-editor-sound-thumb"><Music2 size={18} /></div>
+              <div className="video-editor-sound-info"><b>{music.name}</b><span><Repeat size={11} /> Loops with the clip</span></div>
+              <button type="button" className="video-editor-x" onClick={removeMusic} aria-label="Remove soundtrack"><X size={14} /></button>
+            </div>
+          ) : (
+            <div className="video-editor-sound-empty"><Music size={16} /> No soundtrack yet</div>
+          )}
+          <label className="video-editor-audio-file"><UploadCloud size={16} /> Add audio file<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4" onChange={(event) => { const f = event.target.files?.[0]; if (f) addMusic(f); event.target.value = ''; }} /></label>
+          <div className="video-editor-step"><span className="video-editor-step-n">2</span> Volume mix</div>
+          <VolumeSlider label="Music" value={musicVol} onChange={setMusicVol} />
+          <VolumeSlider label="Original sound" value={videoVol} onChange={setVideoVol} />
+          <div className="video-editor-export">
+            <b>Render &amp; use</b>
+            <p>{renderHelperCopy ?? 'Trims your clip and mixes the music into a new video, ready for your post. Rendering runs in real time.'}</p>
+            {!supported && <p className="video-editor-warn">This browser cannot render videos in-browser yet — try the latest Chrome, Edge or Safari.</p>}
+            <button type="button" className={`btn btn-violet pill-sm ${rendering ? 'video-editor-render-btn' : ''}`} style={{ width: '100%' }} disabled={rendering || !ready || !supported} onClick={() => void render()}>
+              {rendering ? <>Rendering {Math.round(renderProgress)}%…</> : <><Scissors size={14} /> Render &amp; export</>}
+            </button>
+            {rendering && (
+              <div className="video-editor-progress">
+                <div className="video-editor-progress-track"><span style={{ width: `${renderProgress}%` }} /></div>
+                <div className="video-editor-progress-row"><span>{Math.round(renderProgress)}%</span><span>{formatTime(Math.max(0, (tEnd - tStart) * (1 - renderProgress / 100)))} left</span></div>
+              </div>
+            )}
+            {done && <div className="video-editor-done"><Sparkles size={13} /> {renderDoneCopy ?? 'Edited video ready — applied to your post.'}</div>}
+            {error && <div className="video-editor-error">{error}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorModalProps) {
+  if (!open || !file) return null;
   return (
     <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={onClose}>
       <section className="video-editor-modal" role="dialog" aria-modal="true" aria-labelledby="video-editor-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -436,96 +534,7 @@ export function VideoEditorModal({ file, open, onClose, onSaved }: VideoEditorMo
           </div>
           <button type="button" className="btn-icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </header>
-
-        <div className="video-editor-grid">
-          <div className="video-editor-main">
-            <div className="video-editor-preview">
-              <video ref={previewRef} playsInline preload="metadata" muted={muted} />
-              {!ready && <div className="video-editor-loading"><Loader2 size={22} className="video-editor-spin" /> Loading preview…</div>}
-              {ready && <span className={`video-editor-trim-note ${tStart > 0 || tEnd < duration ? 'show' : ''}`}><Scissors size={12} /> Trim active</span>}
-              <div className="video-editor-seek">
-                <span className="video-editor-time is-current">{formatTime(current)}</span>
-                <div ref={sliderRef} className="video-editor-slider" onPointerDown={onSeekDown} onPointerMove={onSeekMove} onPointerUp={onSeekUp} onPointerCancel={onSeekUp}>
-                  <div className="video-editor-track"><span className="video-editor-progress" style={{ width: `${playFraction * 100}%` }} /></div>
-                  <span className="video-editor-thumb" style={{ ['--video-editor-thumb' as string]: `${playFraction * 100}%` }} />
-                </div>
-                <span className="video-editor-time">{formatTime(duration)}</span>
-              </div>
-              <div className="video-editor-ctls">
-                <button type="button" className="video-editor-play" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}</button>
-                <button type="button" className={`video-editor-chip ${loop ? 'on' : ''}`} onClick={() => setLoop((value) => !value)}><Repeat size={14} /> Loop preview</button>
-                <button type="button" className={`video-editor-chip ${muted ? 'on' : ''}`} onClick={() => setMuted((value) => !value)}>{muted ? <VolumeX size={14} /> : <Volume2 size={14} />} Video sound</button>
-                <button type="button" className="video-editor-chip ipt-right" onClick={resetTrim}><RotateCcw size={14} /> Reset</button>
-              </div>
-            </div>
-
-            <div className="video-editor-timeline-card">
-              <div className="video-editor-timeline-head"><span>Timeline</span><b>{ready ? `${formatTime(tStart)} — ${formatTime(tEnd)} · ${formatTime(tEnd - tStart)}` : 'Loading…'}</b></div>
-              <div
-                ref={timelineRef}
-                className="video-editor-timeline"
-                onPointerDown={onTimelineDown}
-                onPointerMove={onTimelineMove}
-                onPointerUp={onTimelineUp}
-                onPointerCancel={onTimelineUp}
-              >
-                <div ref={filmstripRef} className="video-editor-filmstrip" />
-                <div className="video-editor-trim-region">
-                  <span className="video-editor-shadow left" />
-                  <span className="video-editor-shadow right" />
-                  <span className="video-editor-trim-tag left">{formatTime(tStart)}</span>
-                  <span className="video-editor-trim-tag right">{formatTime(tEnd)}</span>
-                </div>
-                <div ref={handleLRef} className="video-editor-handle left" onPointerDown={onHandleDown(true)} onPointerMove={onHandleMove(true)} onPointerUp={onHandleUp(true)} onPointerCancel={onHandleUp(true)}><span className="video-editor-grip" /></div>
-                <div ref={handleRRef} className="video-editor-handle right" onPointerDown={onHandleDown(false)} onPointerMove={onHandleMove(false)} onPointerUp={onHandleUp(false)} onPointerCancel={onHandleUp(false)}><span className="video-editor-grip" /></div>
-                <div className="video-editor-playhead" style={{ left: `${playFraction * 100}%` }} />
-              </div>
-              <div className="video-editor-timeline-foot">
-                <div className="video-editor-trim-summary">Clip: <b>{formatTime(tStart)}</b> → <b>{formatTime(tEnd)}</b> · Length <b>{formatTime(tEnd - tStart)}</b> / <b>{formatTime(duration)}</b></div>
-                <div className="video-editor-chip-row">
-                  <button type="button" className="video-editor-chip" onClick={setAsStart}><Scissors size={14} /> Trim start</button>
-                  <button type="button" className="video-editor-chip" onClick={setAsEnd}><Scissors size={14} /> Trim end</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="video-editor-side">
-            <div className="video-editor-panel">
-              <div className="video-editor-panel-head"><b>Sound</b><span>Mix a soundtrack</span></div>
-              <div className="video-editor-step"><span className="video-editor-step-n">1</span> Add music</div>
-              {music ? (
-                <div className="video-editor-sound-row">
-                  <div className="video-editor-sound-thumb"><Music2 size={18} /></div>
-                  <div className="video-editor-sound-info"><b>{music.name}</b><span><Repeat size={11} /> Loops with the clip</span></div>
-                  <button type="button" className="video-editor-x" onClick={removeMusic} aria-label="Remove soundtrack"><X size={14} /></button>
-                </div>
-              ) : (
-                <div className="video-editor-sound-empty"><Music size={16} /> No soundtrack yet</div>
-              )}
-              <label className="video-editor-audio-file"><UploadCloud size={16} /> Add audio file<input type="file" accept="audio/mpeg,audio/wav,audio/ogg,audio/webm,audio/mp4" onChange={(event) => { const f = event.target.files?.[0]; if (f) addMusic(f); event.target.value = ''; }} /></label>
-              <div className="video-editor-step"><span className="video-editor-step-n">2</span> Volume mix</div>
-              <VolumeSlider label="Music" value={musicVol} onChange={setMusicVol} />
-              <VolumeSlider label="Original sound" value={videoVol} onChange={setVideoVol} />
-              <div className="video-editor-export">
-                <b>Render &amp; use</b>
-                <p>Trims your clip and mixes the music into a new video, ready for your post. Rendering runs in real time.</p>
-                {!supported && <p className="video-editor-warn">This browser cannot render videos in-browser yet — try the latest Chrome, Edge or Safari.</p>}
-                <button type="button" className={`btn btn-violet pill-sm ${rendering ? 'video-editor-render-btn' : ''}`} style={{ width: '100%' }} disabled={rendering || !ready || !supported} onClick={() => void render()}>
-                  {rendering ? <>Rendering {Math.round(renderProgress)}%…</> : <><Scissors size={14} /> Render &amp; export</>}
-                </button>
-                {rendering && (
-                  <div className="video-editor-progress">
-                    <div className="video-editor-progress-track"><span style={{ width: `${renderProgress}%` }} /></div>
-                    <div className="video-editor-progress-row"><span>{Math.round(renderProgress)}%</span><span>{formatTime(Math.max(0, (tEnd - tStart) * (1 - renderProgress / 100)))} left</span></div>
-                  </div>
-                )}
-                {done && <div className="video-editor-done"><Sparkles size={13} /> Edited video ready — applied to your post.</div>}
-                {error && <div className="video-editor-error">{error}</div>}
-              </div>
-            </div>
-          </div>
-        </div>
+        <VideoEditorWorkspace file={file} onRenderDone={onSaved} />
       </section>
     </div>
   );

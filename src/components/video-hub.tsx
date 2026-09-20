@@ -17,6 +17,7 @@ import {
   Link2,
   ListVideo,
   LayoutDashboard,
+  Loader2,
   MessageCircle,
   MoreHorizontal,
   Pencil,
@@ -46,12 +47,12 @@ import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { useTranslations } from '@/providers/use-translations';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
-import { VideoEditorModal } from '@/components/video-editor-modal';
+import { VideoEditorModal, VideoEditorWorkspace } from '@/components/video-editor-modal';
 import { CreatorCollabStudio } from '@/components/creator-collab-studio';
 import { CreatorInsights } from '@/components/creator-insights';
 import { connectLive, onLive } from '@/lib/live';
 
-type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists' | 'edit';
+type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists' | 'edit' | 'editor';
 type FeedKind = 'ALL' | 'SHORT' | 'LONG';
 type MediaType = 'TEXT' | 'IMAGE' | 'VIDEO';
 
@@ -121,7 +122,7 @@ interface DiscoverCreator {
 }
 
 const NAV: { id: VideoView; key: string; icon: typeof Film }[] = [
-  { id: 'feed', key: 'feed', icon: Film }, { id: 'following', key: 'following', icon: UsersRound }, { id: 'shorts', key: 'shorts', icon: Play }, { id: 'long', key: 'long', icon: Tv2 }, { id: 'watch', key: 'watch', icon: Link2 }, { id: 'watchlist', key: 'watchlist', icon: Bookmark }, { id: 'creators', key: 'creators', icon: Camera }, { id: 'studio', key: 'studio', icon: LayoutDashboard }, { id: 'playlists', key: 'playlists', icon: ListVideo }, { id: 'edit', key: 'edit', icon: Pencil },
+  { id: 'feed', key: 'feed', icon: Film }, { id: 'following', key: 'following', icon: UsersRound }, { id: 'shorts', key: 'shorts', icon: Play }, { id: 'long', key: 'long', icon: Tv2 }, { id: 'watch', key: 'watch', icon: Link2 }, { id: 'watchlist', key: 'watchlist', icon: Bookmark }, { id: 'creators', key: 'creators', icon: Camera }, { id: 'studio', key: 'studio', icon: LayoutDashboard }, { id: 'playlists', key: 'playlists', icon: ListVideo }, { id: 'edit', key: 'edit', icon: Pencil }, { id: 'editor', key: 'editor', icon: Scissors },
 ];
 
 function durationLabel(seconds: number) {
@@ -789,6 +790,111 @@ function EditView({ onEditPost }: { onEditPost: (post: VideoPost) => void }) {
   );
 }
 
+function VideoEditorView() {
+  const [file, setFile] = useState<File | null>(null);
+  const [posts, setPosts] = useState<VideoPost[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (file) return;
+    setLoading(true);
+    api<{ posts: VideoPost[] }>('/api/video/posts?authorId=me')
+      .then((data) => setPosts(data.posts.filter((post) => post.mediaType === 'VIDEO')))
+      .catch(() => setPosts([]))
+      .finally(() => setLoading(false));
+  }, [file]);
+
+  const openFromPost = async (post: VideoPost) => {
+    if (!post.assetUrl || busyId !== null) return;
+    setBusyId(post.id);
+    try {
+      const response = await fetch(post.assetUrl);
+      if (!response.ok) throw new Error('Could not download this clip.');
+      const blob = await response.blob();
+      const name = `${post.title || 'clip'}-${post.id}.mp4`;
+      setFile(new File([blob], name, { type: blob.type || 'video/mp4' }));
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not open this clip.', 'error');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDownload = useCallback((editedFile: File) => {
+    const url = URL.createObjectURL(editedFile);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = editedFile.name;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast('Edited video saved to your device.', 'ok');
+  }, []);
+
+  if (file) {
+    return (
+      <section className="video-editor-view">
+        <div className="video-editor-hero">
+          <Scissors size={26} />
+          <div>
+            <div className="hub-kicker">VIDEO EDITOR</div>
+            <h2>Edit your clip.</h2>
+            <p>Trim, mix a soundtrack and export a new file — everything happens in your browser.</p>
+          </div>
+          <button type="button" className="btn btn-ghost pill-sm" onClick={() => setFile(null)}><X size={14} /> Choose another clip</button>
+        </div>
+        <div className="video-editor-view-file"><UploadCloud size={15} /> {file.name}</div>
+        <VideoEditorWorkspace
+          file={file}
+          onRenderDone={handleDownload}
+          renderDoneCopy="Edited video ready — saved to your downloads."
+          renderHelperCopy="Trims your clip, mixes the soundtrack and downloads the new file to your device. Rendering runs in real time."
+        />
+      </section>
+    );
+  }
+
+  return (
+    <section className="video-editor-view">
+      <div className="video-editor-hero">
+        <Scissors size={26} />
+        <div>
+          <div className="hub-kicker">VIDEO EDITOR</div>
+          <h2>Cut, mix and export.</h2>
+          <p>Choose a clip from your device or reuse one of your posts, then trim and remix it before you use it again.</p>
+        </div>
+      </div>
+      <div className="video-editor-import">
+        <div className="video-editor-import-art"><Scissors size={36} /></div>
+        <h3>Start with a clip</h3>
+        <p>MP4 · MOV · WEBM — up to 100 MB · editing runs on-device, so nothing is uploaded until you publish.</p>
+        <button type="button" className="btn btn-violet pill-sm" onClick={() => fileInputRef.current?.click()}><UploadCloud size={15} /> Choose a video</button>
+        <input ref={fileInputRef} type="file" hidden accept="video/mp4,video/webm,video/quicktime" onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; if (nextFile) setFile(nextFile); event.target.value = ''; }} />
+      </div>
+      <div className="video-editor-posts">
+        <div className="video-editor-posts-head"><b>Or reuse one of your clips</b><span>Only your video posts appear here.</span></div>
+        {loading ? <div className="video-modal-loading"><span className="admin-loader" /> Loading your videos…</div> : posts.length === 0 ? <div className="video-hub-empty"><Scissors size={20} /><b>No video posts yet.</b><span>Publish a video first, then you can re-edit any clip.</span></div> : (
+          <div className="video-editor-posts-grid">
+            {posts.map((post) => (
+              <button type="button" key={post.id} className="video-editor-post" disabled={busyId !== null} onClick={() => void openFromPost(post)}>
+                <div className="video-editor-post-thumb">
+                  {post.thumbnailUrl ? <Image src={post.thumbnailUrl} alt="" fill unoptimized /> : <Play size={16} />}
+                  {post.durationSec > 0 && <span>{durationLabel(post.durationSec)}</span>}
+                </div>
+                <span><b>{post.title || 'Untitled clip'}</b><small>@{post.author.username} · {post.kind}</small></span>
+                {busyId === post.id ? <Loader2 size={15} className="video-editor-spin" /> : <Scissors size={15} />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function VideoHub() {
   const t = useTranslations();
   const setProduct = useAppStore((state) => state.setProduct);
@@ -1043,6 +1149,7 @@ export function VideoHub() {
           </section>}
 
           {view === 'edit' && <EditView onEditPost={setEditPost} />}
+          {view === 'editor' && <VideoEditorView />}
           {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><video controls playsInline src={activeUrl} /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}
 
           {feedView && <section className={`video-feed-section ${view === 'shorts' ? 'is-shorts' : ''} ${view === 'long' ? 'is-long' : ''}`}>
