@@ -21,8 +21,9 @@ import {
   ListPlus,
   Lock,
   MapPin,
-  MessageCircle,
+MessageCircle,
   MoreHorizontal,
+  CornerUpLeft,
   Pencil,
   Pin,
   PinOff,
@@ -99,6 +100,7 @@ interface Tweet {
   text: string;
   media: TweetMedia[];
   replyToId: number | null;
+  replyToAuthor?: string | null;
   retweetOfId: number | null;
   quotedTweetId: number | null;
   quoted: Tweet | null;
@@ -616,6 +618,9 @@ function TweetCard({
               onStats={onStats}
             />
           </div>
+          {tweet.replyToAuthor && (
+            <span className="tweet-reply-label">{t('tweetHub.card.inReplyTo', { name: tweet.replyToAuthor })}</span>
+          )}
           <button type="button" className="tweet-text-btn" onClick={onOpen}>
             {tweet.text && <p className="tweet-text">{renderText(tweet.text, onTag, onMention)}</p>}
           </button>
@@ -638,6 +643,7 @@ const autofocusClass = 'tweet-composer-textarea';
 function Composer({
   onPosted,
   replyToId,
+  replyContext,
   quote,
   editTweet,
   onCancel,
@@ -647,6 +653,7 @@ function Composer({
 }: {
   onPosted: (tweet: Tweet) => void;
   replyToId?: number;
+  replyContext?: { author: TweetAuthor } | null;
   quote?: Tweet | null;
   editTweet?: Tweet | null;
   onCancel?: () => void;
@@ -841,6 +848,9 @@ function Composer({
         {me && <JaminoAvatar avatarId={me.avatarId} size={compact ? 38 : 46} photo={me.avatarPhoto} name={me.username} />}
       </div>
       <div className="tweet-composer-body">
+        {replyContext && (
+          <div className="tweet-composer-note"><CornerUpLeft size={13} /> {t('tweetHub.card.replyingTo', { name: replyContext.author.username })}</div>
+        )}
         {editTweet && <div className="tweet-composer-note"><Pencil size={13} /> {t('tweetHub.editingNote')}</div>}
         {draftStatus && <div className="tweet-composer-note"><Clock size={13} /> {draftStatus === 'saving' ? t('tweetHub.draft.saving') : t('tweetHub.draft.saved')}</div>}
         <textarea
@@ -1298,19 +1308,20 @@ function ConfirmModal({ title, message, confirmLabel, onCancel, onConfirm }: {
   );
 }
 
-function AnalyticsModal({ stats, onClose }: {
-  stats: TweetStats;
+function AnalyticsModal({ stats, loading, onClose }: {
+  stats: TweetStats | null;
+  loading?: boolean;
   onClose: () => void;
 }) {
   const t = useTranslations();
-  const rows: { label: string; value: number }[] = [
+  const rows: { label: string; value: number }[] = stats ? [
     { label: t('tweetHub.stats.impressions'), value: stats.impressions },
     { label: t('tweetHub.stats.likes'), value: stats.likes },
     { label: t('tweetHub.stats.reposts'), value: stats.reposts },
     { label: t('tweetHub.stats.replies'), value: stats.replies },
     { label: t('tweetHub.stats.quotes'), value: stats.quotes },
     { label: t('tweetHub.stats.bookmarks'), value: stats.bookmarks },
-  ];
+  ] : [];
   return (
     <div className="tweet-modal-backdrop" onMouseDown={onClose}>
       <section className="tweet-modal tweet-list-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
@@ -1318,22 +1329,26 @@ function AnalyticsModal({ stats, onClose }: {
           <div><div className="hub-kicker">{t('tweetHub.stats.kicker')}</div><h2>{t('tweetHub.stats.title')}</h2></div>
           <button type="button" className="btn-icon" onClick={onClose} aria-label={t('tweetHub.close')}><X size={18} /></button>
         </header>
-        <div className="tweet-modal-scroll tweet-stats-grid">
-          {rows.map((row) => (
-            <div className="tweet-stat-card" key={row.label}>
-              <b>{formatCount(row.value)}</b>
-              <span>{row.label}</span>
-            </div>
-          ))}
-          <div className="tweet-stat-card primary">
-            <b>{stats.engagementRate}%</b>
-            <span>{t('tweetHub.stats.engagementRate')}</span>
+        {loading ? (
+          <div className="tweet-loading">{Array.from({ length: 3 }, (_, index) => <div className="tweet-skeleton" key={index} />)}</div>
+        ) : (
+          <div className="tweet-modal-scroll tweet-stats-grid">
+            {rows.map((row) => (
+              <div className="tweet-stat-card" key={row.label}>
+                <b>{formatCount(row.value)}</b>
+                <span>{row.label}</span>
+              </div>
+            ))}
+            {stats && <div className="tweet-stat-card primary">
+              <b>{stats.engagementRate}%</b>
+              <span>{t('tweetHub.stats.engagementRate')}</span>
+            </div>}
+            {stats && <div className="tweet-stat-card">
+              <b>{formatCount(stats.engagements)}</b>
+              <span>{t('tweetHub.stats.engagements')}</span>
+            </div>}
           </div>
-          <div className="tweet-stat-card">
-            <b>{formatCount(stats.engagements)}</b>
-            <span>{t('tweetHub.stats.engagements')}</span>
-          </div>
-        </div>
+        )}
         <p className="tweet-rail-empty">{t('tweetHub.stats.hint')}</p>
       </section>
     </div>
@@ -1561,6 +1576,7 @@ export function TweetHub() {
   const [runBusy, setRunBusy] = useState(false);
   const [statsTarget, setStatsTarget] = useState<Tweet | null>(null);
   const [statsData, setStatsData] = useState<TweetStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [notifRefresh, setNotifRefresh] = useState(0);
   const viewRef = useRef(view);
   viewRef.current = view;
@@ -2042,9 +2058,11 @@ export function TweetHub() {
   const openStats = (tweet: Tweet) => {
     setStatsTarget(tweet);
     setStatsData(null);
+    setStatsLoading(true);
     api<{ stats: TweetStats }>(`/api/tweets/${tweet.id}/stats`)
       .then((data) => setStatsData(data.stats))
-      .catch(() => toast(t('tweetHub.toast.actionFailed'), 'error'));
+      .catch(() => toast(t('tweetHub.toast.actionFailed'), 'error'))
+      .finally(() => setStatsLoading(false));
   };
 
   const addMember = async (event: FormEvent) => {
@@ -2859,7 +2877,7 @@ export function TweetHub() {
                 </div>
               </div>
               {!editTarget && (
-                <Composer compact autoFocus replyToId={activeTweet.id} placeholder={t('tweetHub.status.replyPlaceholder')} onPosted={onReplyPosted} />
+                <Composer compact autoFocus replyToId={activeTweet.id} replyContext={{ author: activeTweet.author }} placeholder={t('tweetHub.status.replyPlaceholder')} onPosted={onReplyPosted} />
               )}
               <div className="tweet-replies">
                 {repliesLoading && <div className="tweet-empty"><span className="admin-loader" /> {t('tweetHub.status.loadingReplies')}</div>}
@@ -2999,9 +3017,9 @@ export function TweetHub() {
         </div>
       )}
 
-      {statsTarget && statsData && (
-        <AnalyticsModal stats={statsData} onClose={() => setStatsTarget(null)} />
-      )}
+{statsTarget && (statsData || statsLoading) && (
+                <AnalyticsModal stats={statsData} loading={statsLoading && !statsData} onClose={() => setStatsTarget(null)} />
+              )}
     </div>
   );
 }

@@ -56,7 +56,7 @@ Trends: `velocity = 3·mentions + likes + 2·retweets + 2·replies` over the per
 | 5.1 | Drafts (autosave + restore) | Implemented |
 | 5.2 | Scheduled tweets (queue + server worker) | Implemented |
 | 5.3 | Creator analytics (impressions, engagement rate) | Implemented |
-| 5.4 | Rich reply surfaces (reply-to chip + author labels) | Not started |
+| 5.4 | Rich reply surfaces (reply-to chip + author labels) | Implemented |
 
 ## PHASE 6 — Realtime
 
@@ -85,14 +85,14 @@ Trends: `velocity = 3·mentions + likes + 2·retweets + 2·replies` over the per
 | # | Item | Status |
 |---|------|--------|
 | 9.1 | Keyboard shortcuts (n = new tweet, / = search) | Implemented |
-| 9.2 | Loading skeletons + empty/error states coverage | Not started |
-| 9.3 | RTL consistency for polls/previews | Not started |
-| 9.4 | Autosave drafts indicator | Not started |
+| 9.2 | Loading skeletons + empty/error states coverage | Implemented |
+| 9.3 | RTL consistency for polls/previews | Implemented |
+| 9.4 | Autosave drafts indicator | Implemented |
 
 ## PHASE 10 — Testing & Hardening
 
 | # | Item | Status |
 |---|------|--------|
 | 10.1 | vitest setup (devDependency) | Implemented |
-| 10.2 | Unit tests: hashtag/mention extraction, search parser, poll validation, ranking | Not started |
-| 10.3 | Full `tsc --noEmit`, `npm run build`, `prisma validate` green | Not started |
+| 10.2 | Unit tests: hashtag/mention extraction, search parser, poll validation, ranking | Implemented |
+| 10.3 | Full `tsc --noEmit`, `npm run build`, `prisma validate` green | Implemented |

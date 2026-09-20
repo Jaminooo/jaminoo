@@ -5,6 +5,7 @@ import { serializeTweet, extractMentions, extractHashtags } from '@/lib/tweet';
 import { tweetIncludes } from '@/lib/tweet-db';
 import { pushNotification } from '@/lib/notifications';
 import { BadRequestError } from '@/lib/api';
+import { validatePollInput } from '@/lib/poll-validation';
 import { TWEET_MEDIA_KINDS } from '@/lib/media-kinds';
 
 const MAX_TEXT = 280;
@@ -19,12 +20,6 @@ export interface CreateTweetInput {
   quotedTweetId?: number;
   poll?: { question?: unknown; options?: unknown; durationMinutes?: unknown } | null;
 }
-
-const MAX_POLL_OPTIONS = 4;
-const MIN_POLL_OPTIONS = 2;
-const MAX_POLL_DURATION_DAYS = 7;
-const MAX_POLL_QUESTION = 80;
-const MAX_POLL_OPTION_LEN = 25;
 
 export interface CreateTweetOptions {
   authorId: number;
@@ -186,28 +181,7 @@ export async function createTweetRecord(input: CreateTweetInput, opts: CreateTwe
 }
 
 async function createPollForTweet(tweetId: number, raw: NonNullable<CreateTweetInput['poll']>) {
-  const question = typeof raw.question === 'string' ? raw.question.trim().slice(0, MAX_POLL_QUESTION) : '';
-  if (!question) throw new BadRequestError('Poll question is required');
-  const rawOptions = Array.isArray(raw.options) ? raw.options : [];
-  const options = rawOptions
-    .filter((o): o is string => typeof o === 'string')
-    .map((o) => o.trim())
-    .filter(Boolean)
-    .slice(0, MAX_POLL_OPTIONS);
-  const unique = Array.from(new Set(options.map((o) => o.toLowerCase())));
-  if (unique.length < MIN_POLL_OPTIONS || options.length < MIN_POLL_OPTIONS) {
-    throw new BadRequestError(`A poll needs at least ${MIN_POLL_OPTIONS} options`);
-  }
-  if (options.length > MAX_POLL_OPTIONS) throw new BadRequestError(`A poll can have up to ${MAX_POLL_OPTIONS} options`);
-  if (options.some((o) => o.length > MAX_POLL_OPTION_LEN)) throw new BadRequestError(`Options are limited to ${MAX_POLL_OPTION_LEN} characters`);
-  if (unique.length !== options.length) throw new BadRequestError('Poll options must be unique');
-
-  const durationMinutes = Number(raw.durationMinutes ?? 1440);
-  const maxMinutes = MAX_POLL_DURATION_DAYS * 24 * 60;
-  if (!Number.isFinite(durationMinutes) || durationMinutes < 5 || durationMinutes > maxMinutes) {
-    throw new BadRequestError('Poll duration must be between 5 minutes and 7 days');
-  }
-  const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+  const { question, options, durationMinutes, expiresAt } = validatePollInput(raw);
 
   await prisma.poll.create({
     data: {

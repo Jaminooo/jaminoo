@@ -1410,7 +1410,9 @@
     "threadingNote": "Threading replies",
     "card": {
       "reposted": "Reposted",
-      "openUser": "Open {username}"
+      "openUser": "Open {username}",
+      "inReplyTo": "in reply to @{name}",
+      "replyingTo": "Replying to @{name}"
     },
     "people": {
       "kicker": "PEOPLE",

@@ -1410,7 +1410,9 @@
     "threadingNote": "در حال ادامه‌ی رشته",
     "card": {
       "reposted": "بازنشر شده",
-      "openUser": "باز کردن {username}"
+      "openUser": "باز کردن {username}",
+      "inReplyTo": "در پاسخ به @{name}",
+      "replyingTo": "در حال پاسخ به @{name}"
     },
     "people": {
       "kicker": "افراد",

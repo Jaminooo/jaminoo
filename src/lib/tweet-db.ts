@@ -32,6 +32,7 @@ export function tweetIncludes(userId: number, withQuoted = true) {
       orderBy: { pos: 'asc' as const },
       include: { media: { select: { id: true, mime: true } } },
     },
+    replyTo: { select: { id: true, author: TWEET_ACTOR_SELECT } },
     ...(withQuoted ? { quoted: { include: QUOTE_NEST_INCLUDE } } : {}),
     _count: { select: { likes: true, retweets: true, replies: true, quotes: true } },
     likes: { where: { userId }, select: { id: true } },

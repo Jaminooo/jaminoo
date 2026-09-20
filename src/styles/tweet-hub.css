@@ -432,6 +432,7 @@
 .tweet-menu button.danger:hover { background: rgba(248,113,113,.13); color: #f87171; }
 
 .tweet-composer-note { display: inline-flex; align-items: center; gap: 7px; color: var(--accent); font-size: 12px; font-weight: 600; }
+.tweet-reply-label { display: block; margin: -2px 0 6px; color: var(--muted); font-size: 12px; }
 .tweet-composer-previews { display: grid; gap: 8px; }
 .tweet-composer-previews.multi { grid-template-columns: 1fr 1fr; }
 .tweet-composer-previews .tweet-composer-preview { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: #020617; }

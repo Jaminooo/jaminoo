@@ -28,6 +28,7 @@ export interface SerializedTweet {
   text: string;
   media: SerializedTweetMedia[];
   replyToId: number | null;
+  replyToAuthor: string | null;
   retweetOfId: number | null;
   quotedTweetId: number | null;
   createdAt: string;
@@ -95,6 +96,7 @@ export function serializeTweet(t: any, retweeted = false, depth = 0): Serialized
     text: t.text,
     media: serializeMedia(t),
     replyToId: t.replyToId ?? null,
+    replyToAuthor: t.replyTo?.author?.username ?? null,
     retweetOfId: t.retweetOfId ?? null,
     quotedTweetId: t.quotedTweetId ?? null,
     createdAt: t.createdAt.toISOString(),
@@ -132,16 +134,12 @@ export function serializeTweetAuthor(user: any) {
 
 // Mentions "@username" at word boundaries. Returns ["alice", "bob"].
 export function extractMentions(text: string) {
-  return Array.from(new Set(text.match(/(?:^|\s)@([A-Za-z0-9_]{1,30})/g) ?? []))
-    .map((m) => m.trim().slice(1))
-    .filter(Boolean)
+  return Array.from(new Set((text.match(/(?:^|\s)@([A-Za-z0-9_]{1,30})/g) ?? []).map((m) => m.trim().slice(1)).filter(Boolean)))
     .slice(0, 15);
 }
 
 // Hashtags "#tag". Returns ["tags"].
 export function extractHashtags(text: string) {
-  return Array.from(new Set(text.match(/(?:^|\s)#([A-Za-z0-9_]{1,40})/g) ?? []))
-    .map((m) => m.trim().slice(1))
-    .filter(Boolean)
+  return Array.from(new Set((text.match(/(?:^|\s)#([A-Za-z0-9_]{1,40})/g) ?? []).map((m) => m.trim().slice(1)).filter(Boolean)))
     .slice(0, 15);
 }
