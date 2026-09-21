@@ -818,7 +818,9 @@
     "copyUrl": "Copy page URL",
     "goBack": "Go back",
     "goForward": "Go forward",
-    "saveImage": "Save image"
+    "saveImage": "Save image",
+    "copied": "Copied to clipboard",
+    "pasteError": "Could not read clipboard. Try Ctrl+V."
   },
   "guard": {
     "devtoolsBlocked": "Developer tools are disabled in this app.",

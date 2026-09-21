@@ -112,3 +112,41 @@
 .video-hub-root .cinema-room, .cinema-room {
   border-color: color-mix(in srgb, var(--hub-cinema) 30%, transparent);
 }
+
+/* ==========================================================================
+   Site-wide custom scrollbars — nothing default from the browser remains.
+   ========================================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent) transparent;
+}
+html, body, #__next, main, section, aside, nav, div, ul, ol, pre, textarea {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent) color-mix(in srgb, var(--panel) 40%, transparent);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: color-mix(in srgb, var(--panel) 40%, transparent); }
+::-webkit-scrollbar-track:horizontal { background: color-mix(in srgb, var(--panel) 40%, transparent); }
+::-webkit-scrollbar-thumb {
+  min-height: 42px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--muted) 55%, transparent);
+}
+::-webkit-scrollbar-thumb:hover {
+  border-width: 2px;
+  background-color: color-mix(in srgb, var(--accent) 75%, var(--muted));
+}
+::-webkit-scrollbar-thumb:active { background-color: var(--accent); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+@media (max-width: 720px) {
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { border-width: 1px; }
+}
+
+/* Text selection — accent-tinted instead of the default engine blue. */
+::selection { background: color-mix(in srgb, var(--accent) 34%, transparent); color: var(--text); }
+::-moz-selection { background: color-mix(in srgb, var(--accent) 34%, transparent); color: var(--text); }

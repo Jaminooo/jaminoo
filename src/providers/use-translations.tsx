@@ -3,8 +3,8 @@
 import { useI18n } from '@/providers/i18n-provider';
 
 export function useTranslations() {
-  const { t, locale } = useI18n();
-  return (key: string, vars?: Record<string, string | number>) => t(key, vars);
+  const { t } = useI18n();
+  return t;
 }
 
 export function useLocale() {
