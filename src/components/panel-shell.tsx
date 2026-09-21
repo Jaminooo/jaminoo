@@ -13,15 +13,18 @@ import { DmInboxPanel } from '@/components/dm-inbox';
 import { RoomPanel } from '@/components/room-panel';
 import { DmPanel } from '@/components/dm-panel';
 import { FriendProfilePanel } from '@/components/friend-profile';
+import { CommunityHome } from '@/components/community-home';
+import { GroupsPanel } from '@/components/groups-panel';
+import { GroupChat } from '@/components/group-chat';
 import { motion, AnimatePresence } from 'framer-motion';
 import { connectLive, onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
-import { User, Shield, Users, Radio, MessageCircle, House } from 'lucide-react';
+import { House, MessagesSquare, Radio, Users, MessageCircle, User } from 'lucide-react';
 import { GlobalSearch } from '@/components/global-search';
 
 export function PanelShell() {
   const me = useAppStore((s) => s.me);
-  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith, profileUserId, setProfileUserId, unread, setUnread, setProduct } = useAppStore();
+  const { tab, setTab, roomId, setRoomId, dmWith, setDmWith, profileUserId, setProfileUserId, groupId, setGroupId, unread, setUnread, setProduct } = useAppStore();
   const t = useTranslations();
 
   useEffect(() => {
@@ -43,6 +46,8 @@ export function PanelShell() {
     const offInvite = onLive('jam-invite', loadUnread);
     const offSeen = onLive('dm:seen', loadUnread);
     const offReaction = onLive('reaction:update', loadUnread);
+    const offGroupMsg = onLive('group:message', loadUnread);
+    const offGroupUpdate = onLive('group:update', loadUnread);
     return () => {
       offBadge();
       offPresence();
@@ -51,13 +56,13 @@ export function PanelShell() {
       offInvite();
       offSeen();
       offReaction();
+      offGroupMsg();
+      offGroupUpdate();
     };
   }, [me, setUnread]);
 
   const goRoom = (id: string) => setRoomId(id);
   const exitRoom = () => setRoomId(null);
-
-  const sectionClass = roomId ? 'section-room' : dmWith != null ? 'section-dm' : profileUserId != null ? 'section-profile-view' : `section-${tab}`;
 
   const topbar = (
     <div className="topbar">
@@ -85,9 +90,22 @@ export function PanelShell() {
     return (
       <div className="screen-panel">
         {topbar}
-        <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
+        <div className="panel-body" style={{ minHeight: 'calc(100vh - 61px)' }}>
           <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
             <FriendProfilePanel userId={profileUserId} onBack={() => setProfileUserId(null)} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (groupId) {
+    return (
+      <div className="screen-panel">
+        {topbar}
+        <div className="panel-body section-group" style={{ minHeight: 'calc(100vh - 61px)' }}>
+          <div className="content room-content" style={{ maxWidth: 1440, marginInline: 'auto' }}>
+            <GroupChat groupId={groupId} onBack={() => setGroupId(null)} />
           </div>
         </div>
       </div>
@@ -98,7 +116,7 @@ export function PanelShell() {
     return (
       <div className="screen-panel">
         {topbar}
-        <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
+        <div className="panel-body" style={{ minHeight: 'calc(100vh - 61px)' }}>
           <div className="content room-content" style={{ maxWidth: 1440, marginInline: 'auto' }}>
             <RoomPanel jamId={roomId} onBack={exitRoom} />
           </div>
@@ -111,7 +129,7 @@ export function PanelShell() {
     return (
       <div className="screen-panel">
         {topbar}
-        <div className={`panel-body ${sectionClass}`} style={{ minHeight: 'calc(100vh - 61px)' }}>
+        <div className="panel-body" style={{ minHeight: 'calc(100vh - 61px)' }}>
           <div className="content" style={{ maxWidth: 860, marginInline: 'auto' }}>
             <DmPanel otherId={dmWith} onBack={() => setDmWith(null)} />
           </div>
@@ -122,39 +140,35 @@ export function PanelShell() {
 
   const badge = (n: number) => (n > 0 ? <span className="side-badge">{n > 9 ? '9+' : n}</span> : null);
 
+  const nav = [
+    { key: 'home', icon: <House size={18} />, label: t('groups.home'), badge: 0 },
+    { key: 'groups', icon: <MessagesSquare size={18} />, label: t('groups.title'), badge: unread.groups },
+    { key: 'jams', icon: <Radio size={18} />, label: t('panel.jams'), badge: unread.invites },
+    { key: 'friends', icon: <Users size={18} />, label: t('panel.friends'), badge: unread.friends },
+    { key: 'dms', icon: <MessageCircle size={18} />, label: t('panel.messages'), badge: unread.dms },
+  ];
+
   return (
     <div className="screen-panel">
       {topbar}
 
-      <div className={`panel-body ${sectionClass}`}>
-        <nav className="sidebar">
+      <div className={`panel-body section-${tab}`}>
+        <nav className="sidebar ch-sidebar">
           <div className="side-nav">
+            {nav.map((n) => (
+              <button key={n.key} className={`side-item ${tab === n.key ? 'active' : ''}`} onClick={() => setTab(n.key as any)}>
+                {n.icon}
+                <span>{n.label}</span>
+                {badge(n.badge)}
+              </button>
+            ))}
             <button className={`side-item ${tab === 'profile' ? 'active' : ''}`} onClick={() => setTab('profile')}>
               <User size={18} />
               <span>{t('panel.profile')}</span>
             </button>
-            <button className={`side-item ${tab === 'security' ? 'active' : ''}`} onClick={() => setTab('security')}>
-              <Shield size={18} />
-              <span>{t('panel.security')}</span>
-            </button>
-            <button className={`side-item ${tab === 'friends' ? 'active' : ''}`} onClick={() => setTab('friends')}>
-              <Users size={18} />
-              <span>{t('panel.friends')}</span>
-              {badge(unread.friends)}
-            </button>
-            <button className={`side-item ${tab === 'jams' ? 'active' : ''}`} onClick={() => setTab('jams')}>
-              <Radio size={18} />
-              <span>{t('panel.jams')}</span>
-              {badge(unread.invites)}
-            </button>
-            <button className={`side-item ${tab === 'dms' ? 'active' : ''}`} onClick={() => setTab('dms')}>
-              <MessageCircle size={18} />
-              <span>{t('panel.messages')}</span>
-              {badge(unread.dms)}
-            </button>
           </div>
           <div className="side-foot-card">
-            <div className="side-foot-title">{t('panel.jams')}</div>
+            <div className="side-foot-title">{t('groups.subtitle')}</div>
             <div className="side-foot-text">{t('panel.jamsSub')}</div>
           </div>
         </nav>
@@ -168,35 +182,26 @@ export function PanelShell() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
+              {tab === 'home' && <CommunityHome />}
+              {tab === 'groups' && <GroupsPanel />}
+              {tab === 'jams' && <JamsPanel onEnter={goRoom} />}
+              {tab === 'friends' && <FriendsPanel />}
+              {tab === 'dms' && <DmInboxPanel />}
               {tab === 'profile' && <ProfilePanel />}
               {tab === 'security' && <SecurityPanel />}
-              {tab === 'friends' && <FriendsPanel />}
-              {tab === 'jams' && <JamsPanel onEnter={goRoom} />}
-              {tab === 'dms' && <DmInboxPanel />}
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
 
       <nav className="mobile-tabnav" aria-label="Primary">
-        <button type="button" className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>
-          <User size={18} /><span>{t('panel.profile')}</span>
-        </button>
-        <button type="button" className={tab === 'security' ? 'active' : ''} onClick={() => setTab('security')}>
-          <Shield size={18} /><span>{t('panel.security')}</span>
-        </button>
-        <button type="button" className={tab === 'friends' ? 'active' : ''} onClick={() => setTab('friends')}>
-          <Users size={18} /><span>{t('panel.friends')}</span>
-          {badge(unread.friends)}
-        </button>
-        <button type="button" className={tab === 'jams' ? 'active' : ''} onClick={() => setTab('jams')}>
-          <Radio size={18} /><span>{t('panel.jams')}</span>
-          {badge(unread.invites)}
-        </button>
-        <button type="button" className={tab === 'dms' ? 'active' : ''} onClick={() => setTab('dms')}>
-          <MessageCircle size={18} /><span>{t('panel.messages')}</span>
-          {badge(unread.dms)}
-        </button>
+        {nav.slice(0, 5).map((n) => (
+          <button key={n.key} type="button" className={tab === n.key ? 'active' : ''} onClick={() => setTab(n.key as any)}>
+            {n.icon}
+            <span>{n.label}</span>
+            {badge(n.badge)}
+          </button>
+        ))}
       </nav>
     </div>
   );

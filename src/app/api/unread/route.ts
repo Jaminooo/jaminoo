@@ -30,10 +30,26 @@ export const GET = handle(async () => {
     unreadDms += count;
   }
 
+  const myGroups = await prisma.communityMember.findMany({
+    where: { userId: me.id },
+    select: { communityId: true, lastReadAt: true },
+  });
+  let unreadGroups = 0;
+  for (const gm of myGroups) {
+    unreadGroups += await prisma.communityMessage.count({
+      where: {
+        communityId: gm.communityId,
+        userId: { not: me.id },
+        ...(gm.lastReadAt ? { createdAt: { gt: gm.lastReadAt } } : {}),
+      },
+    });
+  }
+
   return json({
     friends: await incomingFriends,
     invites: await pendingInvites,
     dms: unreadDms,
     notifications: await unreadNotifications,
+    groups: unreadGroups,
   });
 });

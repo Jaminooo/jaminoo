@@ -659,6 +659,23 @@ app.prepare().then(async () => {
       }
     });
 
+    socket.on('group:join', async (groupId) => {
+      if (typeof groupId !== 'string' || !groupId) return;
+      try {
+        const member = await prisma.communityMember.findUnique({
+          where: { communityId_userId: { communityId: groupId, userId } },
+        });
+        if (member) socket.join(`group:${groupId}`);
+        else socket.leave(`group:${groupId}`);
+      } catch (e) {
+        console.error('group:join error:', e && e.message);
+      }
+    });
+
+    socket.on('group:leave', (groupId) => {
+      if (typeof groupId === 'string' && groupId) socket.leave(`group:${groupId}`);
+    });
+
     const voiceRoster = (jamId) => {
       const peers = voicePeers.get(jamId);
       if (!peers) return [];

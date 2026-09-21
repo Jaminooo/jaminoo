@@ -54,7 +54,11 @@ model User {
   musicPlaylists  UserMusicPlaylist[]
   queueVotes      JamQueueVote[]
   notifications   Notification[]
-  reports         MessageReport[]
+  reports           MessageReport[]
+  communitiesOwned  Community[] @relation("CommunityOwned")
+  communityMemberships CommunityMember[]
+  communityChannelsCreated CommunityChannel[] @relation("CommunityChannelsCreated")
+  communityMessages CommunityMessage[]
   creatorApplications CreatorApplication[]
   videoPosts      VideoPost[]
   videoLikes      VideoLike[]
@@ -217,6 +221,7 @@ model Media {
   profileUser User? @relation("ProfilePhoto")
   messages     JamMessage[] @relation("MessageMedia")
   dmMessages   DmMessage[] @relation("DmMedia")
+  communityMessages CommunityMessage[] @relation("CommunityMedia")
   videoPosts   VideoPost[] @relation("VideoPostAsset")
   videoThumbnails VideoPost[] @relation("VideoPostThumbnail")
   bannerUser      User?      @relation("ProfileBanner")
@@ -273,19 +278,22 @@ enum SInvite {
 }
 
 model Reaction {
-  id        Int      @id @default(autoincrement())
-  jamMsgId  Int?
-  dmMsgId   Int?
-  emoji     String
-  userId    Int
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  jamMsgId   Int?
+  dmMsgId    Int?
+  groupMsgId String?
+  emoji      String
+  userId     Int
+  createdAt  DateTime @default(now())
 
-  jamMsg JamMessage? @relation(fields: [jamMsgId], references: [id], onDelete: Cascade)
-  dmMsg  DmMessage?  @relation(fields: [dmMsgId], references: [id], onDelete: Cascade)
-  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jamMsg   JamMessage?        @relation(fields: [jamMsgId], references: [id], onDelete: Cascade)
+  dmMsg    DmMessage?         @relation(fields: [dmMsgId], references: [id], onDelete: Cascade)
+  groupMsg CommunityMessage?  @relation(fields: [groupMsgId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([jamMsgId, userId, emoji])
   @@unique([dmMsgId, userId, emoji])
+  @@unique([groupMsgId, userId, emoji])
 }
 
 model Artist {
@@ -1097,4 +1105,74 @@ model TweetListTweet {
 
   @@unique([listId, tweetId])
   @@index([tweetId])
+}
+
+// ----- Community hub: persistent groups where members chat in channels -----
+
+// A group / community anyone can create. Public groups are joinable from browse.
+model Community {
+  id        String   @id @default(cuid())
+  name      String
+  desc      String   @default("")
+  avatarId  Int      @default(0)
+  isPrivate Boolean  @default(false)
+  ownerId   Int
+  createdAt DateTime @default(now())
+
+  owner    User               @relation("CommunityOwned", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  CommunityMember[]
+  channels CommunityChannel[]
+  messages CommunityMessage[]
+
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model CommunityMember {
+  communityId String
+  userId      Int
+  role        String    @default("MEMBER") // OWNER | ADMIN | MEMBER
+  lastReadAt  DateTime?
+  joinedAt    DateTime  @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, userId])
+  @@index([userId])
+}
+
+model CommunityChannel {
+  id          String   @id @default(cuid())
+  communityId String
+  name        String   @default("general")
+  description String   @default("")
+  createdBy   Int
+  createdAt   DateTime @default(now())
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  creator   User      @relation("CommunityChannelsCreated", fields: [createdBy], references: [id], onDelete: Cascade)
+  messages  CommunityMessage[]
+
+  @@index([communityId])
+}
+
+model CommunityMessage {
+  id          String   @id @default(cuid())
+  communityId String
+  channelId   String
+  userId      Int
+  kind        String   @default("TEXT") // TEXT | VOICE
+  text        String   @default("")
+  mediaId     String?
+  createdAt   DateTime @default(now())
+
+  community Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  channel   CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media     Media?           @relation("CommunityMedia", fields: [mediaId], references: [id], onDelete: SetNull)
+  reactions Reaction[]
+
+  @@index([communityId, channelId, createdAt])
+  @@index([userId])
 }

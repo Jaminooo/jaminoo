@@ -8,7 +8,7 @@ import { OnlineDot } from '@/components/online-dot';
 import { connectLive, onLive } from '@/lib/live';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
-import { Search, UserPlus, Check, X, Trash2, UserMinus, MessageCircle, User } from 'lucide-react';
+import { Search, UserPlus, Check, X, Trash2, UserMinus, MessageCircle, User, Users } from 'lucide-react';
 
 interface PubUser {
   id: number;
@@ -150,6 +150,20 @@ export function FriendsPanel() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('friends.search')} />
         </div>
       </header>
+
+      {data && data.friends.length > 0 && (
+        <div className="ch-presence-bar">
+          <span className="ch-presence-total">
+            <Users size={14} /> {data.friends.length}
+          </span>
+          <span className="ch-presence-dot on" />
+          <span>{data.friends.filter((f) => (statuses[f.id] ?? f.status ?? 'ONLINE') === 'ONLINE').length} {t('status.online').toLowerCase()}</span>
+          <span className="ch-presence-dot idle" />
+          <span>{data.friends.filter((f) => (statuses[f.id] ?? f.status ?? 'ONLINE') === 'IDLE').length} {t('status.idle').toLowerCase()}</span>
+          <span className="ch-presence-dot busy" />
+          <span>{data.friends.filter((f) => (statuses[f.id] ?? f.status ?? 'ONLINE') === 'BUSY').length} {t('status.busy').toLowerCase()}</span>
+        </div>
+      )}
 
       {q.trim().length >= 2 && (
         <div className="list" style={{ marginBottom: 24 }}>

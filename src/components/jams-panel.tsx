@@ -60,6 +60,7 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
   const [invites, setInvites] = useState<InviteItem[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [view, setView] = useState<'mine' | 'browse'>('mine');
+  const [kindF, setKindF] = useState<string>('ALL');
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [jtype, setJtype] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
@@ -228,8 +229,20 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
         </>
       ) : (
         <>
-          {browse.length === 0 && <div className="empty-state">{t('jams.browseEmpty')}</div>}
-          {browse.map((j) => (
+          <div className="kind-row" style={{ marginBottom: 12 }}>
+            <div className="kind-toggle">
+              <button type="button" className={kindF === 'ALL' ? 'active' : ''} onClick={() => setKindF('ALL')}>
+                {t('jams.allJams')}
+              </button>
+              {JAM_KINDS.map((k) => (
+                <button key={k} type="button" className={kindF === k ? 'active' : ''} onClick={() => setKindF(k)}>
+                  {KIND_ICON[k]} {t(`jams.kind${k.charAt(0)}${k.slice(1).toLowerCase()}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          {browse.filter((j) => kindF === 'ALL' || j.kind === kindF).length === 0 && <div className="empty-state">{t('jams.browseEmpty')}</div>}
+          {browse.filter((j) => kindF === 'ALL' || j.kind === kindF).map((j) => (
             <div key={j.id} className="friend-row">
               <JaminoAvatar avatarId={j.owner.avatarId} size={40} photo={j.owner.profilePhotoId ? `/api/media/${j.owner.profilePhotoId}` : null} name={j.owner.username} />
               <div className="friend-info">
