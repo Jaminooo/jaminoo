@@ -19,12 +19,12 @@
 .btn-tweet:disabled { opacity: .55; box-shadow: none; cursor: not-allowed; }
 
 .tweet-hub-layout { display: grid; grid-template-columns: 236px minmax(0, 1fr) 330px; min-height: 100%; }
-.tweet-hub-sidebar { display: flex; flex-direction: column; gap: 24px; padding: 26px 14px; border-inline-end: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 90%, transparent), color-mix(in srgb, #06210f 82%, transparent)); }
+.tweet-hub-sidebar { display: flex; flex-direction: column; gap: 24px; padding: 40px 14px 60px; border-inline-end: 1px solid var(--line); background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 90%, transparent), color-mix(in srgb, #06210f 82%, transparent)); }
 .tweet-hub-brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
 .tweet-hub-brand .hub-empty-icon { width: 42px; height: 42px; margin: 0; border-radius: 14px; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .tweet-hub-brand div { display: grid; gap: 3px; }
 .tweet-hub-brand small { color: var(--muted); font-size: 10px; }
-.tweet-hub-sidebar nav { display: grid; gap: 4px; }
+.tweet-hub-sidebar nav { display: grid; gap: 6px; }
 .tweet-hub-sidebar nav button { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); text-align: start; cursor: pointer; font: inherit; transition: transform .18s ease, background .18s ease, color .18s ease; }
 .tweet-hub-sidebar nav button:hover { transform: translateX(3px); background: var(--panel-2); color: var(--text); }
 .tweet-hub-sidebar nav button.active { color: var(--accent); background: linear-gradient(100deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 8%, transparent)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent) inset; }
@@ -62,7 +62,7 @@
 .tweet-search:focus-within { border-color: color-mix(in srgb, var(--accent) 50%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent); }
 .tweet-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
 
-.tweet-composer { display: flex; gap: 13px; padding: 18px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 20px; background: radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 42%), var(--panel); }
+.tweet-composer { display: flex; gap: 13px; margin-bottom: 20px; padding: 18px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 20px; background: radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 42%), var(--panel); }
 .tweet-composer.compact { border-color: var(--line); border-radius: 16px; background: var(--panel); }
 .tweet-composer-avatar { flex: 0 0 auto; }
 .tweet-composer-body { display: grid; min-width: 0; flex: 1; gap: 10px; }

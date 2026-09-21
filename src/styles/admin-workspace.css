@@ -78,7 +78,7 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
   text-transform: uppercase;
 }
 
-.admin-nav { gap: 6px; padding-top: 4px; }
+.admin-nav { padding-top: 4px; }
 .admin-nav-item {
   position: relative;
   min-height: 44px;
@@ -96,7 +96,6 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 .admin-nav-item.active svg { color: #b7aaff; }
 .admin-back { color: #91a0b9; }
 
-.admin-main { min-width: 0; padding: 30px clamp(18px, 3.2vw, 48px) 58px; }
 .admin-top {
   position: sticky;
   top: 0;
@@ -151,7 +150,6 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 .admin-mobile-menu,
 .admin-close-mobile { display: none; }
 
-.admin-content { gap: 20px; }
 .admin-card {
   border-color: var(--admin-border);
   background: linear-gradient(145deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.74));
@@ -188,7 +186,6 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 .admin-stat:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 32%, transparent); background: rgba(27, 43, 73, 0.78); }
 .admin-stat-value { color: #f7fbff; }
 .admin-stat-label { color: var(--admin-muted); }
-.admin-charts { margin-top: 0; }
 .admin-chart-card { min-height: 285px; }
 .admin-card-head h2 { color: #f3f7ff; }
 .admin-ops-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -204,7 +201,6 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 .admin-ops-copy small { overflow: hidden; color: var(--admin-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .admin-ops-arrow { color: #8190aa; }
 .admin-table-card { padding: clamp(12px, 2vw, 20px); }
-.admin-toolbar { margin-bottom: 12px; }
 .admin-search input,
 .admin-select,
 .admin-field input,

@@ -65,7 +65,7 @@
 .admin-nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
 }
 
@@ -115,7 +115,7 @@
 
 .admin-main {
   min-width: 0;
-  padding: 26px 30px 50px;
+  padding: 30px clamp(18px, 3.2vw, 48px) 58px;
 }
 
 .admin-top {
@@ -141,7 +141,7 @@
 .admin-content {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .admin-card {
@@ -321,7 +321,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .admin-search {
@@ -794,7 +794,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .admin-chart-card {
