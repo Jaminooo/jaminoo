@@ -320,12 +320,28 @@
 .video-editor-export p { margin: 6px 0 12px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
 .video-editor-warn { color: #fbbf24 !important; }
 .video-editor-render-btn { opacity: .92; }
-.video-editor-progress { margin-top: 12px; }
+.video-editor-render-progress { margin-top: 12px; display: grid; gap: 8px; }
 .video-editor-progress-track { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--text) 14%, transparent); overflow: hidden; }
 .video-editor-progress-track span { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent-active)); transition: width .2s ease; }
 .video-editor-progress-row { display: flex; justify-content: space-between; margin-top: 7px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .video-editor-done { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 11px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 12px; font-weight: 700; }
 .video-editor-error { margin-top: 12px; padding: 11px; border-radius: 10px; background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); font-size: 12px; font-weight: 600; line-height: 1.5; }
+.video-editor-cancel { width: 100%; padding: 8px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-family: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; transition: color .12s ease, border-color .12s ease, background .12s ease; }
+.video-editor-cancel:hover { color: var(--text); border-color: color-mix(in srgb, var(--danger) 40%, transparent); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.video-editor-ux { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 11px; border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--text) 5%, transparent); color: var(--muted); font-family: inherit; font-size: 11px; font-weight: 700; cursor: pointer; transition: color .12s ease, border-color .12s ease, background .12s ease; }
+.video-editor-ux svg { width: 13px; height: 13px; }
+.video-editor-ux:hover:not(:disabled) { color: var(--text); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.video-editor-ux:disabled { opacity: .4; cursor: not-allowed; }
+.video-editor-fx-row { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 15px 0; }
+.video-editor-fx { display: grid; gap: 6px; justify-items: center; min-width: 58px; padding: 9px 8px 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--muted); font-family: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: border-color .12s ease, background .12s ease, color .12s ease, transform .12s ease; }
+.video-editor-fx:hover { transform: translateY(-1px); color: var(--text); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.video-editor-fx.on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.video-editor-fx-swatch { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 60%, #ec4899 100%); box-shadow: 0 0 0 1px rgba(255, 255, 255, .14) inset; }
+.video-editor-chip-row.video-editor-fxrow { margin: 10px 15px 0; }
+.video-editor-text { display: grid; gap: 8px; margin: 10px 15px 0; }
+.video-editor-text input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); color: var(--text); font-family: inherit; font-size: 12.5px; outline: none; transition: border-color .12s ease, box-shadow .12s ease; }
+.video-editor-text input:focus { border-color: color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+.video-editor-text .video-editor-chip:disabled { opacity: .45; cursor: not-allowed; }
 .video-edit-trigger { color: var(--accent) !important; border-color: color-mix(in srgb, var(--accent) 40%, transparent) !important; }
 @media (max-width: 980px) {
   .video-editor-grid { grid-template-columns: 1fr; }

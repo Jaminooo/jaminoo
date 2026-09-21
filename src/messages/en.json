@@ -1171,7 +1171,35 @@
         "errRecording": "Recording failed.",
         "errRead": "Could not read this video.",
         "errBlocked": "Browser blocked playback for rendering.",
-        "errRender": "Could not render this video."
+        "errRender": "Could not render this video.",
+        "look": "Look",
+        "position": "Format",
+        "quality": "Quality",
+        "text": "Text overlay",
+        "textPlaceholder": "Caption or watermark…",
+        "textToggle": "Show on video",
+        "undo": "Undo",
+        "redo": "Redo",
+        "cancelRender": "Cancel rendering"
+      },
+      "fx": {
+        "none": "Original",
+        "punch": "Vivid",
+        "warm": "Warm",
+        "cool": "Cool",
+        "mono": "Mono",
+        "fade": "Fade"
+      },
+      "fmt": {
+        "original": "Original",
+        "16:9": "16:9",
+        "9:16": "9:16",
+        "1:1": "1:1"
+      },
+      "q": {
+        "original": "Source",
+        "q1080": "1080p",
+        "q720": "720p"
       }
     },
     "watch": {
