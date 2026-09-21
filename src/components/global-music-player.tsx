@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, Heart, ListMusic, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume1, Volume2, VolumeX, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
+import { useTranslations } from '@/providers/use-translations';
 import type { MusicSong } from '@/components/music-player';
 
 const SONG_KEY = 'jamino.global-song';
@@ -10,11 +11,11 @@ const PREF_KEY = 'jamino.global-player-prefs';
 type RepeatMode = 'off' | 'all' | 'one';
 type PlayerEvent = { song: MusicSong; queue?: MusicSong[]; autoplay?: boolean };
 
-function artist(song: MusicSong) { return song.artist?.name || 'Jamino artist'; }
 function clock(value: number) { const total = Math.max(0, Math.floor(value)); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; }
 function read<T>(key: string, fallback: T): T { try { const value = window.localStorage.getItem(key); return value ? JSON.parse(value) as T : fallback; } catch { return fallback; } }
 
 export function GlobalMusicPlayer() {
+  const t = useTranslations();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [song, setSong] = useState<MusicSong | null>(null);
   const [queue, setQueue] = useState<MusicSong[]>([]);
@@ -32,6 +33,7 @@ export function GlobalMusicPlayer() {
 
   const currentIndex = useMemo(() => song ? queue.findIndex((item) => item.id === song.id) : -1, [queue, song]);
   const max = duration || song?.durationSec || 1;
+  const artistLabel = song?.artist?.name || t('music.unknownArtist');
 
   const broadcast = useCallback((nextSong: MusicSong | null, nextPlaying: boolean) => {
     if (typeof window === 'undefined') return;
@@ -99,14 +101,14 @@ export function GlobalMusicPlayer() {
     audio.load();
     if (song.audioUrl || song.audioLink) audio.play().then(() => { setPlaying(true); broadcast(song, true); }).catch(() => { setPlaying(false); setBlocked(true); });
     if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: song.title, artist: artist(song), album: song.album?.title || 'Jamino Music', artwork: song.coverUrl ? [{ src: song.coverUrl }] : [] });
+      navigator.mediaSession.metadata = new MediaMetadata({ title: song.title, artist: artistLabel, album: song.album?.title || t('brand.name'), artwork: song.coverUrl ? [{ src: song.coverUrl }] : [] });
       navigator.mediaSession.setActionHandler('play', () => audio.play().catch(() => {}));
       navigator.mediaSession.setActionHandler('pause', () => audio.pause());
       navigator.mediaSession.setActionHandler('previoustrack', previous);
       navigator.mediaSession.setActionHandler('nexttrack', next);
     }
     return () => { audio.pause(); };
-  }, [broadcast, muted, next, previous, song, volume]);
+  }, [broadcast, muted, next, previous, song, volume, artistLabel, t]);
 
   useEffect(() => { if (audioRef.current) { audioRef.current.volume = volume; audioRef.current.muted = muted; } window.localStorage.setItem(PREF_KEY, JSON.stringify({ volume, muted, shuffle, repeat })); }, [muted, repeat, shuffle, volume]);
 
@@ -124,21 +126,22 @@ export function GlobalMusicPlayer() {
   };
   const cycleRepeat = () => setRepeat((value) => value === 'off' ? 'all' : value === 'all' ? 'one' : 'off');
   const onEnded = () => { if (repeat === 'one') { if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play().catch(() => {}); } return; } next(); };
+  const closePlayer = () => { audioRef.current?.pause(); setSong(null); setQueue([]); window.localStorage.removeItem(SONG_KEY); window.localStorage.removeItem(QUEUE_KEY); };
   if (!song) return null;
   return (
-    <section className={`global-player ${expanded ? 'is-expanded' : ''}`} aria-label="Jamino music player">
+    <section className={`global-player ${expanded ? 'is-expanded' : ''}`} aria-label={`${t('brand.name')} ${t('music.playerLabel')}`}>
       <audio ref={audioRef} preload="metadata" onPlay={() => { setPlaying(true); broadcast(song, true); }} onPause={() => { setPlaying(false); broadcast(song, false); }} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || song.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onEnded={onEnded} />
-      {queueOpen && <div className="global-player-queue"><div className="global-player-queue-head"><strong>Queue</strong><button type="button" onClick={() => setQueueOpen(false)} aria-label="Close queue"><X size={16} /></button></div>{queue.length ? queue.map((item) => <button key={item.id} type="button" className={`global-player-queue-item ${item.id === song.id ? 'active' : ''}`} onClick={() => { loadSong(item); setQueueOpen(false); }}><span>{item.coverUrl ? <img src={item.coverUrl} alt="" /> : <span className="queue-placeholder">♫</span>}</span><span><b>{item.title}</b><small>{artist(item)}</small></span></button>) : <p>Your queue is empty.</p>}</div>}
+      {queueOpen && <div className="global-player-queue"><div className="global-player-queue-head"><strong>{t('music.queue')}</strong><button type="button" onClick={() => setQueueOpen(false)} aria-label={t('modal.close')}><X size={16} /></button></div>{queue.length ? queue.map((item) => <button key={item.id} type="button" className={`global-player-queue-item ${item.id === song.id ? 'active' : ''}`} onClick={() => { loadSong(item); setQueueOpen(false); }}><span>{item.coverUrl ? <img src={item.coverUrl} alt="" /> : <span className="queue-placeholder">♫</span>}</span><span><b>{item.title}</b><small>{item.artist?.name || t('music.unknownArtist')}</small></span></button>) : <p>{t('music.queueEmpty')}</p>}</div>}
       <div className="global-player-progress"><span style={{ width: `${Math.min(100, (position / max) * 100)}%` }} /></div>
       <div className="global-player-main">
-        <button className="global-player-cover" type="button" onClick={() => setExpanded((value) => !value)} aria-label="Expand player">{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</button>
-        <div className="global-player-track"><strong>{song.title}</strong><span>{artist(song)}</span></div>
-        <div className="global-player-actions"><button type="button" className={`global-player-icon ${shuffle ? 'is-active' : ''}`} onClick={() => setShuffle((value) => !value)} aria-label="Shuffle"><Shuffle size={16} /></button><button type="button" className="global-player-icon" onClick={previous} aria-label="Previous"><SkipBack size={17} /></button><button type="button" className="global-player-play" onClick={toggle} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}</button><button type="button" className="global-player-icon" onClick={next} aria-label="Next"><SkipForward size={17} /></button><button type="button" className={`global-player-icon ${repeat !== 'off' ? 'is-active' : ''}`} onClick={cycleRepeat} aria-label="Repeat"><Repeat size={16} /><small>{repeat === 'one' ? '1' : ''}</small></button></div>
-        <div className="global-player-seek"><span>{clock(position)}</span><input aria-label="Seek" type="range" min="0" max={max} step="0.1" value={Math.min(position, max)} onChange={(event) => { const value = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = value; setPosition(value); }} /><span>{clock(max)}</span></div>
-        <div className="global-player-extra"><button type="button" className={`global-player-icon ${liked ? 'is-liked' : ''}`} onClick={() => void toggleLike()} aria-label="Like"><Heart size={16} fill={liked ? 'currentColor' : 'none'} /></button><button type="button" className="global-player-icon" onClick={() => setQueueOpen((value) => !value)} aria-label="Queue"><ListMusic size={16} /></button>{muted ? <VolumeX size={15} /> : volume < .5 ? <Volume1 size={15} /> : <Volume2 size={15} />}<input aria-label="Volume" type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={(event) => { setMuted(false); setVolume(Number(event.target.value)); }} /><button type="button" className="global-player-icon" onClick={() => setExpanded((value) => !value)} aria-label="Toggle expanded player">{expanded ? <ChevronDown size={17} /> : <ChevronUp size={17} />}</button><button type="button" className="global-player-icon" onClick={() => { audioRef.current?.pause(); setSong(null); setQueue([]); window.localStorage.removeItem(SONG_KEY); window.localStorage.removeItem(QUEUE_KEY); }} aria-label="Close player"><X size={16} /></button></div>
+        <button className="global-player-cover" type="button" onClick={() => setExpanded((value) => !value)} aria-label={t('music.expandPlayer')}>{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</button>
+        <div className="global-player-track"><strong>{song.title}</strong><span>{artistLabel}</span></div>
+        <div className="global-player-actions"><button type="button" className={`global-player-icon ${shuffle ? 'is-active' : ''}`} onClick={() => setShuffle((value) => !value)} aria-label={t('music.shuffle')}><Shuffle size={16} /></button><button type="button" className="global-player-icon" onClick={previous} aria-label={t('music.previousSong')}><SkipBack size={17} /></button><button type="button" className="global-player-play" onClick={toggle} aria-label={playing ? t('music.pause') : t('music.play')}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}</button><button type="button" className="global-player-icon" onClick={next} aria-label={t('music.nextSong')}><SkipForward size={17} /></button><button type="button" className={`global-player-icon ${repeat !== 'off' ? 'is-active' : ''}`} onClick={cycleRepeat} aria-label={t('music.repeat')}><Repeat size={16} /><small>{repeat === 'one' ? '1' : ''}</small></button></div>
+        <div className="global-player-seek"><span>{clock(position)}</span><input aria-label={t('music.seek')} type="range" min="0" max={max} step="0.1" value={Math.min(position, max)} onChange={(event) => { const value = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = value; setPosition(value); }} /><span>{clock(max)}</span></div>
+        <div className="global-player-extra"><button type="button" className={`global-player-icon ${liked ? 'is-liked' : ''}`} onClick={() => void toggleLike()} aria-label={t('music.favorite')}><Heart size={16} fill={liked ? 'currentColor' : 'none'} /></button><button type="button" className="global-player-icon" onClick={() => setQueueOpen((value) => !value)} aria-label={t('music.queue')}><ListMusic size={16} /></button><button type="button" className={`global-player-icon ${muted || volume < 0.01 ? 'is-active' : ''}`} onClick={() => setMuted((value) => !value)} aria-label={t('music.mute')}>{muted || volume === 0 ? <VolumeX size={15} /> : volume < .5 ? <Volume1 size={15} /> : <Volume2 size={15} />}</button><div className="global-player-volbar"><input aria-label={t('music.volume')} type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} onChange={(event) => { setMuted(false); setVolume(Number(event.target.value)); }} /></div><button type="button" className="global-player-icon" onClick={() => setExpanded((value) => !value)} aria-label={expanded ? t('music.collapsePlayer') : t('music.expandPlayer')}>{expanded ? <ChevronDown size={17} /> : <ChevronUp size={17} />}</button><button type="button" className="global-player-icon" onClick={closePlayer} aria-label={t('music.closePlayer')}><X size={16} /></button></div>
       </div>
-      {blocked && <div className="global-player-blocked">Press play to start this track in your browser.</div>}
-      {expanded && <div className="global-player-expanded"><div className="global-player-expanded-art">{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</div><div><small>NOW PLAYING</small><h3>{song.title}</h3><p>{artist(song)}{song.album ? ` · ${song.album.title}` : ''}</p></div></div>}
+      {blocked && <div className="global-player-blocked">{t('music.pressPlay')}</div>}
+      {expanded && <div className="global-player-expanded"><div className="global-player-expanded-art">{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</div><div><small>{t('music.nowPlaying')}</small><h3>{song.title}</h3><p>{artistLabel}{song.album ? ` · ${song.album.title}` : ''}</p></div></div>}
     </section>
   );
 }

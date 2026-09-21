@@ -148,7 +148,16 @@ function VideoMedia({ post, feature = false, compact = false, startAt, onTimeUpd
   if (post.mediaType === 'IMAGE' && (post.assetUrl || post.externalUrl)) {
     return <div className="video-card-media video-card-image"><Image src={post.assetUrl || post.externalUrl || ''} alt={post.title || t('video.common.videoPost')} fill unoptimized loading="lazy" /></div>;
   }
-  if (post.mediaType === 'VIDEO' && (post.assetUrl || post.externalUrl)) {
+  if (post.mediaType === 'VIDEO') {
+    const src = post.assetUrl || post.externalUrl;
+    if (!src) {
+      return (
+        <div className="video-card-media video-card-video-wrap video-card-missing">
+          {post.thumbnailUrl ? <img className="video-missing-poster" src={post.thumbnailUrl} alt="" /> : <span className="video-missing-icon"><Film size={28} /></span>}
+          <span className="video-missing-copy"><b>{t('video.missing.title')}</b><small>{t('video.missing.desc')}</small></span>
+        </div>
+      );
+    }
     // Shorts inside the feed render chrome-less: the card supplies the UI,
     // the player sizes itself to the video's real aspect ratio.
     const shortsFeed = post.kind === 'SHORT' && !feature && compact;
@@ -158,9 +167,9 @@ function VideoMedia({ post, feature = false, compact = false, startAt, onTimeUpd
           fill={!shortsFeed}
           bare={shortsFeed}
           variant={feature ? 'feature' : 'card'}
-          src={post.assetUrl || post.externalUrl || ''}
+          src={src}
           poster={post.thumbnailUrl}
-          title={post.title || 'Untitled post'}
+          title={post.title || t('vp.untitled')}
           badge={[post.kind, post.durationSec > 0 ? durationLabel(post.durationSec) : null].filter(Boolean).join(' · ')}
           subtitlesUrl={post.subtitlesUrl}
           autoplayInView
@@ -1207,7 +1216,7 @@ export function VideoHub() {
 
           {view === 'edit' && <EditView onEditPost={setEditPost} />}
           {view === 'editor' && <VideoEditorView />}
-          {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder="Paste a direct video URL" /><button type="submit" className="btn btn-violet pill-sm">Open</button></form>{activeUrl ? <div className="video-watch-player"><VinylPlayer key={activeUrl} variant="feature" src={activeUrl} title="Shared video" badge="Direct link" /><div className="video-watch-meta"><div><b>Shared video</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast('Watch link copied.', 'ok')).catch(() => {}); }}><Share2 size={14} /> Share</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>No video selected.</b><span>Paste a direct MP4, MOV or WEBM URL to open it.</span></div>}</section>}
+          {view === 'watch' && <section className="video-watch-panel"><form className="video-watch-form" onSubmit={openWatch}><Search size={16} /><input value={watchUrl} onChange={(event) => setWatchUrl(event.target.value)} placeholder={t('video.watch.pasteUrl')} /><button type="submit" className="btn btn-violet pill-sm">{t('video.watch.open')}</button></form>{activeUrl ? <div className="video-watch-player"><VinylPlayer key={activeUrl} variant="feature" src={activeUrl} title={t('video.watch.shared')} badge={t('video.watch.directLink')} /><div className="video-watch-meta"><div><b>{t('video.watch.shared')}</b><span>{activeUrl}</span></div><button type="button" className="btn btn-ghost pill-sm" onClick={() => { navigator.clipboard.writeText(window.location.href).then(() => toast(t('video.watch.linkCopied'), 'ok')).catch(() => {}); }}><Share2 size={14} /> {t('video.common.share')}</button></div></div> : <div className="video-hub-empty large"><Link2 size={26} /><b>{t('video.watch.selectVideo')}</b><span>{t('video.watch.pasteHint')}</span></div>}</section>}
 
           {feedView && <section className={`video-feed-section ${view === 'shorts' ? 'is-shorts' : ''} ${view === 'long' ? 'is-long' : ''}`}>
             <div className="video-feed-toolbar">

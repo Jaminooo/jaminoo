@@ -18,6 +18,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { toast } from '@/components/toast';
+import { useTranslations } from '@/providers/use-translations';
 import './vinyl-player.css';
 
 /**
@@ -157,6 +158,7 @@ export function VinylPlayer({
   onTimeUpdate,
   upNext,
 }: VinylPlayerProps) {
+  const t = useTranslations();
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const seekRef = useRef<HTMLDivElement>(null);
@@ -373,7 +375,7 @@ export function VinylPlayer({
     setMuted(video.muted);
     setAudioBlocked(false);
     writeMemory({ muted: video.muted });
-    toast(video.muted ? 'Muted' : 'Sound on');
+    toast(video.muted ? t('vp.muted') : t('vp.soundOn'));
   }, []);
 
   const applyRate = useCallback((nextRate: number) => {
@@ -383,7 +385,7 @@ export function VinylPlayer({
     setRate(nextRate);
     setRateOpen(false);
     writeMemory({ rate: nextRate });
-    toast(`Speed ${nextRate}×`);
+    toast(t('vp.speedChanged', { n: nextRate }));
   }, []);
 
   const seekBy = useCallback((delta: number) => {
@@ -391,7 +393,7 @@ export function VinylPlayer({
     if (!video || !Number.isFinite(video.duration)) return;
     video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + delta));
     setCurrent(video.currentTime);
-    toast(`${delta > 0 ? '+' : ''}${delta}s`);
+    toast(t('vp.seeked', { delta: `${delta > 0 ? '+' : ''}${delta}` }));
   }, []);
 
   const replay = useCallback(() => {
@@ -422,7 +424,7 @@ export function VinylPlayer({
         /* fall through to standard API */
       }
     }
-    (viewport.requestFullscreen || el.webkitRequestFullscreen)?.call(viewport)?.catch(() => toast('Fullscreen unavailable'));
+    (viewport.requestFullscreen || el.webkitRequestFullscreen)?.call(viewport)?.catch(() => toast(t('vp.fullscreenUnavailable')));
   }, []);
 
   const togglePip = useCallback(() => {
@@ -431,9 +433,9 @@ export function VinylPlayer({
     if (document.pictureInPictureElement) {
       document.exitPictureInPicture().catch(() => {});
     } else if (video.requestPictureInPicture) {
-      video.requestPictureInPicture().catch(() => toast('PiP unavailable on this browser'));
+      video.requestPictureInPicture().catch(() => toast(t('vp.pipUnavailable')));
     } else {
-      toast('PiP unavailable on this browser');
+      toast(t('vp.pipUnavailable'));
     }
   }, []);
 
@@ -549,10 +551,10 @@ export function VinylPlayer({
 
   const toggleCaptions = useCallback(() => {
     setCaptionsOn((value) => {
-      toast(!value ? 'Captions on' : 'Captions off');
+      toast(!value ? t('vp.captionsOn') : t('vp.captionsOff'));
       return !value;
     });
-  }, []);
+  }, [t]);
 
   /* ---------- seek slider ---------- */
   const fracFrom = (clientX: number, el: HTMLElement) => {
@@ -661,7 +663,7 @@ export function VinylPlayer({
         className={`vp-viewport ${showUI ? 'vp-ui' : ''} ${playing ? 'vp-playing' : 'vp-paused'} ${ended ? 'vp-ended' : ''}`}
         tabIndex={0}
         role="region"
-        aria-label={title ? `Video player: ${title}` : 'Video player'}
+        aria-label={t('vp.playerLabel', { title: title || t('vp.video') })}
         onClick={onViewportClick}
         onKeyDown={onViewportKeyDown}
         onPointerMove={onViewportPointerMove}
@@ -703,7 +705,7 @@ export function VinylPlayer({
           </svg>
         </div>
 
-        <button type="button" className="vp-bigplay" aria-label="Play" onClick={(event) => { event.stopPropagation(); togglePlay(); }}>
+        <button type="button" className="vp-bigplay" aria-label={t('vp.play')} onClick={(event) => { event.stopPropagation(); togglePlay(); }}>
           <span className="vp-bigplay-circle">
             <svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5-13-7.5z" /></svg>
           </span>
@@ -713,29 +715,29 @@ export function VinylPlayer({
           <div className="vp-topbar">
             <div className="vp-brand-chip">
               <span className="vp-live-dot" />
-              <b>Jamino Player</b>
+              <b>{t('vp.playerName')}</b>
             </div>
             <div className="vp-top-acts">
               <div className="vp-pop-host vp-rate-host">
-                <button type="button" className={`vp-ibtn ${rateOpen ? 'is-active' : ''}`} title="Playback speed" onClick={(event) => { event.stopPropagation(); setRateOpen((value) => !value); }}>
+                <button type="button" className={`vp-ibtn ${rateOpen ? 'is-active' : ''}`} title={t('vp.playbackSpeed')} onClick={(event) => { event.stopPropagation(); setRateOpen((value) => !value); }}>
                   <Gauge size={19} />
                 </button>
                 <div className={`vp-pop ${rateOpen ? 'is-open' : ''}`}>
-                  <div className="vp-pop-title">Speed</div>
+                  <div className="vp-pop-title">{t('vp.speed')}</div>
                   {RATES.map((value) => (
                     <button type="button" key={value} className={`vp-pop-item ${rate === value ? 'is-on' : ''}`} onClick={(event) => { event.stopPropagation(); applyRate(value); }}>
-                      <span>{value === 1 ? 'Normal' : `${value}×`}</span>
+                      <span>{value === 1 ? t('vp.normal') : `${value}×`}</span>
                       <span className="vp-go">{value === 1 ? '1×' : `${value}×`}</span>
                     </button>
                   ))}
                 </div>
               </div>
               {pipOk && (
-                <button type="button" className="vp-ibtn" title="Picture-in-Picture (P)" onClick={(event) => { event.stopPropagation(); togglePip(); }}>
+                <button type="button" className="vp-ibtn" title={t('vp.pip')} onClick={(event) => { event.stopPropagation(); togglePip(); }}>
                   <PictureInPicture2 size={19} />
                 </button>
               )}
-              <button type="button" className="vp-ibtn" title="Fullscreen (F)" onClick={(event) => { event.stopPropagation(); toggleFullscreen(); }}>
+              <button type="button" className="vp-ibtn" title={fullscreen ? t('vp.exitFullscreen') : t('vp.fullscreen')} onClick={(event) => { event.stopPropagation(); toggleFullscreen(); }}>
                 {fullscreen ? <Minimize size={19} /> : <Maximize size={19} />}
               </button>
             </div>
@@ -747,8 +749,8 @@ export function VinylPlayer({
           {variant === 'feature' && (
             <div className="vp-meta">
               <div className="vp-meta-left">
-                <div className="vp-overline">Now playing</div>
-                <h1>{title || 'Untitled video'}</h1>
+                <div className="vp-overline">{t('vp.nowPlaying')}</div>
+                <h1>{title || t('vp.untitled')}</h1>
               </div>
               {badge && <span className="vp-badge">{badge}</span>}
             </div>
@@ -778,22 +780,22 @@ export function VinylPlayer({
           </div>
 
           <div className="vp-ctl-row">
-            <button type="button" className="vp-ibtn vp-play-ctl" title="Play / Pause (Space)" onClick={(event) => { event.stopPropagation(); togglePlay(); }}>
+            <button type="button" className="vp-ibtn vp-play-ctl" title={t('vp.playPause')} onClick={(event) => { event.stopPropagation(); togglePlay(); }}>
               {playing ? <Pause size={21} /> : <Play size={21} />}
             </button>
             <span className="vp-spacer" />
             {subtitlesUrl && (
-              <button type="button" className={`vp-ibtn ${captionsOn ? 'is-active' : ''}`} title="Captions (C)" onClick={(event) => { event.stopPropagation(); toggleCaptions(); }}>
+              <button type="button" className={`vp-ibtn ${captionsOn ? 'is-active' : ''}`} title={t('vp.captions')} onClick={(event) => { event.stopPropagation(); toggleCaptions(); }}>
                 <Captions size={19} />
               </button>
             )}
             {variant === 'feature' && <span className="vp-spacer" />}
             <div className={`vp-vol-wrap ${volOpen ? 'is-open' : ''}`} onMouseEnter={onVolumeButtonEnter} onMouseLeave={onVolumeWrapLeave}>
-              <button type="button" className={`vp-ibtn ${volOpen ? 'is-active' : ''}`} title="Volume (M)" onClick={onVolumeButtonClick}>
+              <button type="button" className={`vp-ibtn ${volOpen ? 'is-active' : ''}`} title={t('vp.volume')} onClick={onVolumeButtonClick}>
                 <VolumeIcon size={19} />
               </button>
               <div className={`vp-vol-pop ${volOpen ? 'is-open' : ''}`}>
-                <button type="button" className="vp-ibtn" title="Mute / unmute" onClick={(event) => { event.stopPropagation(); toggleMute(); }}>
+                <button type="button" className="vp-ibtn" title={t('vp.mute')} onClick={(event) => { event.stopPropagation(); toggleMute(); }}>
                   <Volume2 size={19} />
                 </button>
                 <div
@@ -813,7 +815,7 @@ export function VinylPlayer({
                 <span className="vp-vol-pct">{Math.round((muted ? 0 : volume) * 100)}</span>
               </div>
             </div>
-            <button type="button" className="vp-ibtn" title="Fullscreen (F)" onClick={(event) => { event.stopPropagation(); toggleFullscreen(); }}>
+            <button type="button" className="vp-ibtn" title={fullscreen ? t('vp.exitFullscreen') : t('vp.fullscreen')} onClick={(event) => { event.stopPropagation(); toggleFullscreen(); }}>
               {fullscreen ? <Minimize size={19} /> : <Maximize size={19} />}
             </button>
           </div>
@@ -826,13 +828,13 @@ export function VinylPlayer({
           <button
             type="button"
             className={`vp-sound-chip ${muted ? 'is-muted' : ''}`}
-            title={muted ? 'Turn sound on' : 'Mute sound'}
+            title={muted ? t('vp.soundOn') : t('vp.mute')}
             onClick={(event) => { event.stopPropagation(); toggleMute(); }}
           >
             {muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
           </button>
         )}
-        {audioBlocked && muted && <span className="vp-sound-hint">Tap for sound</span>}
+        {audioBlocked && muted && <span className="vp-sound-hint">{t('vp.tapForSound')}</span>}
 
         {heart && (
           <span key={heart.key} className="vp-heart-burst" style={{ left: heart.x, top: heart.y }} aria-hidden="true">
@@ -845,8 +847,8 @@ export function VinylPlayer({
             <div className="vp-error-icon">
               <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 2 1 21h22L12 2zm1 14h-2v2h2v-2zm0-7h-2v5h2V9z" /></svg>
             </div>
-            <b>This video cannot be played.</b>
-            <p>The file may be missing or the format is not supported.</p>
+            <b>{t('vp.errorTitle')}</b>
+            <p>{t('vp.errorDesc')}</p>
             <button
               type="button"
               className="vp-btn-pill vp-ghost"
@@ -859,7 +861,7 @@ export function VinylPlayer({
                 attemptPlay();
               }}
             >
-              <RotateCcw size={15} /> Retry
+              <RotateCcw size={15} /> {t('vp.retry')}
             </button>
           </div>
         </div>
@@ -870,16 +872,16 @@ export function VinylPlayer({
               <>
                 <div className="vp-next-thumb" style={upNext.poster ? { backgroundImage: `url("${upNext.poster}")` } : undefined} />
                 <div className="vp-next-info">
-                  <span className="vp-up-label">Up next {countdown !== null && <span className="vp-countdown">· auto in {countdown}</span>}</span>
+                  <span className="vp-up-label">{t('vp.upNext')}{countdown !== null && <span className="vp-countdown">· {t('vp.autoIn', { n: countdown })}</span>}</span>
                   <b>{upNext.title}</b>
                   {upNext.sub && <span>{upNext.sub}</span>}
                 </div>
                 <div className="vp-next-actions">
-                  <button type="button" className="vp-btn-pill vp-ghost" title="Replay (R)" onClick={replay}>
+                  <button type="button" className="vp-btn-pill vp-ghost" title={t('vp.replay')} onClick={replay}>
                     <RotateCcw size={15} />
                   </button>
                   <button type="button" className="vp-btn-pill" onClick={upNext.onSelect}>
-                    Up next <SkipForward size={15} />
+                    {t('vp.upNext')} <SkipForward size={15} />
                   </button>
                 </div>
               </>
@@ -887,12 +889,12 @@ export function VinylPlayer({
             {!upNext && (
               <>
                 <div className="vp-next-info">
-                  <span className="vp-up-label">Playback finished</span>
-                  <b>{title || 'Video'}</b>
+                  <span className="vp-up-label">{t('vp.playbackFinished')}</span>
+                  <b>{title || t('vp.video')}</b>
                 </div>
                 <div className="vp-next-actions">
                   <button type="button" className="vp-btn-pill" onClick={replay}>
-                    <RotateCcw size={15} /> Replay
+                    <RotateCcw size={15} /> {t('vp.replay')}
                   </button>
                 </div>
               </>

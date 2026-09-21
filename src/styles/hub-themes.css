@@ -1,0 +1,114 @@
+/* ==========================================================================
+   Per-hub accent themes.
+   Every hub shell scopes --accent (and a --hub-* token) so all child
+   components inherit that hub's identity color while staying inside the
+   shared light/dark token system (--bg/--panel/--line/--text/--muted).
+   Loaded last so it wins the cascade.
+   ========================================================================== */
+
+:root {
+  --hub-community: #2dd4bf;
+  --hub-music: #ff6bb7;
+  --hub-video: #6d8dff;
+  --hub-anime: #c084fc;
+  --hub-tweet: #fbbf24;
+  --hub-cinema: #f43f5e;
+}
+
+[data-theme='light'] {
+  --hub-community: #0d9488;
+  --hub-music: #db2777;
+  --hub-video: #4f46e5;
+  --hub-anime: #9333ea;
+  --hub-tweet: #d97706;
+  --hub-cinema: #e11d48;
+}
+
+/* -- accent scoping -- */
+.hub-shell-community { --accent: var(--hub-community); }
+.hub-shell-music { --accent: var(--hub-music); }
+.hub-shell-video { --accent: var(--hub-video); }
+.hub-shell-anime { --accent: var(--hub-anime); --anime-accent: var(--hub-anime); }
+.hub-shell-tweet { --accent: var(--hub-tweet); }
+.hub-shell-cinema { --accent: var(--hub-cinema); }
+.screen-panel { --accent: var(--hub-community); }
+
+/* -- shell backdrops: accent glow over the shared surface -- */
+.hub-shell-music {
+  background:
+    radial-gradient(900px 430px at 16% -8%, color-mix(in srgb, var(--hub-music) 22%, transparent), transparent 62%),
+    radial-gradient(760px 420px at 88% 0%, color-mix(in srgb, var(--hub-video) 18%, transparent), transparent 60%),
+    var(--bg);
+}
+.hub-shell-video {
+  background:
+    radial-gradient(900px 430px at 12% -10%, color-mix(in srgb, var(--hub-video) 18%, transparent), transparent 60%),
+    radial-gradient(640px 380px at 92% 4%, color-mix(in srgb, var(--hub-anime) 10%, transparent), transparent 56%),
+    var(--bg);
+}
+.hub-shell-tweet {
+  background:
+    radial-gradient(900px 430px at 18% -10%, color-mix(in srgb, var(--hub-tweet) 16%, transparent), transparent 60%),
+    radial-gradient(600px 360px at 90% 6%, color-mix(in srgb, var(--hub-anime) 9%, transparent), transparent 52%),
+    var(--bg);
+}
+.hub-shell-anime {
+  background:
+    radial-gradient(900px 460px at 84% -12%, color-mix(in srgb, var(--hub-anime) 20%, transparent), transparent 62%),
+    radial-gradient(560px 360px at 8% 4%, color-mix(in srgb, var(--hub-video) 12%, transparent), transparent 56%),
+    var(--bg);
+}
+.hub-shell-cinema {
+  background:
+    radial-gradient(900px 430px at 14% -10%, color-mix(in srgb, var(--hub-cinema) 16%, transparent), transparent 60%),
+    radial-gradient(620px 360px at 90% 6%, color-mix(in srgb, var(--hub-video) 9%, transparent), transparent 54%),
+    var(--bg);
+}
+
+/* ==========================================================================
+   Video hub — drop the old hardcoded navy surfaces for theme tokens.
+   ========================================================================== */
+.video-hub-root .video-hub-sidebar {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 94%, transparent), color-mix(in srgb, var(--hub-video) 16%, transparent));
+}
+.video-hub-root .video-post-card {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--panel) 96%, transparent), color-mix(in srgb, var(--panel-2) 90%, transparent));
+}
+.video-hub-root .video-card-text {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--hub-video) 20%, transparent), color-mix(in srgb, var(--panel) 92%, var(--bg)));
+}
+.video-card-missing {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 180px;
+  aspect-ratio: 16 / 9;
+  color: var(--muted);
+  background:
+    radial-gradient(420px 200px at 50% -20%, color-mix(in srgb, var(--hub-video) 18%, transparent), transparent 70%),
+    color-mix(in srgb, var(--panel) 92%, var(--bg));
+}
+.video-card-missing .video-missing-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(3px) brightness(.72); opacity: .5; }
+.video-card-missing .video-missing-icon { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; color: var(--hub-video); background: color-mix(in srgb, var(--hub-video) 18%, transparent); }
+.video-card-missing .video-missing-copy { position: relative; display: grid; gap: 3px; text-align: center; padding-inline: 16px; }
+.video-card-missing .video-missing-copy b { color: var(--text); font-size: 13px; }
+.video-card-missing .video-missing-copy small { max-width: 320px; color: var(--muted); font-size: 10.5px; line-height: 1.5; }
+
+/* ==========================================================================
+   Tweet hub — route the leftover green-specific rules through the amber
+   hub accent instead.
+   ========================================================================== */
+.tweet-hub-root .btn-tweet { background: linear-gradient(100deg, color-mix(in srgb, var(--hub-tweet) 86%, #000), var(--hub-tweet)); }
+.tweet-hub-root .btn-tweet:hover { background: linear-gradient(100deg, color-mix(in srgb, var(--hub-tweet) 70%, #000), var(--hub-tweet)); color: #fff; }
+.tweet-hub-root .tweet-profile-art { background: linear-gradient(120deg, color-mix(in srgb, var(--hub-tweet) 52%, #000), var(--hub-tweet)); }
+.tweet-hub-root .tweet-inline-mention { color: color-mix(in srgb, var(--hub-tweet) 82%, #000); }
+.tweet-hub-root .tweet-modal { background: color-mix(in srgb, var(--panel) 96%, color-mix(in srgb, var(--hub-tweet) 6%, #000)); }
+
+/* ==========================================================================
+   Cinema hub — a crimson identity for watch-together rooms.
+   ========================================================================== */
+.cinema-hub-shell { --accent: var(--hub-cinema); }
+.video-hub-root .cinema-room, .cinema-room {
+  border-color: color-mix(in srgb, var(--hub-cinema) 30%, transparent);
+}
