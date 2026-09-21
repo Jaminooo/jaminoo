@@ -192,6 +192,7 @@ export function MusicHub() {
   }, [current]);
 
   const playSong = (song: MusicSong) => {
+    window.dispatchEvent(new CustomEvent('jamino:play-song', { detail: { song } }));
     if (current?.id === song.id && audioRef.current) {
       if (playing) audioRef.current.pause();
       else audioRef.current.play().catch(() => {});

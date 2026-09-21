@@ -10,10 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HubGateway } from '@/components/hub-gateway';
 import { MusicHub } from '@/components/music-hub';
 import { VideoHub } from '@/components/video-hub';
-import { CinemaHub } from '@/components/cinema-hub';
 import { AnimeHub } from '@/components/anime-hub';
 import { TweetHub } from '@/components/tweet-hub';
 import { LandingPage } from '@/components/landing-page';
+import { GlobalMusicPlayer } from '@/components/global-music-player';
 import { useSyncRouting } from '@/lib/sync-routing';
 
 export function AppShell() {
@@ -70,12 +70,13 @@ export function AppShell() {
       <AnimatePresence mode="wait">
         <motion.div key={sceneKey} className="app-scroller" ref={scrollerRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
           {me ? (
-            product === 'home' ? <HubGateway /> : product === 'music' ? <MusicHub /> : product === 'video' ? <VideoHub /> : product === 'cinema' ? <CinemaHub /> : product === 'anime' ? <AnimeHub /> : product === 'tweet' ? <TweetHub /> : <PanelShell />
+            product === 'home' ? <HubGateway /> : product === 'music' ? <MusicHub /> : product === 'video' ? <VideoHub /> : product === 'anime' ? <AnimeHub /> : product === 'tweet' ? <TweetHub /> : <PanelShell />
           ) : (
             <LandingPage />
           )}
         </motion.div>
       </AnimatePresence>
+      {me && <GlobalMusicPlayer />}
     </div>
   );
 }
