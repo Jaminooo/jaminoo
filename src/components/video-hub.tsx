@@ -235,6 +235,8 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [workflowStatus, setWorkflowStatus] = useState<'DRAFT' | 'PUBLISHED'>('PUBLISHED');
+  const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now');
+  const [publishAt, setPublishAt] = useState('');
   const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
@@ -251,6 +253,8 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
     setThumbnailFile(null);
     setUploadProgress(0);
     setWorkflowStatus('PUBLISHED');
+    setScheduleMode('now');
+    setPublishAt('');
     setEditorOpen(false);
   }, [open]);
 
@@ -284,8 +288,19 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
     }
   };
 
+  const toLocalInput = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    const finalStatus = workflowStatus === 'DRAFT' ? 'DRAFT' as const : scheduleMode === 'later' ? 'SCHEDULED' as const : 'PUBLISHED' as const;
+    if (finalStatus === 'SCHEDULED' && (!publishAt || Number.isNaN(Date.parse(publishAt)) || new Date(publishAt).getTime() <= Date.now())) {
+      toast(t('video.create.schedulePick'), 'error');
+      return;
+    }
+    const finalPublishAt = finalStatus === 'SCHEDULED' ? new Date(publishAt).toISOString() : null;
     setSaving(true);
     try {
       let assetId = '';
@@ -304,9 +319,9 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
       }
       const data = await api<{ post: VideoPost }>('/api/video/posts', {
         method: 'POST',
-        body: JSON.stringify({ kind, mediaType, title, description, thumbnailUrl, subtitlesUrl, externalUrl, durationSec: Number(durationSec || 0), assetId, thumbnailAssetId, workflowStatus }),
+        body: JSON.stringify({ kind, mediaType, title, description, thumbnailUrl, subtitlesUrl, externalUrl, durationSec: Number(durationSec || 0), assetId, thumbnailAssetId, workflowStatus: finalStatus, publishAt: finalPublishAt }),
       });
-      toast(t('video.create.toastPublished'), 'ok');
+      toast(finalStatus === 'SCHEDULED' ? t('video.create.toastScheduled') : t('video.create.toastPublished'), 'ok');
       onCreated(data.post);
       onClose();
     } catch (error) {
@@ -331,7 +346,9 @@ function CreatePostModal({ open, onClose, onCreated }: { open: boolean; onClose:
           {mediaType !== 'TEXT' && <label><span>{t('video.create.pasteUrl')}</span><input type="url" value={externalUrl} onChange={(event) => setExternalUrl(event.target.value)} placeholder="https://…/video.mp4" /></label>}
           {needsVideo && <div className="video-create-grid"><label><span>{t('video.create.durationLabel')}</span><input type="number" min={0} max={86400} value={durationSec} onChange={(event) => setDurationSec(event.target.value)} placeholder={t('video.create.durationPh')} /></label><label><span>{t('video.create.thumbnailLabel')}</span><input type="url" value={thumbnailUrl} onChange={(event) => setThumbnailUrl(event.target.value)} placeholder={thumbnailFile ? t('video.create.thumbnailAuto') : t('video.create.thumbnailPh')} /></label><label><span>{t('video.create.subtitlesLabel')}</span><input type="url" value={subtitlesUrl} onChange={(event) => setSubtitlesUrl(event.target.value)} placeholder={t('video.create.subtitlesPh')} /></label></div>}
           {saving && (file || thumbnailFile) && <div className="creator-upload-progress"><span style={{ width: `${uploadProgress}%` }} /><small>{t('video.create.uploaded', { n: uploadProgress })}</small></div>}
-          <footer className="video-modal-actions"><span><Sparkles size={13} /> {workflowStatus === 'DRAFT' ? t('video.create.draftHint') : t('video.create.publishHintFooter')}</span><div className="video-modal-actions-buttons"><button type="submit" className="btn btn-ghost" disabled={saving} onClick={() => setWorkflowStatus('DRAFT')}>{t('video.create.saveDraft')}</button><button type="submit" className="btn btn-violet" disabled={saving} onClick={() => setWorkflowStatus('PUBLISHED')}>{saving ? t('video.create.publishing', { n: uploadProgress }) : <><Send size={14} /> {t('video.create.publish')}</>}</button></div></footer>
+          <label className="video-schedule-row"><span>{t('video.create.scheduleLabel')}</span><div className="video-schedule-toggle" role="group" aria-label={t('video.create.scheduleLabel')}><button type="button" className={scheduleMode === 'now' ? 'active' : ''} onClick={() => { setScheduleMode('now'); setPublishAt(''); }}>{t('video.create.scheduleNow')}</button><button type="button" className={scheduleMode === 'later' ? 'active' : ''} onClick={() => { setScheduleMode('later'); if (!publishAt) setPublishAt(toLocalInput(new Date(Date.now() + 60 * 60 * 1000))); }}>{t('video.create.scheduleLater')}</button></div></label>
+          {scheduleMode === 'later' && workflowStatus !== 'DRAFT' && <label><span>{t('video.create.scheduleAt')}</span><input type="datetime-local" value={publishAt} min={toLocalInput(new Date())} onChange={(event) => setPublishAt(event.target.value)} /></label>}
+          <footer className="video-modal-actions"><span><Sparkles size={13} /> {workflowStatus === 'DRAFT' ? t('video.create.draftHint') : scheduleMode === 'later' ? t('video.create.scheduleHintFooter') : t('video.create.publishHintFooter')}</span><div className="video-modal-actions-buttons"><button type="submit" className="btn btn-ghost" disabled={saving} onClick={() => setWorkflowStatus('DRAFT')}>{t('video.create.saveDraft')}</button><button type="submit" className="btn btn-violet" disabled={saving} onClick={() => setWorkflowStatus('PUBLISHED')}>{saving ? t('video.create.publishing', { n: uploadProgress }) : <><Send size={14} /> {scheduleMode === 'later' ? t('video.create.scheduleButton') : t('video.create.publish')}</>}</button></div></footer>
         </form>
         <VideoEditorModal file={file} open={editorOpen} onClose={() => setEditorOpen(false)} onSaved={(editedFile) => { setFile(editedFile); setThumbnailFile(null); setEditorOpen(false); void inspectVideo(editedFile); toast(t('video.create.toastEdited'), 'ok'); }} />
       </section>

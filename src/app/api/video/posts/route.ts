@@ -84,7 +84,10 @@ export const POST = handle(async (req: Request) => {
   const thumbnailUrl = safeUrl(body.thumbnailUrl, 1200);
   const subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
   const durationSec = Number(body.durationSec ?? 0);
-  const workflowStatus = body.workflowStatus === 'DRAFT' ? 'DRAFT' : 'PUBLISHED';
+  const publishAt = body.publishAt ? new Date(String(body.publishAt)) : null;
+  let workflowStatus: 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' = 'PUBLISHED';
+  if (body.workflowStatus === 'DRAFT') workflowStatus = 'DRAFT';
+  else if (body.workflowStatus === 'SCHEDULED') workflowStatus = 'SCHEDULED';
 
   if (!KINDS.has(kind)) return err('Invalid post type');
   if (!MEDIA_TYPES.has(mediaType)) return err('Invalid media type');
@@ -92,6 +95,7 @@ export const POST = handle(async (req: Request) => {
   if (!Number.isInteger(durationSec) || durationSec < 0 || durationSec > 86400) return err('Invalid duration');
   if ((kind === 'SHORT' || kind === 'LONG') && mediaType !== 'VIDEO') return err('Shorts and long videos must use video media');
   if ((mediaType === 'VIDEO' || mediaType === 'IMAGE') && !assetId && !externalUrl) return err('Choose a file or add a media URL');
+  if (workflowStatus === 'SCHEDULED' && (!publishAt || Number.isNaN(publishAt.getTime()) || publishAt.getTime() <= Date.now())) return err('Choose a future publish time');
 
   let asset: { id: string; userId: number; kind: string } | null = null;
   if (assetId) {
@@ -124,6 +128,7 @@ export const POST = handle(async (req: Request) => {
       durationSec,
       visibility: workflowStatus === 'PUBLISHED' ? 'PUBLIC' : 'PRIVATE',
       workflowStatus,
+      publishAt: workflowStatus === 'SCHEDULED' ? publishAt : null,
     },
     include: {
       author: { select: { id: true, username: true, avatarId: true, profilePhotoId: true } },
@@ -134,5 +139,5 @@ export const POST = handle(async (req: Request) => {
       saves: { where: { userId: me.id }, select: { id: true } },
     },
   });
-  return json({ post: serializeVideoPost(post) }, 201);
+  return json({ post: { ...serializeVideoPost(post), workflowStatus: post.workflowStatus, publishAt: post.publishAt?.toISOString() ?? null } }, 201);
 });
