@@ -7,7 +7,7 @@ import { JaminoAvatar } from '@/components/jamino-avatar';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { loadUnread } from '@/lib/unread';
-import { Plus, Radio, Globe, Lock, Users as UsersIcon, Music2, Check, X, Hammer, Film, Tv2, LogIn, Copy } from 'lucide-react';
+import { Plus, Radio, Globe, Lock, Users as UsersIcon, Music2, Check, X, MessageCircle, Film, Tv2, LogIn, Copy } from 'lucide-react';
 import { JAM_KINDS } from '@/lib/constants';
 
 interface JamRow {
@@ -45,7 +45,7 @@ interface InviteItem {
 }
 
 const KIND_ICON: Record<string, React.ReactNode> = {
-  CHAT: <Hammer size={13} />,
+  CHAT: <MessageCircle size={13} />,
   MOVIE: <Film size={13} />,
   MUSIC: <Music2 size={13} />,
   ANIME: <Tv2 size={13} />,
@@ -143,7 +143,10 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
   return (
     <div className="friends-panel">
       <div className="panel-head-row">
-        <h2 className="panel-title">{t('panel.jams')}</h2>
+        <div>
+          <div className="panel-title">{t('panel.jams')}</div>
+          <div className="pane-sub">{t('panel.jamsSub')}</div>
+        </div>
         <div className="panel-head-actions">
           <div className="view-toggle">
             <button type="button" className={view === 'mine' ? 'active' : ''} onClick={() => setView('mine')}>{t('jams.allJams')}</button>
@@ -161,7 +164,7 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
           {invites.map((i) => (
             <div key={i.id} className="invite-row">
               <JaminoAvatar avatarId={i.from.avatarId} size={32} photo={i.from.avatarPhoto} name={i.from.username} />
-              <div className="friend-info">
+              <div className="friend-meta">
                 <span className="friend-name">{i.jamName}</span>
                 <span className="friend-sub">{i.from.username} · {t('jams.members', { count: i.members })}</span>
               </div>
@@ -212,7 +215,7 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
               <div className="jam-icon" style={{ width: 40, height: 40 }}>
                 {j.type === 'PRIVATE' ? <Lock size={16} /> : <Globe size={16} />}
               </div>
-              <div className="friend-info">
+              <div className="friend-meta">
                 <span className="friend-name">
                   {j.name}
                   {j.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
@@ -241,11 +244,18 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
               ))}
             </div>
           </div>
-          {browse.filter((j) => kindF === 'ALL' || j.kind === kindF).length === 0 && <div className="empty-state">{t('jams.browseEmpty')}</div>}
+          {browse.filter((j) => kindF === 'ALL' || j.kind === kindF).length === 0 && (
+            <div className="empty-state">
+              <p>{t('jams.browseEmpty')}</p>
+              <button type="button" className="btn btn-violet pill-sm" onClick={() => setShowCreate(true)}>
+                <Plus size={14} /> {t('jams.createJam')}
+              </button>
+            </div>
+          )}
           {browse.filter((j) => kindF === 'ALL' || j.kind === kindF).map((j) => (
             <div key={j.id} className="friend-row">
               <JaminoAvatar avatarId={j.owner.avatarId} size={40} photo={j.owner.profilePhotoId ? `/api/media/${j.owner.profilePhotoId}` : null} name={j.owner.username} />
-              <div className="friend-info">
+              <div className="friend-meta">
                 <span className="friend-name">
                   {j.name}
                   {KIND_ICON[j.kind] && <span style={{ marginInlineStart: 6 }}>{KIND_ICON[j.kind]}</span>}

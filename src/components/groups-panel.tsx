@@ -162,7 +162,7 @@ export function GroupsPanel() {
             <div className="avatar-stack">
               <JaminoAvatar avatarId={g.avatarId} size={40} name={g.name} />
             </div>
-            <div className="friend-info">
+            <div className="friend-meta">
               <span className="friend-name">
                 {g.name}
                 {g.isPrivate && <Lock size={12} style={{ marginInlineStart: 6, verticalAlign: 'text-bottom' }} />}

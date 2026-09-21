@@ -181,7 +181,12 @@
     "tabMembers": "Members",
     "tabMusic": "Music",
     "tabCinema": "Cinema",
-    "tabAnime": "Anime"
+    "tabAnime": "Anime",
+    "live": "Live",
+    "reportMessage": "Report message",
+    "resizeCinema": "Resize cinema",
+    "resizeAnime": "Resize anime",
+    "ariaRoomViews": "Room views"
   },
   "dm": {
     "title": "Message",
@@ -195,7 +200,8 @@
     "you": "You",
     "seen": "Seen",
     "copy": "Copy",
-    "profile": "Profile"
+    "profile": "Profile",
+    "live": "Live"
   },
   "voice": {
     "send": "Send voice",
@@ -1783,5 +1789,62 @@
     "quickStart": "Quick start",
     "quickFriends": "Search friends",
     "quickNewGroup": "Create a group"
+  },
+  "jamWorld": {
+    "liveSpace": "JAM WORLD · LIVE SPACE",
+    "warming": "The room is warming up.",
+    "momentCaptured": "Moment captured.",
+    "captureFailed": "Could not capture this moment.",
+    "linkCopied": "Moment link copied.",
+    "inside": "inside",
+    "energy": "energy",
+    "captureMoment": "Capture moment",
+    "captureHint": "Saves the room snapshot, not an audio/video recording.",
+    "hostWorld": "Host world",
+    "liveMoments": "Live moments",
+    "captureThis": "Capture this moment",
+    "momentTitlePh": "Moment title",
+    "momentNotePh": "What makes this moment special?",
+    "saving": "Saving…",
+    "saveShare": "Save and share",
+    "worldChat": "Conversation Lounge",
+    "worldHangout": "Hangout Arcade",
+    "worldMusic": "Listening Arena",
+    "worldMovie": "Cinema Party",
+    "worldAnime": "Anime World"
+  },
+  "composer": {
+    "emoji": "Emoji",
+    "voice": "Voice message",
+    "close": "Close"
+  },
+  "reactions": {
+    "add": "Add reaction"
+  },
+  "feed": {
+    "kicker": "NOW FEED",
+    "title": "What is happening now?",
+    "subtitle": "Jump into a live room, follow the energy or continue a sound your people are playing.",
+    "refresh": "Refresh",
+    "loading": "Loading your live map…",
+    "peopleTitle": "Your people",
+    "peopleSub": "{n} active friends",
+    "peopleEmpty": "Your friends will appear here when they are around.",
+    "roomsTitle": "Live rooms",
+    "roomsSub": "{n} public spaces",
+    "inside": "{n} inside",
+    "roomsEmpty": "No open room yet. Create the first one.",
+    "soundTitle": "Sound of the moment",
+    "soundSub": "Most played in the network",
+    "soundEmpty": "Nothing playing right now.",
+    "unknownArtist": "Unknown artist",
+    "plays": "{n} plays",
+    "postsTitle": "Fresh from creators",
+    "postsSub": "Latest posts from Video Hub",
+    "postsEmpty": "No fresh posts yet.",
+    "newPost": "New creator post",
+    "likes": "{n} likes",
+    "comments": "{n} comments",
+    "footer": "One connected account, live services and rooms."
   }
 }

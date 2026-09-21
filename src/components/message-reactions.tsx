@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { REACTION_EMOJIS } from '@/lib/constants';
 import { Plus } from 'lucide-react';
+import { useTranslations } from '@/providers/use-translations';
 
 export interface ReactionAgg {
   emoji: string;
@@ -29,6 +30,7 @@ export function MessageReactions({
   onReact: (emoji: string) => void;
   myReaction?: string | null;
 }) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
 
   return (
@@ -46,7 +48,7 @@ export function MessageReactions({
         </button>
       ))}
       <div className="reaction-add-wrap">
-        <button type="button" className="reaction-add" onClick={() => setOpen((v) => !v)} title="Add reaction">
+        <button type="button" className="reaction-add" onClick={() => setOpen((v) => !v)} title={t('reactions.add')}>
           <Plus size={13} />
         </button>
         {open && (

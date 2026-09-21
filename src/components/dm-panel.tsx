@@ -14,7 +14,7 @@ import { connectLive, emitLive, onLive, liveSocketId, liveConnected } from '@/li
 import { toast } from '@/components/toast';
 import { loadUnread } from '@/lib/unread';
 import { ReportMessageModal } from '@/components/report-message-modal';
-import { ArrowLeft, Copy, User, Check, CheckCheck, Flag } from 'lucide-react';
+import { ArrowLeft, Copy, User, Check, CheckCheck, Flag, Loader2 } from 'lucide-react';
 
 interface ChatUser {
   id: number;
@@ -205,7 +205,7 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
       });
       items.push({
         icon: <Flag size={14} />,
-        label: 'Report message',
+        label: t('room.reportMessage'),
         onClick: () => {
           setReportMessageId(m.id);
         },
@@ -214,7 +214,7 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
     return items;
   };
 
-  if (!convo) return <div className="empty-state" style={{ padding: 48 }}>…</div>;
+  if (!convo) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
 
   return (
     <div className="room" style={{ marginTop: 24 }}>
@@ -235,7 +235,7 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
             <div className="room-title">{convo.convo.other.username}</div>
             <div className="room-members">
               {convo.convo.other.statusText || t('dm.privateChat')}
-              {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
+              {live && <span className="live-tag"><span className="live-dot" /> {t('dm.live')}</span>}
             </div>
           </div>
         </button>

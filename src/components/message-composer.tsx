@@ -17,6 +17,7 @@ interface Props {
 
 export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping, disabled, busy }: Props) {
   const t = useTranslations();
+  const maxLabel = `${Math.floor(MAX_VOICE_SECONDS / 60)}:${String(MAX_VOICE_SECONDS % 60).padStart(2, '0')}`;
   const [text, setText] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [emojiCat, setEmojiCat] = useState(0);
@@ -123,23 +124,23 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
           }}
           placeholder={placeholder}
         />
-        <button type="button" className="btn-icon composer-ico" onClick={() => setEmojiOpen((v) => !v)} title="Emoji">
+        <button type="button" className="btn-icon composer-ico" onClick={() => setEmojiOpen((v) => !v)} title={t('composer.emoji')}>
           <Smile size={16} />
         </button>
         {rec === 'rec' ? (
           <div className="rec-bar">
             <span className="rec-dot" />
-            <span className="rec-time">{String(Math.floor(seconds / 60)).padStart(1, '0')}:{String(seconds % 60).padStart(2, '0')} / 1:00</span>
+            <span className="rec-time">{String(Math.floor(seconds / 60)).padStart(1, '0')}:{String(seconds % 60).padStart(2, '0')} / {maxLabel}</span>
           </div>
         ) : (
-          <button type="button" className="btn-icon violet composer-ico" onClick={startRec} title="Voice">
+          <button type="button" className="btn-icon violet composer-ico" onClick={startRec} title={t('composer.voice')}>
             <Mic size={16} />
           </button>
         )}
       </div>
 
       {emojiOpen ? (
-        <button type="button" className="btn-icon composer-ico" onClick={() => setEmojiOpen(false)} title="Close">
+        <button type="button" className="btn-icon composer-ico" onClick={() => setEmojiOpen(false)} title={t('composer.close')}>
           <X size={16} />
         </button>
       ) : null}

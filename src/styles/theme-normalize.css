@@ -1,33 +1,8 @@
-/* Two-theme visual system and notification center. */
+/* Two-theme visual system. */
 .theme-switcher { gap: 3px; }
 .theme-btn { transition: transform .18s ease, color .18s ease, background .18s ease; }
 .theme-btn:hover { transform: translateY(-2px); }
-.notification-center { position: relative; display: inline-flex; }
-.notification-btn.is-open { border-color: color-mix(in srgb, var(--accent) 42%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.notification-panel { position: absolute; z-index: 100; top: calc(100% + 12px); inset-inline-end: 0; width: min(410px, calc(100vw - 24px)); overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: color-mix(in srgb, var(--panel) 96%, var(--bg)); box-shadow: 0 24px 80px rgba(0, 0, 0, .38), 0 0 0 1px color-mix(in srgb, var(--text) 3%, transparent) inset; backdrop-filter: blur(22px) saturate(1.25); }
-.notification-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 16px 12px; border-bottom: 1px solid var(--line); }
-.notification-panel-head > div:first-child { display: grid; gap: 3px; }
-.notification-panel-head b { color: var(--text); font-size: 14px; }
-.notification-panel-head small { color: var(--muted); font-size: 10px; }
-.notification-panel-actions { display: flex; gap: 3px; }
-.notification-filters { display: flex; gap: 5px; padding: 10px 12px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
-.notification-filters::-webkit-scrollbar { display: none; }
-.notification-filters button { flex: 0 0 auto; padding: 6px 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; font: inherit; font-size: 10px; }
-.notification-filters button.active { border-color: color-mix(in srgb, var(--accent) 28%, transparent); background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--text); }
-.notification-list { max-height: min(520px, 65vh); overflow: auto; }
-.notification-row { display: flex; width: 100%; align-items: flex-start; gap: 10px; padding: 13px 15px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 65%, transparent); background: transparent; color: var(--text); cursor: pointer; text-align: start; transition: background .18s ease; }
-.notification-row:hover, .notification-row.unread { background: color-mix(in srgb, var(--panel-2) 62%, transparent); }
-.notification-row.unread { box-shadow: inset 3px 0 var(--accent); }
-.notification-icon { display: grid; flex: 0 0 auto; width: 32px; height: 32px; place-items: center; border-radius: 10px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.notification-icon-social { color: #f9a8d4; background: rgba(236,72,153,.14); }
-.notification-icon-content { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.notification-icon-system { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.notification-copy { display: grid; min-width: 0; flex: 1; gap: 4px; }
-.notification-copy b { color: var(--text); font-size: 12px; font-weight: 600; line-height: 1.45; }
-.notification-copy small { color: var(--muted); font-size: 10px; }
-.notification-new { display: grid; flex: 0 0 auto; width: 18px; height: 18px; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
-.notification-state { display: grid; min-height: 140px; place-items: center; align-content: center; gap: 8px; color: var(--muted); font-size: 12px; }
-@media (max-width: 640px) { .notification-panel { position: fixed; top: calc(56px + var(--safe-top)); inset-inline: 12px; width: auto; } .theme-switcher { display: none; } }
+@media (max-width: 640px) { .theme-switcher { display: none; } }
 
 .global-search-trigger { gap: 6px; }
 .global-search-trigger kbd { display: none; padding: 2px 5px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); font: 10px inherit; }

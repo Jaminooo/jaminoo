@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
   import { toast } from '@/components/toast';
   import { loadUnread } from '@/lib/unread';
   import { onLive } from '@/lib/live';
-  import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck } from 'lucide-react';
+  import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck, Loader2 } from 'lucide-react';
 
 interface ProfileData {
   user: {
@@ -64,7 +64,7 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
     }
   };
 
-  if (!data) return <div className="empty-state" style={{ padding: 64 }}>…</div>;
+  if (!data) return <div className="empty-state" style={{ padding: 64 }}><Loader2 className="spin" size={20} /></div>;
   const u = data.user;
   const isOnline = online.includes(u.id);
   const livePresence = presenceMap[u.id];

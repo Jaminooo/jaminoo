@@ -19,7 +19,7 @@ import { connectLive, emitLive, emitWhenConnected, onLive, onLiveConnect, liveCo
 import { toast } from '@/components/toast';
 import { JamWorldPanel } from '@/components/jam-world-panel';
 import { ReportMessageModal } from '@/components/report-message-modal';
-import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Tv2, Hammer, Trash2, MessageCircle, Flag } from 'lucide-react';
+import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Tv2, Trash2, MessageCircle, Flag, Loader2 } from 'lucide-react';
 
 interface ChatUser {
   id: number;
@@ -60,7 +60,7 @@ interface JamDetail {
 }
 
 const KIND_ICON: Record<string, React.ReactNode> = {
-  CHAT: <Hammer size={13} />,
+  CHAT: <MessageCircle size={13} />,
   MOVIE: <Film size={13} />,
   MUSIC: <Music2 size={13} />,
   HANGOUT: <UsersIcon size={13} />,
@@ -312,7 +312,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
       });
       items.push({
         icon: <Flag size={14} />,
-        label: 'Report message',
+        label: t('room.reportMessage'),
         onClick: () => {
             setReportMessageId(m.id);
         },
@@ -323,7 +323,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
 
   const { gridRef, gridStyle, beginResize, beginVertical } = usePanelResize(mediaKind);
 
-  if (!jam) return <div className="empty-state" style={{ padding: 48 }}>…</div>;
+  if (!jam) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
   const isOwner = jam.ownerId === me?.id;
   const chatPreview = (
     <div className="room-modal-chat-preview">
@@ -356,10 +356,10 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           </div>
           <div style={{ minWidth: 0 }}>
             <div className="room-title">{jam.name}</div>
-            <div className="room-members">
-               <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind] ?? <Hammer size={13} />} {t(`jams.kind${jam.kind.charAt(0)}${jam.kind.slice(1).toLowerCase()}`)}</span>
+<div className="room-members">
+               <UsersIcon size={13} /> {jam.members.length} · <span className="jam-kind-badge">{KIND_ICON[jam.kind] ?? <MessageCircle size={13} />} {t(`jams.kind${jam.kind.charAt(0)}${jam.kind.slice(1).toLowerCase()}`)}</span>
               {jam.closed && <span className="closed-tag" style={{ marginInlineStart: 6 }}>{t('room.closed')}</span>}
-              {live && <span className="live-tag"><span className="live-dot" /> Live</span>}
+              {live && <span className="live-tag"><span className="live-dot" /> {t('room.live')}</span>}
             </div>
           </div>
         </div>
@@ -406,7 +406,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         <JamWorldPanel jamId={jam.id} jamName={jam.name} kind={jam.kind} description={jam.desc} members={jam.members} messages={jam.messages} isOwner={isOwner} />
       </div>
 
-      <div className="room-mobile-tabs" role="tablist" aria-label="Room views">
+      <div className="room-mobile-tabs" role="tablist" aria-label={t('room.ariaRoomViews')}>
         <button type="button" className={mobilePane === 'chat' ? 'active' : ''} onClick={() => setMobilePane('chat')}>
           <MessageCircle size={15} /> {t('room.tabChat')}
         </button>
@@ -520,7 +520,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
 
         {jam.kind === 'MUSIC' && (
           <>
-            <div className="resize-gutter resize-gutter-music" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label={t('room.resizeMusic')} />
+            <div className="resize-gutter" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label={t('room.resizeMusic')} />
             <aside className="room-col-music">
               <MusicPlayer jamId={jam.id} canOwner={isOwner} miniHost={((jam.members.find((m) => m.id === me?.id)?.role ?? '') === 'MINI_HOST')} chatSlot={chatPreview} />
             </aside>
@@ -528,15 +528,15 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
         )}
         {jam.kind === 'MOVIE' && (
           <>
-            <div className="resize-gutter resize-gutter-music" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label="Resize cinema" />
-            <aside className="room-col-music room-col-cinema">
+            <div className="resize-gutter" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label={t('room.resizeCinema')} />
+            <aside className="room-col-music">
               <CinemaPlayer jamId={jam.id} chatSlot={chatPreview} />
             </aside>
           </>
         )}
         {jam.kind === 'ANIME' && (
           <>
-            <div className="resize-gutter resize-gutter-music" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label="Resize anime" />
+            <div className="resize-gutter" onPointerDown={beginResize('music')} role="separator" aria-orientation="vertical" aria-label={t('room.resizeAnime')} />
             <aside className="room-col-music room-col-anime">
               <AnimePlayer jamId={jam.id} chatSlot={chatPreview} />
             </aside>
@@ -549,7 +549,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
       </div>
 
       {showInvite && (
-        <div className="room-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => setShowInvite(false)}>
+        <div className="room-modal-backdrop" onMouseDown={() => setShowInvite(false)}>
           <div className="room-modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="room-modal-head">
               <div className="room-modal-title"><UserPlus size={17} /> {t('jams.inviteFriends')}</div>
@@ -557,7 +557,6 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
             </div>
             <div className="room-modal-grid">
               <section className="room-modal-main">
-                <div className="room-modal-subtitle">{t('jams.inviteFriends')}</div>
                 {friends.length === 0 ? (
                   <div className="empty-state">{t('friends.noFriendsYet')}</div>
                 ) : (
