@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { BadgeCheck, Disc3, Heart, History, House, LayoutDashboard, ListMusic, Music2, Pause, Play, Plus, Radio, Search, SkipForward, Sparkles, UsersRound } from 'lucide-react';
+import { BadgeCheck, Disc3, Heart, History, House, LayoutDashboard, ListMusic, Music2, Pause, Play, Plus, Radio, Search, Sparkles, UsersRound } from 'lucide-react';
 import { api, uploadWithProgress } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { useAppStore } from '@/store/app-store';
@@ -121,7 +121,6 @@ export function MusicHub() {
   const [duration, setDuration] = useState(0);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [creatorStatus, setCreatorStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | null>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   const favoriteIds = useMemo(() => new Set(favorites.map((item) => item.songId)), [favorites]);
 
@@ -170,35 +169,23 @@ export function MusicHub() {
     if (song) setCurrent(song);
   }, [catalog, current]);
 
+  const radioSongs = catalog.length ? catalog : favorites.map((item) => item.song);
+
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !current) return;
-    audio.src = current.audioUrl || current.audioLink || '';
-    audio.load();
-    if (current.audioUrl || current.audioLink) audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({ title: current.title, artist: artistLabel(current), album: current.album?.title ?? 'Jamino Music Hub', artwork: current.coverUrl ? [{ src: current.coverUrl }] : [] });
-      navigator.mediaSession.setActionHandler('play', () => audio.play().catch(() => {}));
-      navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-      navigator.mediaSession.setActionHandler('seekbackward', () => { audio.currentTime = Math.max(0, audio.currentTime - 10); });
-      navigator.mediaSession.setActionHandler('seekforward', () => { audio.currentTime = Math.min(audio.duration || Infinity, audio.currentTime + 10); });
-    }
-    return () => {
-      audio.pause();
-      if ('mediaSession' in navigator) {
-        try { navigator.mediaSession.metadata = null; } catch {}
-      }
+    const onPlayerState = (event: Event) => {
+      const detail = (event as CustomEvent<{ song: MusicSong | null; playing: boolean }>).detail;
+      if (detail?.song) setCurrent(detail.song);
+      setPlaying(Boolean(detail?.playing));
     };
-  }, [current]);
+    window.addEventListener('jamino:player-state', onPlayerState);
+    return () => window.removeEventListener('jamino:player-state', onPlayerState);
+  }, []);
 
   const playSong = (song: MusicSong) => {
-    window.dispatchEvent(new CustomEvent('jamino:play-song', { detail: { song } }));
-    if (current?.id === song.id && audioRef.current) {
-      if (playing) audioRef.current.pause();
-      else audioRef.current.play().catch(() => {});
-      return;
-    }
-    setCurrent(song);
+    const same = current?.id === song.id;
+    window.dispatchEvent(new CustomEvent('jamino:play-song', { detail: { song, queue: radioSongs, autoplay: true } }));
+    if (!same) setCurrent(song);
+    setPlaying(same ? !playing : true);
     window.history.replaceState({}, '', `/?hub=music&song=${song.id}`);
   };
 
@@ -237,7 +224,6 @@ export function MusicHub() {
   };
 
   const visibleSongs = view === 'favorites' ? favorites.map((item) => item.song) : view === 'history' ? history.map((item) => item.song) : catalog;
-  const radioSongs = catalog.length ? catalog : favorites.map((item) => item.song);
   const catalogView = view === 'community' ? 'playlists' : view === 'artists' || view === 'albums' || view === 'singles' ? view : null;
 
   return (
@@ -274,8 +260,6 @@ export function MusicHub() {
           {view === 'playlists' && <div className="music-playlist-grid">{playlists.length === 0 && <div className="music-hub-empty"><ListMusic size={22} /><b>No playlists yet.</b><span>Create your first playlist above.</span></div>}{playlists.map((playlist) => <section className="music-playlist-card" key={playlist.id}><div className="music-playlist-card-head"><ListMusic size={18} /><div><b>{playlist.name}</b><span>{playlist.items.length} songs · {playlist.isPublic ? 'Public' : 'Private'}</span></div></div>{playlist.items.slice(0, 6).map((item) => <button type="button" className="music-playlist-item" key={item.song.id} onClick={() => playSong(item.song)}><span>{item.song.title}</span><small>{item.song.artist?.name ?? 'Unknown artist'}</small></button>)}</section>)}</div>}
         </main>
       </div>
-      <audio ref={audioRef} preload="metadata" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || current?.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onEnded={() => setPlaying(false)} />
-      {current && <div className="music-hub-player"><button type="button" className="music-hub-player-main" onClick={() => playSong(current)}>{current.coverUrl ? <Image src={current.coverUrl} alt="" fill unoptimized /> : <Music2 size={16} />}<span><b>{current.title}</b><small>{artistLabel(current)}</small></span></button><button type="button" className="btn-icon music-hub-play-button" onClick={() => playSong(current)}>{playing ? <Pause size={18} /> : <Play size={18} />}</button><input className="music-hub-range" type="range" min={0} max={duration || current.durationSec || 1} step={0.1} value={Math.min(position, duration || current.durationSec || 1)} onChange={(event) => { const next = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = next; setPosition(next); }} /><span className="music-hub-player-time">{timeLabel(position)} / {timeLabel(duration || current.durationSec)}</span><button type="button" className="btn-icon" onClick={() => { const next = radioSongs.find((song) => song.id !== current.id); if (next) playSong(next); }} title="Next"><SkipForward size={16} /></button></div>}
       <nav className="hub-mobile-nav"><button type="button" onClick={() => setProduct('home')} aria-label={t('hubs.choose')}><House size={17} /><span>{t('musicNav.home')}</span></button>{NAV.filter(({ id }) => id !== 'home').map(({ id, key, icon: Icon }) => <button type="button" key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{t(`musicNav.${key}`)}</span></button>)}</nav>
       <CreatorApplyModal hub="MUSIC" open={creatorOpen} onClose={() => setCreatorOpen(false)} onSubmitted={(application) => setCreatorStatus(application.status)} />
     </div>

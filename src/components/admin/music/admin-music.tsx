@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
-import { Music2, Disc3, Mic2, ListMusic, Star, PlayCircle } from 'lucide-react';
+import { Music2, Disc3, Mic2, ListMusic, Star, PlayCircle, RefreshCw } from 'lucide-react';
 import { Badge, StatCard, LoadingRow, EmptyRow } from '../admin-ui';
 import { AdminMusicSongs } from './music-songs';
 import { AdminMusicArtists } from './music-artists';
@@ -30,12 +30,14 @@ export function AdminMusic() {
   const [sub, setSub] = useState<Sub>('overview');
   const [d, setD] = useState<Details | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = () => {
     setLoading(true);
+    setError(false);
     api<Details>('/api/admin/music')
-      .then(setD)
-      .catch(() => {})
+      .then((data) => setD(data))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
@@ -49,6 +51,10 @@ export function AdminMusic() {
             {t(key)}
           </button>
         ))}
+        <button type="button" className="admin-subnav-item admin-music-refresh" onClick={load} disabled={loading} title="Refresh music metrics">
+          <RefreshCw size={15} className={loading ? 'admin-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
       {sub === 'overview' && (
@@ -61,6 +67,7 @@ export function AdminMusic() {
             <StatCard icon={<PlayCircle size={16} />} label={t('admin.music.totalPlays')} value={d?.stats.totalPlays ?? '—'} tone="red" />
           </div>
 
+          {error && <div className="admin-inline-error">Music metrics could not be loaded. <button type="button" className="btn btn-ghost pill-sm" onClick={load}>Try again</button></div>}
           <div className="admin-card">
             <div className="admin-card-head">
               <h3>{t('admin.music.recentlyAdded')}</h3>
