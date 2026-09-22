@@ -1689,6 +1689,7 @@ export function TweetHub() {
   const [profileName, setProfileName] = useState('');
   const [profileTab, setProfileTab] = useState<ProfileTab>('posts');
   const [profile, setProfile] = useState<TweetProfile | null>(null);
+  const [profileError, setProfileError] = useState(false);
   const [trends, setTrends] = useState<Trend[]>([]);
   const [suggestions, setSuggestions] = useState<SugUser[]>([]);
   const [activeTweet, setActiveTweet] = useState<Tweet | null>(null);
@@ -1745,10 +1746,12 @@ export function TweetHub() {
   const loadingRef = useRef(false);
   const cursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(true);
+  const autoFailRef = useRef(false);
 
   const loadFeed = useCallback(async (reset: boolean) => {
     if (loadingRef.current) return;
-    if (!reset && !hasMoreRef.current) return;
+    if (!reset && (!hasMoreRef.current || autoFailRef.current)) return;
+    if (reset) autoFailRef.current = false;
     loadingRef.current = true;
     setLoading(true);
     setFeedError(false);
@@ -1778,7 +1781,12 @@ export function TweetHub() {
     } catch (error) {
       setFeedError(true);
       if (reset) setFeed([]);
-      if (!reset) toast(error instanceof Error ? error.message : t('tweetHub.toast.feedFailed'), 'error');
+      // Pause automatic infinite-scroll after a failure so the sentinel
+      // observer cannot fire a toast per frame; only a manual retry resumes.
+      autoFailRef.current = true;
+      hasMoreRef.current = false;
+      setHasMore(false);
+      if (reset) toast(error instanceof Error ? error.message : t('tweetHub.toast.feedFailed'), 'error');
     } finally {
       loadingRef.current = false;
       setLoading(false);
@@ -1788,6 +1796,7 @@ export function TweetHub() {
   const reload = useCallback(() => {
     cursorRef.current = null;
     hasMoreRef.current = true;
+    autoFailRef.current = false;
     setHasMore(true);
     setFeed([]);
     void loadFeed(true);
@@ -1905,13 +1914,14 @@ export function TweetHub() {
     const name = username ?? profileName;
     if (!name) return;
     api<{ user: TweetProfile['user']; stats: TweetProfile['stats']; following: boolean; requested: boolean; locked: boolean; private: boolean; blocked: boolean; blockedBy: boolean; muted: boolean; isMe: boolean }>(`/api/tweets/profile?username=${encodeURIComponent(name)}`)
-      .then((data) => setProfile({ user: data.user, stats: data.stats, following: data.following, requested: data.requested, locked: data.locked, private: data.private, blocked: data.blocked, blockedBy: data.blockedBy, muted: data.muted, isMe: data.isMe }))
-      .catch(() => setProfile(null));
+      .then((data) => { setProfile({ user: data.user, stats: data.stats, following: data.following, requested: data.requested, locked: data.locked, private: data.private, blocked: data.blocked, blockedBy: data.blockedBy, muted: data.muted, isMe: data.isMe }); setProfileError(false); })
+      .catch(() => { setProfile(null); setProfileError(true); });
   }, [profileName]);
 
   useEffect(() => {
-    if (view !== 'profile') { setProfile(null); return; }
+    if (view !== 'profile') { setProfile(null); setProfileError(false); return; }
     if (!profileName) return;
+    setProfileError(false);
     refreshProfile();
   }, [profileName, view, refreshProfile]);
 
@@ -2595,6 +2605,17 @@ export function TweetHub() {
                   </button>
                 ))
               )}
+            </section>
+          )}
+
+          {view === 'profile' && !profile && profileError && (
+            <section className="tweet-error-card">
+              <div className="tweet-empty large">
+                <ShieldAlert size={26} />
+                <b>{t('tweetHub.profile.loadFailed')}</b>
+                <span>{t('tweetHub.feed.connectionHint')}</span>
+                <button type="button" className="btn btn-tweet pill-sm" onClick={() => refreshProfile()}><Sparkles size={13} /> {t('tweetHub.retry')}</button>
+              </div>
             </section>
           )}
 

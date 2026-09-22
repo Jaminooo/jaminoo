@@ -629,3 +629,4 @@ html[dir="rtl"] .tweet-toggle.on span { transform: translateX(-17px); transition
 .tweet-fmt-preview { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); }
 .tweet-fmt-preview-label { flex: 0 0 auto; padding-top: 2px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
 .tweet-fmt-preview .tweet-fmt-preview-text { min-width: 0; margin: 0; }
+.tweet-error-card { display: grid; gap: 10px; padding: 14px 4px 4px; }

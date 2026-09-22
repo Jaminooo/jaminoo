@@ -233,7 +233,3 @@ CREATE INDEX "TweetMod_tweetId_createdAt_idx" ON "TweetMod"("tweetId", "createdA
 CREATE INDEX "TweetMod_adminId_createdAt_idx" ON "TweetMod"("adminId", "createdAt");
 ALTER TABLE "TweetMod" ADD CONSTRAINT "TweetMod_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "TweetMod" ADD CONSTRAINT "TweetMod_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
--- Tweet text facets (styled ranges): [{"s":0,"e":5,"t":"b"}]
-ALTER TABLE "Tweet" ADD COLUMN "facets" TEXT NOT NULL DEFAULT '[]';
-ALTER TABLE "Draft" ADD COLUMN "facets" TEXT NOT NULL DEFAULT '[]';
-ALTER TABLE "ScheduledTweet" ADD COLUMN "facets" TEXT NOT NULL DEFAULT '[]';

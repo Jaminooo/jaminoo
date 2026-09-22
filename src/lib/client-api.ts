@@ -1,17 +1,31 @@
+const TIMEOUT_MS = 25000;
+
 export async function api<T = unknown>(url: string, init?: RequestInit): Promise<T> {
-  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
-  const res = await fetch(url, {
-    credentials: 'same-origin',
-    ...init,
-    headers: isFormData
-      ? { ...(init?.headers ?? {}) }
-      : { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-  });
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) {
-    throw new Error(data?.error ?? `Request failed (${res.status})`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
+    const res = await fetch(url, {
+      credentials: 'same-origin',
+      ...init,
+      signal: controller.signal,
+      headers: isFormData
+        ? { ...(init?.headers ?? {}) }
+        : { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    });
+    const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+    if (!res.ok) {
+      throw new Error(data?.error ?? `Request failed (${res.status})`);
+    }
+    return data;
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  return data;
 }
 
 export function uploadWithProgress<T = unknown>(

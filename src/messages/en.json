@@ -1645,7 +1645,8 @@
       "privateAccount": "Private account",
       "privateHint": "Only accepted followers can see your posts and follow you.",
       "privateNote": "This account is private.",
-      "message": "Message"
+      "message": "Message",
+      "loadFailed": "Could not load this profile."
     },
     "notifications": {
       "loading": "Loading activity…",
