@@ -38,6 +38,7 @@ export default function JoinJamPage({ params }: { params: Promise<{ id: string }
   const [joining, setJoining] = useState(false);
   const ran = useRef(false);
   const authRef = useRef<AuthInfo>(null);
+  const autoJoinedRef = useRef(false);
 
   const load = async () => {
     setState('loading');
@@ -66,6 +67,18 @@ export default function JoinJamPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     if (jamId) void load();
   }, [jamId]);
+
+  useEffect(() => {
+    // Signed-in (non-guest) users enter the jam directly — no extra click needed.
+    if (state !== 'ready' || !preview) return;
+    if (!auth?.user || auth.user.isGuest) return;
+    if (preview.closed) return;
+    if (preview.type === 'PRIVATE' && !auth?.user) return;
+    if (autoJoinedRef.current) return;
+    autoJoinedRef.current = true;
+    void openAsMember();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, preview, auth]);
 
   const openAsMember = async () => {
     if (!jamId || joining) return;
@@ -98,6 +111,7 @@ export default function JoinJamPage({ params }: { params: Promise<{ id: string }
   };
 
   const enterRoom = () => {
+    useAppStore.getState().setProduct('community');
     setRoomId(jamId);
     setState('joined');
     window.setTimeout(() => router.push('/'), 600);

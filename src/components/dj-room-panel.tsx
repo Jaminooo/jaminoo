@@ -36,6 +36,9 @@ import {
   User,
   UserPlus,
   Users as UsersIcon,
+  Volume1,
+  Volume2,
+  VolumeX,
   X,
   ThumbsUp,
 } from 'lucide-react';
@@ -140,6 +143,10 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const [sideTab, setSideTab] = useState<'queue' | 'members'>('queue');
   const [nowMs, setNowMs] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [volume, setVolume] = useState(0.8);
+  const [muted, setMuted] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
@@ -284,6 +291,37 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   }, [jam]);
 
   useEffect(() => { emitWhenConnected('music:sync', jamId); }, [jamId]);
+
+  // Play the room's stream locally, synced to the server's authoritative state.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const now = jam?.now;
+    if (!now) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      return;
+    }
+    if (audio.dataset.songId !== String(now.id)) {
+      audio.dataset.songId = String(now.id);
+      audio.src = `/api/music/stream/${now.id}`;
+      audio.load();
+    }
+    audio.volume = muted ? 0 : volume;
+    if (jam?.playing) {
+      const target = Math.max(0, nowMs / 1000);
+      const drift = Math.abs((audio.currentTime || 0) - target);
+      if (drift > 4 || audio.paused) {
+        try {
+          audio.currentTime = target;
+        } catch {}
+      }
+      audio.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+    } else {
+      audio.pause();
+    }
+  }, [jam?.now?.id, jam?.playing, nowMs, muted, volume]);
 
   const sendText = async (text: string) => {
     if (sendingText) return;
@@ -599,6 +637,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
 
   return (
     <div className="dj-room" style={{ marginTop: 24 }}>
+      <audio ref={audioRef} preload="auto" onEnded={() => emitWhenConnected('music:ended', jamId)} onError={() => setBlocked(true)} />
       <div className="dj-head">
         <button type="button" className="btn-icon" onClick={onBack} title={t('modal.close')}>
           <ArrowLeft size={16} />
@@ -675,6 +714,42 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
               </button>
             )}
           </>
+        )}
+        <div className="dj-volrow" title={t('music.volume')}>
+          <button
+            type="button"
+            className="btn-icon dj-vol-mute"
+            aria-label={t('music.mute')}
+            onClick={() => setMuted((v) => !v)}
+          >
+            {muted || volume < 0.01 ? <VolumeX size={15} /> : volume < 0.5 ? <Volume1 size={15} /> : <Volume2 size={15} />}
+          </button>
+          <input
+            type="range"
+            className="dj-volbar"
+            aria-label={t('music.volume')}
+            min="0"
+            max="1"
+            step="0.01"
+            value={muted ? 0 : volume}
+            style={{ ['--dj-vol' as string]: `${Math.round((muted ? 0 : volume) * 100)}%` }}
+            onChange={(e) => {
+              setMuted(false);
+              setVolume(Number(e.target.value));
+              if (audioRef.current) audioRef.current.volume = Number(e.target.value);
+            }}
+          />
+        </div>
+        {blocked && jam.now && jam.playing && (
+          <button
+            type="button"
+            className="btn btn-violet pill-sm dj-resume"
+            onClick={() => {
+              audioRef.current?.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+            }}
+          >
+            <Play size={13} /> {t('music.pressPlay')}
+          </button>
         )}
         {!jam.now && <div className="dj-waiting">{t('jams.waitingForDJ')}</div>}
       </div>

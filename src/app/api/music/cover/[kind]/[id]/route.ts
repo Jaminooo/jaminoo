@@ -14,7 +14,7 @@ const MIME_BY_EXT: Record<string, string> = {
 type Ctx = { params: { kind: string; id: string } };
 
 export const GET = handle(async (req, { params }: Ctx) => {
-  await requireUser();
+  await requireUser({ allowGuest: true });
   const id = Number(params.id);
   if (!Number.isInteger(id) || id <= 0) return err('Not found', 404);
 

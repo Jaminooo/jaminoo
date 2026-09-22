@@ -140,6 +140,58 @@
   opacity: 0.9;
 }
 
+.dj-volrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.dj-vol-mute {
+  width: 32px;
+  height: 32px;
+}
+.dj-volbar {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 88px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent, #a78bfa) var(--dj-vol, 30%), color-mix(in srgb, var(--text, #f3f3f5) 16%, transparent) var(--dj-vol, 30%));
+  outline: none;
+  cursor: pointer;
+}
+.dj-volbar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent, #a78bfa);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.dj-volbar::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--accent, #a78bfa);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.dj-volbar::-moz-range-track {
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text, #f3f3f5) 16%, transparent);
+}
+.dj-resume {
+  flex-shrink: 0;
+}
+@media (max-width: 720px) {
+  .dj-volbar {
+    width: 60px;
+  }
+}
+
 .dj-waiting {
   flex: 1;
   font-size: 13px;

@@ -16,7 +16,7 @@ const MIME_BY_EXT: Record<string, string> = {
 type Ctx = { params: { songId: string } };
 
 export const GET = handle(async (req, { params }: Ctx) => {
-  await requireUser();
+  await requireUser({ allowGuest: true });
   const id = Number(params.songId);
   if (!Number.isInteger(id) || id <= 0) return err('Not found', 404);
   const song = await prisma.song.findUnique({ where: { id } });

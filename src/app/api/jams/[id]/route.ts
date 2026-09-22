@@ -97,7 +97,10 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       messages: jam.messages.map((m) => msgPayload(m, me.id)),
       now: jam.currentSong ? songPreview(jam.currentSong as never) : null,
       playing: jam.currentPlaying,
-      positionMs: jam.currentPosition,
+      positionMs:
+        jam.currentPlaying && jam.currentStartedAt
+          ? jam.currentPosition + (Date.now() - jam.currentStartedAt.getTime())
+          : jam.currentPosition,
       startMs: jam.currentStartedAt ? jam.currentStartedAt.getTime() : null,
       durationSec: jam.currentSong?.durationSec ?? 0,
       skipCount,

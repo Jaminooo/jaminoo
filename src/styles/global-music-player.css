@@ -150,6 +150,10 @@
 }
 .global-player-volbar { display: flex; align-items: center; width: 74px; }
 
+.global-player-volbar input[type='range'] {
+  background: linear-gradient(90deg, var(--accent, #a78bfa) var(--gp-vol, 30%), color-mix(in srgb, var(--text) 16%, transparent) var(--gp-vol, 30%));
+}
+
 /* range inputs */
 .global-player input[type='range'] {
   -webkit-appearance: none;

@@ -317,26 +317,33 @@ app.prepare().then(async () => {
       if (tx.length) await prisma.$transaction(tx);
     };
 
+    const advanceLocks = new Set();
     const advanceQueue = async (jamId) => {
-      const jam = await refreshJam(jamId);
-      if (!jam || !jam.currentSongId) return;
-      await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: jam.currentSongId } });
-      clearSkips(jamId, jam.currentSongId);
-      const next = jam.queueItems.length ? jam.queueItems[0] : null;
-      if (next) {
-        await prisma.jam.update({
-          where: { id: jamId },
-          data: { currentSongId: next.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
-        });
-        await prisma.jamQueueItem.delete({ where: { id: next.id } });
-        await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: next.songId } });
-      } else {
-        await prisma.jam.update({ where: { id: jamId }, data: { currentPlaying: false, currentPosition: 0 } });
-      }
-      const fresh = await refreshJam(jamId);
-      if (fresh) {
-        broadcastState(fresh);
-        broadcastQueue(fresh);
+      if (advanceLocks.has(jamId)) return;
+      advanceLocks.add(jamId);
+      try {
+        const jam = await refreshJam(jamId);
+        if (!jam || !jam.currentSongId) return;
+        await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: jam.currentSongId } });
+        clearSkips(jamId, jam.currentSongId);
+        const next = jam.queueItems.length ? jam.queueItems[0] : null;
+        if (next) {
+          await prisma.jam.update({
+            where: { id: jamId },
+            data: { currentSongId: next.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
+          });
+          await prisma.jamQueueItem.delete({ where: { id: next.id } });
+          await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: next.songId } });
+        } else {
+          await prisma.jam.update({ where: { id: jamId }, data: { currentPlaying: false, currentPosition: 0 } });
+        }
+        const fresh = await refreshJam(jamId);
+        if (fresh) {
+          broadcastState(fresh);
+          broadcastQueue(fresh);
+        }
+      } finally {
+        advanceLocks.delete(jamId);
       }
     };
 
@@ -507,6 +514,23 @@ app.prepare().then(async () => {
           await prisma.jamQueueItem.create({ data: { jamId, songId, addedBy: userId, pos: (maxPos._max.pos ?? 0) + 1 } });
           const fresh = await refreshJam(jamId);
           if (fresh) {
+            if ((!fresh.currentSongId || !fresh.currentPlaying) && fresh.queueItems.length) {
+              // Nothing is playing yet — auto-start the head of the queue immediately.
+              const first = fresh.queueItems[0];
+              await prisma.jam.update({
+                where: { id: jamId },
+                data: { currentSongId: first.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
+              });
+              await prisma.jamQueueItem.delete({ where: { id: first.id } });
+              await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: first.songId } });
+              clearSkips(jamId, first.songId);
+              const after = await refreshJam(jamId);
+              if (after) {
+                broadcastQueue(after);
+                broadcastState(after);
+              }
+              return;
+            }
             broadcastQueue(fresh);
             broadcastState(fresh);
           }
