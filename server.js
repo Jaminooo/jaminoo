@@ -111,9 +111,56 @@ async function pushPresence() {
   }
 }
 
+// When the music catalog is empty (fresh database), seed the bundled demo
+// tracks so DJ rooms / search have playable songs. `audioFile` stays a
+// placeholder: the stream route falls back to public/defaults/audio/demo.mp3.
+async function ensureDemoCatalog() {
+  let songCount;
+  try {
+    songCount = await prisma.song.count();
+  } catch (e) {
+    console.warn('[boot] demo catalog check failed:', e && e.message);
+    return;
+  }
+  if (songCount > 0) return;
+
+  console.log('[boot] Empty music catalog — seeding demo catalog...');
+  async function gca(name, data) {
+    const existing = await prisma.artist.findUnique({ where: { name } });
+    return existing ?? prisma.artist.create({ data: { ...data, name } });
+  }
+  async function gcl(title, artistId, data) {
+    const existing = await prisma.album.findFirst({ where: { title, artistId } });
+    return existing ?? prisma.album.create({ data: { ...data, title, artistId } });
+  }
+
+  const neon = await gca('Neon Atlas', { coverFile: '', bio: 'A midnight electronic project built for bright rooms and long drives.', country: 'Global', genres: JSON.stringify(['Electronic', 'Synthwave']), debutYear: 2024 });
+  const mira = await gca('Mira Sol', { coverFile: '', bio: 'Warm vocals, soft percussion and songs that feel like late summer.', country: 'Spain', genres: JSON.stringify(['Pop', 'Soul']), debutYear: 2023 });
+  const north = await gca('Northbound', { coverFile: '', bio: 'Indie melodies for the people who keep moving forward.', country: 'Canada', genres: JSON.stringify(['Indie', 'Alternative']), debutYear: 2022 });
+
+  const afterglow = await gcl('Afterglow District', neon.id, { year: 2026, type: 'ALBUM', label: 'Jamino Selects', desc: 'A neon-lit collection of midnight grooves.' });
+  const softSignal = await gcl('Soft Signal', mira.id, { year: 2025, type: 'EP', label: 'Jamino Selects', desc: 'Small songs with a warm signal.' });
+  const keepGoing = await gcl('Keep Going', north.id, { year: 2024, type: 'ALBUM', label: 'Independent', desc: 'Open-road indie with a little electricity.' });
+
+  const rows = [
+    { title: 'City Lights', artistId: neon.id, albumId: afterglow.id, durationSec: 214, featured: true, plays: 12840 },
+    { title: 'Gold Static', artistId: neon.id, albumId: afterglow.id, durationSec: 188, featured: false, plays: 9820 },
+    { title: 'Sunroom', artistId: mira.id, albumId: softSignal.id, durationSec: 201, featured: true, plays: 11020 },
+    { title: 'Motion Lines', artistId: north.id, albumId: keepGoing.id, durationSec: 232, featured: false, plays: 7640 },
+  ];
+
+  for (const r of rows) {
+    const existing = await prisma.song.findFirst({ where: { title: r.title, artistId: r.artistId } });
+    if (existing) continue;
+    await prisma.song.create({ data: { ...r, audioFile: 'demo.mp3' } });
+  }
+  console.log('[boot] Demo music catalog seeded.');
+}
+
 let io;
 
 applyPendingMigrations();
+ensureDemoCatalog().catch((e) => console.error('[boot] demo catalog seed error:', e && e.message));
 
 app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));
