@@ -53,6 +53,7 @@ model User {
   playHistory     SongPlayHistory[]
   musicPlaylists  UserMusicPlaylist[]
   queueVotes      JamQueueVote[]
+  skipVotes       JamSkipVote[]
   notifications   Notification[]
   reports           MessageReport[]
   communitiesOwned  Community[] @relation("CommunityOwned")
@@ -95,6 +96,9 @@ model User {
 
   isPrivate Boolean @default(false)
   pinnedTweetId Int? @unique
+
+  isGuest    Boolean   @default(false)
+  guestUntil DateTime?
 }
 
 model AdminRole {
@@ -113,6 +117,7 @@ model AdminRole {
 model Session {
   token     String   @id
   userId    Int
+  kind      String   @default("USER") // USER | GUEST
   name      String   @default("")
   device    String   @default("")
   country   String   @default("")
@@ -175,6 +180,7 @@ model Jam {
   moments      JamMoment[]
   queueItems   JamQueueItem[]
   queueVotes   JamQueueVote[]
+  skipVotes    JamSkipVote[]
   currentSong  Song?         @relation(fields: [currentSongId], references: [id], onDelete: SetNull)
   currentCinemaVideo  CinemaVideo? @relation("JamCinemaVideo", fields: [currentCinemaVideoId], references: [id], onDelete: SetNull)
   currentAnimeEpisode AnimeEpisode? @relation("JamAnimeEpisode", fields: [currentAnimeEpisodeId], references: [id], onDelete: SetNull)
@@ -463,6 +469,20 @@ model JamQueueVote {
 
   @@unique([queueItemId, userId])
   @@index([jamId, queueItemId])
+}
+
+model JamSkipVote {
+  id        Int      @id @default(autoincrement())
+  jamId     String
+  userId    Int
+  songId    Int
+  createdAt DateTime @default(now())
+
+  jam  Jam  @relation(fields: [jamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jamId, userId, songId])
+  @@index([jamId, songId])
 }
 
 model Notification {

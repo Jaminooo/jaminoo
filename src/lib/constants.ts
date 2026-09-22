@@ -20,6 +20,10 @@ export const U_ID_PREFIX = 'JM';
 export const JAM_KINDS = ['CHAT', 'MOVIE', 'MUSIC', 'HANGOUT', 'ANIME'] as const;
 export type JamKind = (typeof JAM_KINDS)[number];
 
+export const JAM_KIND_MUSIC = 'MUSIC';
+export const JAM_MAX_MEMBERS = 30;
+export const JAM_GUEST_HOURS = 3;
+
 export const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '🎉'];
 
 export const MUSIC_GENRES = [

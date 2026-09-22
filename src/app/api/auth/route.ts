@@ -22,7 +22,9 @@ export const GET = handle(async () => {
     user: {
       id: user.id,
       username: user.username,
+      name: user.name,
       email: user.email,
+      isGuest: user.isGuest,
       avatarId: user.avatarId,
       bio: user.bio,
       github: user.github,

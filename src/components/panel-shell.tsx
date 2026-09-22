@@ -10,7 +10,7 @@ import { SecurityPanel } from '@/components/security-panel';
 import { FriendsPanel } from '@/components/friends-panel';
 import { JamsPanel } from '@/components/jams-panel';
 import { DmInboxPanel } from '@/components/dm-inbox';
-import { RoomPanel } from '@/components/room-panel';
+import { DJRoomPanel } from '@/components/dj-room-panel';
 import { DmPanel } from '@/components/dm-panel';
 import { FriendProfilePanel } from '@/components/friend-profile';
 import { CommunityHome } from '@/components/community-home';
@@ -118,7 +118,7 @@ export function PanelShell() {
         {topbar}
         <div className="panel-body" style={{ minHeight: 'calc(100vh - 61px)' }}>
           <div className="content room-content" style={{ maxWidth: 1440, marginInline: 'auto' }}>
-            <RoomPanel jamId={roomId} onBack={exitRoom} />
+            <DJRoomPanel jamId={roomId} onBack={exitRoom} />
           </div>
         </div>
       </div>

@@ -1,7 +1,13 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { JAM_KINDS } from '@/lib/constants';
+import { jamCardPayload } from '@/lib/jam-card';
 import { randomBytes } from 'crypto';
+
+const CARD_INCLUDE = {
+  owner: { select: { id: true, username: true, avatarId: true, profilePhotoId: true } },
+  members: true,
+  currentSong: { include: { artist: { select: { id: true, name: true } }, album: { select: { id: true, title: true, coverFile: true } } } },
+};
 
 export const GET = handle(async () => {
   const me = await requireUser();
@@ -9,38 +15,30 @@ export const GET = handle(async () => {
     where: { userId: me.id },
     include: {
       jam: {
-        include: {
-          members: true,
-          messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-        },
+        include: { ...CARD_INCLUDE, ...{ messages: { orderBy: { createdAt: 'desc' }, take: 1 } } },
       },
     },
     orderBy: { joinedAt: 'desc' },
   });
 
   return json({
-    jams: memberships.map((m) => ({
-      id: m.jam.id,
-      name: m.jam.name,
-      desc: m.jam.desc,
-      type: m.jam.type,
-      kind: m.jam.kind,
-      ownerId: m.jam.ownerId,
-      closed: m.jam.closed,
-      createdAt: m.jam.createdAt.toISOString(),
-      members: m.jam.members.length,
-      lastActive: m.jam.messages[0]?.createdAt.toISOString() ?? m.jam.createdAt.toISOString(),
-    })),
+    jams: memberships
+      .filter((m) => m.jam.kind === 'MUSIC' && !m.jam.closed)
+      .map((m) => ({
+        ...jamCardPayload(m.jam, me.id),
+        role: m.role,
+        lastActive: m.jam.messages[0]?.createdAt.toISOString() ?? m.jam.createdAt.toISOString(),
+        createdAt: m.jam.createdAt.toISOString(),
+      })),
   });
 });
 
-// POST { name, desc?, type: 'PUBLIC'|'PRIVATE', kind?: 'CHAT'|'MOVIE'|'MUSIC'|'HANGOUT' }
+// POST { name, desc?, type: 'PUBLIC'|'PRIVATE' } — create a music DJ set.
 export const POST = handle(async (req) => {
   const me = await requireUser();
-  const { name, desc, type, kind } = (await req.json()) as { name?: string; desc?: string; type?: string; kind?: string };
+  const { name, desc, type } = (await req.json()) as { name?: string; desc?: string; type?: string };
   if (!name || name.trim().length < 2 || name.trim().length > 40) return err('Name must be 2–40 characters');
   const jtype = type === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC';
-  const jkind = JAM_KINDS.includes((kind ?? '').toUpperCase() as any) ? (kind ?? 'CHAT').toUpperCase() : 'CHAT';
 
   const ownedCount = await prisma.jam.count({ where: { ownerId: me.id } });
   if (ownedCount >= 1) return err('You can only own one jam', 403);
@@ -53,7 +51,7 @@ export const POST = handle(async (req) => {
       name: name.trim(),
       desc: (desc ?? '').trim().slice(0, 120),
       type: jtype,
-      kind: jkind,
+      kind: 'MUSIC',
       ownerId: me.id,
       members: { create: { userId: me.id, role: 'HOST' } },
     },

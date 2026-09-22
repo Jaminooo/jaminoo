@@ -44,6 +44,12 @@ const friendCache = new Map();
 // Map of jamId -> Map<socketId, { userId, muted }> for WebRTC voice signaling roster.
 const voicePeers = new Map();
 
+// Map of jamId -> { users: Map<userId, Set<socketId>> } — online presence per jam room.
+const jamOnline = new Map();
+
+// Map of jamId -> Map<songId, Set<userId>> — collective-skip votes (in-memory mirror of JamSkipVote).
+const skipVotes = new Map();
+
 async function friendsOf(userId) {
   const cached = friendCache.get(userId);
   if (cached && Date.now() - cached.at < 30000) return cached.set;
@@ -197,13 +203,17 @@ app.prepare().then(async () => {
     };
 
     const broadcastState = (jam) => {
+      const songId = jam.currentSongId;
+      const required = songId ? requiredSkips(jam.id) : 0;
       io.to(`jam:${jam.id}`).emit('music:state', {
         jamId: jam.id,
-        now: jam.currentSongId ? songPayloadJS(jam.currentSong) : null,
+        now: songId ? songPayloadJS(jam.currentSong) : null,
         playing: jam.currentPlaying,
         positionMs: livePositionMs(jam),
         atMs: Date.now(),
         durationSec: jam.currentSong ? jam.currentSong.durationSec : 0,
+        skipVotes: songId ? skipCount(jam.id, songId) : 0,
+        skipRequired: required,
       });
     };
 
@@ -234,6 +244,8 @@ app.prepare().then(async () => {
     const advanceQueue = async (jamId) => {
       const jam = await refreshJam(jamId);
       if (!jam || !jam.currentSongId) return;
+      await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: jam.currentSongId } });
+      clearSkips(jamId, jam.currentSongId);
       const next = jam.queueItems.length ? jam.queueItems[0] : null;
       if (next) {
         await prisma.jam.update({
@@ -241,6 +253,7 @@ app.prepare().then(async () => {
           data: { currentSongId: next.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
         });
         await prisma.jamQueueItem.delete({ where: { id: next.id } });
+        await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: next.songId } });
       } else {
         await prisma.jam.update({ where: { id: jamId }, data: { currentPlaying: false, currentPosition: 0 } });
       }
@@ -248,6 +261,66 @@ app.prepare().then(async () => {
       if (fresh) {
         broadcastState(fresh);
         broadcastQueue(fresh);
+      }
+    };
+
+    const jamPresence = (jamId) => {
+      const e = jamOnline.get(jamId);
+      return { jamId, online: e ? [...e.users.keys()] : [], count: e ? e.users.size : 0 };
+    };
+
+    const broadcastPresence = (jamId) => {
+      io.to(`jam:${jamId}`).emit('jam:presence', jamPresence(jamId));
+    };
+
+    const trackJoin = (jamId) => {
+      let e = jamOnline.get(jamId);
+      if (!e) { e = { users: new Map() }; jamOnline.set(jamId, e); }
+      let set = e.users.get(userId);
+      if (!set) { set = new Set(); e.users.set(userId, set); }
+      set.add(socket.id);
+      broadcastPresence(jamId);
+    };
+
+    const trackLeave = async (jamId) => {
+      const e = jamOnline.get(jamId);
+      let stillOnline = false;
+      if (e) {
+        const set = e.users.get(userId);
+        if (set) { set.delete(socket.id); if (set.size === 0) e.users.delete(userId); }
+        if (e.users.size === 0) jamOnline.delete(jamId);
+        stillOnline = !!e.users.get(userId);
+      }
+      broadcastPresence(jamId);
+      return stillOnline;
+    };
+
+    const maybePromote = async (jamId) => {
+      try {
+        const jam = await prisma.jam.findUnique({
+          where: { id: jamId },
+          include: { members: { include: { user: { select: { isGuest: true } } } } },
+        });
+        if (!jam || jam.kind !== 'MUSIC' || jam.closed) return;
+        const successor = jam.members
+          .filter((m) => m.userId !== jam.ownerId && !m.user.isGuest)
+          .sort((a, b) => {
+            if (a.role === 'MINI_HOST' && b.role !== 'MINI_HOST') return -1;
+            if (b.role === 'MINI_HOST' && a.role !== 'MINI_HOST') return 1;
+            return a.joinedAt.getTime() - b.joinedAt.getTime();
+          })[0];
+        if (!successor) {
+          await prisma.jam.update({ where: { id: jamId }, data: { closed: true } });
+          return;
+        }
+        await prisma.jam.update({ where: { id: jamId }, data: { ownerId: successor.userId } });
+        await prisma.jamMember.update({
+          where: { jamId_userId: { jamId, userId: successor.userId } },
+          data: { role: 'HOST' },
+        });
+        io.to(`jam:${jamId}`).emit('jam:update', jamId);
+      } catch (e) {
+        console.error('maybePromote error:', e && e.message);
       }
     };
 
@@ -259,6 +332,41 @@ app.prepare().then(async () => {
     online.set(userId, set);
     pushPresence();
 
+    const skipCount = (jamId, songId) => {
+      const m = skipVotes.get(jamId);
+      return m ? (m.get(songId)?.size || 0) : 0;
+    };
+
+    const requiredSkips = (jamId) => {
+      const onlineCount = jamOnline.get(jamId)?.users.size || 0;
+      return Math.max(2, Math.ceil(Math.max(onlineCount, 1) / 2));
+    };
+
+    const syncSkipMirror = async (jamId, songId) => {
+      if (!jamId || !songId) return 0;
+      const rows = await prisma.jamSkipVote.findMany({ where: { jamId, songId }, select: { userId: true } });
+      const m = skipVotes.get(jamId) || new Map();
+      m.set(songId, new Set(rows.map((r) => r.userId)));
+      skipVotes.set(jamId, m);
+      return rows.length;
+    };
+
+    const clearSkips = (jamId, songId) => {
+      const m = skipVotes.get(jamId);
+      if (!m) return;
+      m.delete(songId);
+      if (m.size === 0) skipVotes.delete(jamId);
+    };
+
+    const broadcastSkips = (jamId, songId) => {
+      io.to(`jam:${jamId}`).emit('music:skips', {
+        jamId,
+        songId,
+        votes: skipCount(jamId, songId),
+        required: requiredSkips(jamId),
+      });
+    };
+
     socket.on('music:sync', async (jamId) => {
       if (typeof jamId !== 'string' || !jamId) return;
       try {
@@ -266,10 +374,37 @@ app.prepare().then(async () => {
         if (!jam || jam.kind !== 'MUSIC') return;
         const member = await prisma.jamMember.findUnique({ where: { jamId_userId: { jamId, userId } } });
         if (!member) return;
+        await syncSkipMirror(jamId, jam.currentSongId);
         broadcastState(jam);
         broadcastQueue(jam);
+        broadcastPresence(jamId);
       } catch (e) {
         console.error('music:sync error:', e && e.message);
+      }
+    });
+
+    socket.on('music:skip-vote', async (jamId) => {
+      if (typeof jamId !== 'string' || !jamId) return;
+      try {
+        const jam = await refreshJam(jamId);
+        if (!jam || jam.kind !== 'MUSIC' || !jam.currentSongId) return;
+        const member = jam.members.find((m) => m.userId === userId);
+        if (!member) return;
+        const songId = jam.currentSongId;
+        await prisma.jamSkipVote.upsert({
+          where: { jamId_userId_songId: { jamId, userId, songId } },
+          update: {},
+          create: { jamId, userId, songId },
+        });
+        const votes = await syncSkipMirror(jamId, songId);
+        broadcastSkips(jamId, songId);
+        if (votes >= requiredSkips(jamId)) {
+          await prisma.jamSkipVote.deleteMany({ where: { jamId, songId } });
+          clearSkips(jamId, songId);
+          await advanceQueue(jamId);
+        }
+      } catch (e) {
+        console.error('music:skip-vote error:', e && e.message);
       }
     });
 
@@ -645,17 +780,27 @@ app.prepare().then(async () => {
       if (typeof jamId !== 'string' || !jamId) return;
       try {
         const member = await prisma.jamMember.findUnique({ where: { jamId_userId: { jamId, userId } } });
-        if (member) socket.join(`jam:${jamId}`);
-        else socket.leave(`jam:${jamId}`);
+        if (member) {
+          socket.join(`jam:${jamId}`);
+          if (!socket.data.jamRooms) socket.data.jamRooms = new Set();
+          socket.data.jamRooms.add(jamId);
+          trackJoin(jamId);
+        } else {
+          socket.leave(`jam:${jamId}`);
+          if (socket.data.jamRooms) socket.data.jamRooms.delete(jamId);
+          await trackLeave(jamId);
+        }
       } catch (e) {
         console.error('jam:join error:', e && e.message);
       }
     });
 
-    socket.on('jam:leave', (jamId) => {
+    socket.on('jam:leave', async (jamId) => {
       if (typeof jamId === 'string' && jamId) {
         leaveVoice(jamId);
         socket.leave(`jam:${jamId}`);
+        if (socket.data.jamRooms) socket.data.jamRooms.delete(jamId);
+        await trackLeave(jamId);
       }
     });
 
@@ -783,6 +928,21 @@ app.prepare().then(async () => {
       if (socket.data.voiceJams && socket.data.voiceJams.size) {
         for (const jamId of [...socket.data.voiceJams]) leaveVoice(jamId);
       }
+      if (socket.data.jamRooms && socket.data.jamRooms.size) {
+        const rooms = [...socket.data.jamRooms];
+        socket.data.jamRooms.clear();
+        for (const jamId of rooms) {
+          trackLeave(jamId).then((stillOnline) => {
+            if (!stillOnline) {
+              prisma.jam.findUnique({ where: { id: jamId }, select: { id: true, ownerId: true, kind: true, closed: true } })
+                .then((jam) => {
+                  if (jam && jam.ownerId === userId && jam.kind === 'MUSIC' && !jam.closed) maybePromote(jamId);
+                })
+                .catch(() => {});
+            }
+          }).catch(() => {});
+        }
+      }
       typingAt.clear();
     });
   });
@@ -800,8 +960,24 @@ app.prepare().then(async () => {
       console.error('scheduled post worker error:', error && error.message);
     }
   };
-  const scheduleTimer = setInterval(publishDuePosts, 30000);
+  const purgeExpiredGuests = async () => {
+    try {
+      const guests = await prisma.user.findMany({ where: { isGuest: true, guestUntil: { lt: new Date() } }, select: { id: true } });
+      if (guests.length === 0) return;
+      const ids = guests.map((g) => g.id);
+      await prisma.session.deleteMany({ where: { userId: { in: ids } } });
+      await prisma.user.deleteMany({ where: { id: { in: ids } } });
+      console.log(`> Purged ${ids.length} expired guest(s)`);
+    } catch (error) {
+      console.error('guest purge worker error:', error && error.message);
+    }
+  };
+  const scheduleTimer = setInterval(() => {
+    publishDuePosts();
+    purgeExpiredGuests();
+  }, 30000);
   scheduleTimer.unref?.();
   void publishDuePosts();
+  void purgeExpiredGuests();
   
 });

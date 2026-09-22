@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/session';
+import { getCurrentSessionContext } from '@/lib/session';
+import { prisma } from '@/lib/prisma';
 import { RateLimitError } from '@/lib/rate-limit';
 import { ensureAdmins } from '@/lib/admin';
 
@@ -15,16 +16,24 @@ export function err(message: string, status = 400) {
   return json({ error: message }, status);
 }
 
-export async function requireUser() {
-  const user = await getCurrentUser();
-  if (!user) throw new UnauthorizedError();
-  return user;
+export async function requireUser(opts?: { allowGuest?: boolean }) {
+  const ctx = await getCurrentSessionContext();
+  if (!ctx) throw new UnauthorizedError();
+  if (ctx.session.kind === 'GUEST' && !opts?.allowGuest) throw new UnauthorizedError();
+  return ctx.user;
+}
+
+export async function requireJamMember(jamId: string) {
+  const me = await requireUser({ allowGuest: true });
+  const member = await prisma.jamMember.findUnique({ where: { jamId_userId: { jamId, userId: me.id } } });
+  if (!member) throw new UnauthorizedError();
+  return { me, member };
 }
 
 export async function requireAdmin() {
   await ensureAdmins();
-  const user = await getCurrentUser();
-  if (!user) throw new UnauthorizedError();
+  const user = (await getCurrentSessionContext())?.user ?? null;
+  if (!user || user.isGuest) throw new UnauthorizedError();
   if (!user.isAdmin) {
     const e = new Error('Admin only');
     (e as any).adminOnly = true;

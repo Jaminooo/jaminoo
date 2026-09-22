@@ -7,7 +7,7 @@ type Ctx = { params: { id: string; msgId: string } };
 
 // POST /api/jams/[id]/messages/[msgId]/react  { emoji } — toggle
 export const POST = handle(async (req, { params }: Ctx) => {
-  const me = await requireUser();
+  const me = await requireUser({ allowGuest: true });
   const { emoji } = (await req.json()) as { emoji?: string };
   if (!emoji || !REACTION_EMOJIS.includes(emoji)) return err('Invalid emoji');
   const msgId = Number(params.msgId);

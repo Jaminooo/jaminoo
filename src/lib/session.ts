@@ -53,7 +53,9 @@ export async function destroySession() {
   }
 }
 
-export async function getCurrentUser() {
+export const GUEST_SESSION_HOURS = 3;
+
+export async function getCurrentSessionContext() {
   const c = await cookies();
   const token = c.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -66,7 +68,25 @@ export async function getCurrentUser() {
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) return null;
   if (user.bannedUntil && user.bannedUntil > new Date()) return null;
-  return user;
+  return { user, session };
+}
+
+export async function getCurrentUser() {
+  return (await getCurrentSessionContext())?.user ?? null;
+}
+
+export async function createGuestSession(userId: number) {
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + GUEST_SESSION_HOURS * 60 * 60 * 1000);
+  await prisma.session.create({ data: { token, userId, kind: 'GUEST', expiresAt } });
+  const c = await cookies();
+  c.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== '0',
+    path: '/',
+    expires: expiresAt,
+  });
 }
 
 export function isBanned(user: { bannedUntil: Date | null | undefined }): Date | false {

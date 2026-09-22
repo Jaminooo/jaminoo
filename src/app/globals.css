@@ -39,6 +39,10 @@
 @import '../styles/super-login.css';
 @import '../styles/theme-normalize.css';
 @import '../styles/spotify-pass.css';
+@import '../styles/jams-panel.css';
+@import '../styles/dj-room.css';
+@import '../styles/join-guest.css';
+@import '../styles/auth-page.css';
 @import '../styles/global-music-player.css';
 @import '../styles/music-production.css';
 @import '../styles/music-admin-polish.css';

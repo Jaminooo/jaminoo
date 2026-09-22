@@ -5,7 +5,7 @@ import { jamMusicState } from '@/lib/jam-music';
 type Ctx = { params: { id: string } };
 
 export const GET = handle(async (_req, { params }: Ctx) => {
-  const me = await requireUser();
+  const me = await requireUser({ allowGuest: true });
   const jam = await prisma.jam.findUnique({ where: { id: params.id }, select: { id: true, kind: true, members: true } });
   if (!jam) return err('Jam not found', 404);
   if (!jam.members.some((m) => m.userId === me.id)) return err('You are not in this jam', 403);

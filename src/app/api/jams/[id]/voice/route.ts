@@ -16,6 +16,8 @@ const USER_SELECT = {
   statusText: true,
   createdAt: true,
   profilePhotoId: true,
+  name: true,
+  isGuest: true,
 } as const;
 
 // POST /api/jams/[id]/voice — multipart form with a `voice` audio file (max 60s)

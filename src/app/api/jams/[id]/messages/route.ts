@@ -17,11 +17,13 @@ const USER_SELECT = {
   statusText: true,
   createdAt: true,
   profilePhotoId: true,
+  name: true,
+  isGuest: true,
 } as const;
 
 // GET /api/jams/[id]/messages — poll messages newer than `afterId`
 export const GET = handle(async (req, { params }: Ctx) => {
-  const me = await requireUser();
+  const me = await requireUser({ allowGuest: true });
   const jam = await prisma.jam.findUnique({ where: { id: params.id }, include: { members: true } });
   if (!jam) return err('Jam not found', 404);
   if (!jam.members.some((m) => m.userId === me.id)) return err('You are not in this jam', 403);
@@ -46,7 +48,7 @@ export const GET = handle(async (req, { params }: Ctx) => {
 
 // POST /api/jams/[id]/messages  { text }
 export const POST = handle(async (req, { params }: Ctx) => {
-  const me = await requireUser();
+  const me = await requireUser({ allowGuest: true });
   const { text } = (await req.json()) as { text?: string };
   if (!text || !text.trim()) return err('Empty message');
   const textClean = text.trim().slice(0, 1000);

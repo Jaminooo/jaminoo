@@ -1,20 +1,16 @@
 'use client';
 
 import { ArrowDown, ArrowRight, Headphones, MessageCircle, PlaySquare, Sparkles, UsersRound, Globe, Zap, Shield, Music2 } from 'lucide-react';
-import { useAppStore } from '@/store/app-store';
 import { useLocale, useTranslations } from '@/providers/use-translations';
-import { AuthScreen } from '@/components/auth-screen';
 import { JamiMascot } from '@/components/jami-mascot';
 import { motion } from 'framer-motion';
 
 export function LandingPage() {
   const t = useTranslations();
   const { locale, setLocale } = useLocale();
-  const setAuthView = useAppStore((state) => state.setAuthView);
 
   const openAuth = (view: 'login' | 'signup') => {
-    setAuthView(view);
-    document.getElementById('landing-auth')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.location.href = `/auth?view=${view}`;
   };
 
   const toggleLang = () => setLocale(locale === 'fa' ? 'en' : 'fa');
@@ -53,8 +49,8 @@ export function LandingPage() {
             <Globe size={16} />
             <span>{locale === 'fa' ? 'English' : 'فارسی'}</span>
           </button>
-          <button type="button" className="btn btn-ghost pill-sm hide-mobile" onClick={() => openAuth('login')}>{t('landing.login')}</button>
-          <button type="button" className="btn btn-violet pill-sm" onClick={() => openAuth('signup')}>{t('landing.create')}</button>
+          <button type="button" className="btn btn-ghost pill-sm hide-mobile" onClick={() => (window.location.href = '/auth?view=login')}>{t('landing.login')}</button>
+          <button type="button" className="btn btn-violet pill-sm" onClick={() => (window.location.href = '/auth?view=signup')}>{t('landing.create')}</button>
         </div>
       </nav>
 
@@ -80,7 +76,7 @@ export function LandingPage() {
           </motion.p>
           
           <motion.div variants={itemVariants} className="landing-actions">
-            <button type="button" className="btn btn-violet landing-cta" onClick={() => openAuth('signup')}>
+            <button type="button" className="btn btn-violet landing-cta" onClick={() => (window.location.href = '/auth?view=signup')}>
               {t('landing.start')} 
               <ArrowRight size={16} className="icon-rtl" />
             </button>
@@ -197,22 +193,6 @@ export function LandingPage() {
             <Shield size={20} className="text-blue-400" />
             <span>Privacy by design</span>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Auth/Join Section */}
-      <section className="landing-auth-section" id="landing-auth">
-        <div className="landing-auth-copy">
-          <div className="landing-kicker">{t('landing.waiting')}</div>
-          <h2>{t('landing.bring')}</h2>
-          <p>{t('landing.authIntro')}</p>
-          <div className="landing-auth-note">
-            <Sparkles size={15} />
-            <span>{t('landing.authNote')}</span>
-          </div>
-        </div>
-        <div className="landing-auth-card">
-          <AuthScreen />
         </div>
       </section>
 

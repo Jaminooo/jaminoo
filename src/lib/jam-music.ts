@@ -40,6 +40,14 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
   const meMember = jam.members.find((m) => m.userId === viewerId);
   const canControl = jam.ownerId === viewerId || viewerIsAdmin || meMember?.role === 'MINI_HOST';
 
+  let skipVotes = 0;
+  let skipMine = false;
+  if (jam.currentSongId) {
+    const votes = await prisma.jamSkipVote.findMany({ where: { jamId, songId: jam.currentSongId }, select: { userId: true } });
+    skipVotes = votes.length;
+    skipMine = votes.some((v) => v.userId === viewerId);
+  }
+
   return {
     state: {
       now,
@@ -48,6 +56,8 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
       atMs: Date.now(),
       durationSec: jam.currentSong?.durationSec ?? 0,
       canControl,
+      skipVotes,
+      skipMine,
     },
     queue: jam.queueItems.map((qi) => ({
       id: qi.id,

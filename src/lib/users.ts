@@ -10,6 +10,8 @@ type PubUserRow = {
   profilePhotoId?: string | null;
   status?: string;
   statusText?: string;
+  name?: string;
+  isGuest?: boolean;
 };
 
 export function pubUser(u: PubUserRow) {
@@ -22,6 +24,8 @@ export function pubUser(u: PubUserRow) {
     github: u.github,
     status: u.status ?? 'ONLINE',
     statusText: u.statusText ?? '',
+    name: u.name ?? '',
+    isGuest: u.isGuest ?? false,
     ...(u.createdAt ? { createdAt: u.createdAt.toISOString() } : {}),
     avatarPhoto: u.profilePhotoId ? `/api/media/${u.profilePhotoId}` : null,
   };

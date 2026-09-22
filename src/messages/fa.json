@@ -42,9 +42,10 @@
     "profileSub": "هویت تو در جیمینو.",
     "friends": "دوستان",
     "friendsSub": "با آیدی یا نام کاربری اضافه کن — مثل فهرست تیمت.",
-    "jams": "جم‌ها",
-    "jamsSub": "برو توی یک اتاق. موسیقی به‌زودی.",
+    "jams": "ست‌های دی‌جی",
+    "jamsSub": "یک ست دی‌جی بساز و با هم گوش کنید.",
     "newJam": "جم جدید",
+    "guestTag": "مهمان",
     "logout": "خروج",
     "security": "امنیت",
     "messages": "پیام‌ها",
@@ -133,7 +134,19 @@
     "lastActive": "آخرین فعالیت",
     "pendingInvites": "{count} درخواست دعوت در انتظار",
     "joinedJam": "به جم پیوستی!",
-    "kindAnime": "انیمه"
+    "kindAnime": "انیمه",
+    "mySets": "ست‌های من",
+    "explore": "مرور",
+    "live": "زنده",
+    "waiting": "آماده",
+    "nowPlaying": "در حال پخش",
+    "nextUp": "بعدی",
+    "waitingForDJ": "در انتظار دی‌جی",
+    "hostedBy": "دی‌جی: {name}",
+    "roleHost": "دی‌جی",
+    "roleCoHost": "دستیار",
+    "roleMember": "عضو",
+    "tapToOpen": "برای گوش کردن باز کن"
   },
   "room": {
     "messagePlaceholder": "به جم پیام بده...",
@@ -186,7 +199,18 @@
     "reportMessage": "گزارش پیام",
     "resizeCinema": "تغییر اندازه سینما",
     "resizeAnime": "تغییر اندازه انیمه",
-    "ariaRoomViews": "نمای اتاق"
+    "ariaRoomViews": "نمای اتاق",
+    "tabQueue": "صف پخش",
+    "skipSong": "رد کردن آهنگ",
+    "skipHint": "با هم رای بدهید تا آهنگ فعلی رد شود.",
+    "queueEmpty": "صف پخش خالی است — دی‌جی می‌تواند از کتابخانه آهنگ اضافه کند.",
+    "addedBy": "اضافه‌شده توسط {name}",
+    "onlineCount": "{online} از {total} آنلاین",
+    "youAreDJ": "تو دی‌جی هستی",
+    "coHost": "دستیار",
+    "search": "جستجو",
+    "searchPlaceholder": "آهنگ، خواننده…",
+    "addedToQueue": "به صف اضافه شد"
   },
   "dm": {
     "title": "پیام",
@@ -291,7 +315,13 @@
     "safe": "حساب و دوستانت در تمام جَمینو متصل می‌مانند.",
     "inviteOnly": "این دعوت فقط برای افراد دارای دسترسی است.",
     "notFound": "این دعوت دیگر در دسترس نیست",
-    "anime": "اتاق انیمه"
+    "anime": "اتاق انیمه",
+    "guestTitle": "ورود به‌عنوان مهمان",
+    "guestHint": "نیازی به اکانت نیست — یک اسم انتخاب کن و زنده با بقیه گوش کن.",
+    "guestName": "اسم شما",
+    "guestJoin": "ورود مهمان",
+    "guestJoining": "در حال ورود…",
+    "openSet": "باز کردن ست"
   },
   "modal": {
     "close": "بستن",

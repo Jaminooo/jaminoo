@@ -42,9 +42,10 @@
     "profileSub": "Your identity across Jamino.",
     "friends": "Friends",
     "friendsSub": "Add by ID or username — like a crew list.",
-    "jams": "Jams",
-    "jamsSub": "Drop into a room. Music coming soon.",
+    "jams": "DJ sets",
+    "jamsSub": "Host a DJ set and listen together.",
     "newJam": "New jam",
+    "guestTag": "Guest",
     "logout": "Sign out",
     "security": "Security",
     "messages": "Messages",
@@ -133,7 +134,19 @@
     "lastActive": "last active",
     "pendingInvites": "{count} pending invite requests",
     "joinedJam": "You joined the jam!",
-    "kindAnime": "Anime"
+    "kindAnime": "Anime",
+    "mySets": "My sets",
+    "explore": "Explore",
+    "live": "Live",
+    "waiting": "Idle",
+    "nowPlaying": "Now playing",
+    "nextUp": "Next up",
+    "waitingForDJ": "Waiting for the DJ",
+    "hostedBy": "by {name}",
+    "roleHost": "DJ",
+    "roleCoHost": "Assistant",
+    "roleMember": "Member",
+    "tapToOpen": "Open to listen"
   },
   "room": {
     "messagePlaceholder": "Message the jam...",
@@ -186,7 +199,18 @@
     "reportMessage": "Report message",
     "resizeCinema": "Resize cinema",
     "resizeAnime": "Resize anime",
-    "ariaRoomViews": "Room views"
+    "ariaRoomViews": "Room views",
+    "tabQueue": "Queue",
+    "skipSong": "Skip song",
+    "skipHint": "Vote to skip the current track together.",
+    "queueEmpty": "Queue is empty — the DJ can add songs from the library.",
+    "addedBy": "added by {name}",
+    "onlineCount": "{online} / {total} online",
+    "youAreDJ": "You are the DJ",
+    "coHost": "Helper",
+    "search": "Search",
+    "searchPlaceholder": "Song, artist…",
+    "addedToQueue": "Added to queue"
   },
   "dm": {
     "title": "Message",
@@ -291,7 +315,13 @@
     "safe": "Your account and friends stay connected across Jamino.",
     "inviteOnly": "This invite is for people with access.",
     "notFound": "This invite is no longer available",
-    "anime": "Anime room"
+    "anime": "Anime room",
+    "guestTitle": "Join as a guest",
+    "guestHint": "No account needed — pick a name and listen live with everyone.",
+    "guestName": "Your name",
+    "guestJoin": "Join as guest",
+    "guestJoining": "Joining…",
+    "openSet": "Open the set"
   },
   "modal": {
     "close": "Close",
