@@ -66,7 +66,7 @@ interface ChatMsg {
 interface SongPreview {
   id: number;
   title: string;
-  artist: string;
+  artist: { id: number; name: string; coverFile?: string } | null;
   coverUrl: string | null;
   durationSec: number;
 }
@@ -549,7 +549,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
             </div>
             <div className="dj-queue-meta">
               <b>{q.song.title}</b>
-              <span>{q.song.artist}</span>
+              <span>{q.song.artist?.name ?? ''}</span>
               <span className="dj-queue-added">{t('room.addedBy', { name: q.addedBy.username })}</span>
             </div>
             <div className="dj-queue-actions">
@@ -651,7 +651,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
         <div className="dj-player-now">
           <span className="jamset-now-label"><Radio size={11} /> {t('jams.nowPlaying')}</span>
           <b className="dj-song-title">{jam.now?.title ?? t('jams.waitingForDJ')}</b>
-          <span className="dj-song-artist">{jam.now?.artist ?? ''}</span>
+          <span className="dj-song-artist">{jam.now?.artist?.name ?? ''}</span>
           <div className="dj-progress">
             <div className="dj-progress-bar"><div style={{ width: `${pct}%` }} /></div>
             <span className="dj-progress-time">{nowMs ? fmtTime(nowMs) : '0:00'} / {fmtTime(maxMs)}</span>
