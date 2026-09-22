@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
@@ -139,6 +139,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const [pane, setPane] = useState<'chat' | 'queue' | 'members'>('chat');
   const [sideTab, setSideTab] = useState<'queue' | 'members'>('queue');
   const [nowMs, setNowMs] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
@@ -149,14 +150,24 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const isCo = jam?.members.some((m) => m.id === me?.id && m.role === 'MINI_HOST');
   const canControl = isOwner || isCo;
 
-  const load = () => api<{ jam: JamDetail }>(`/api/jams/${jamId}`).then((d) => {
-    setJam(d.jam);
-    setSkipMine(d.jam.skipMine);
-    setSkipVotes(d.jam.skipCount);
-    setVotedSongId(d.jam.now?.id ?? null);
-    setNowMs(d.jam.now ? d.jam.positionMs : 0);
-    playingRef.current = d.jam.playing;
-  }).catch(() => {});
+  const load = useCallback(() => {
+    setLoadError(null);
+    return api<{ jam: JamDetail }>(`/api/jams/${jamId}`)
+      .then((d) => {
+        if (!d?.jam) throw new Error('empty jam payload');
+        setJam(d.jam);
+        setSkipMine(d.jam.skipMine);
+        setSkipVotes(d.jam.skipCount);
+        setVotedSongId(d.jam.now?.id ?? null);
+        setNowMs(d.jam.now ? d.jam.positionMs : 0);
+        playingRef.current = d.jam.playing;
+      })
+      .catch((e) => {
+        console.error('jam load error', e);
+        setJam(null);
+        setLoadError(e instanceof Error ? e.message : 'Load failed');
+      });
+  }, [jamId]);
 
   useEffect(() => {
     load();
@@ -447,6 +458,22 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
     }
     return items;
   };
+
+  if (loadError) {
+    return (
+      <div className="dj-room" style={{ marginTop: 24 }}>
+        <div className="empty-state" style={{ padding: 40, maxWidth: 520, marginInline: 'auto' }}>
+          <Loader2 size={20} />
+          <p style={{ margin: '12px 0' }}>{t('room.loadFailed')}</p>
+          <pre style={{ fontSize: 12, opacity: 0.8, whiteSpace: 'pre-wrap', maxHeight: 120, overflow: 'auto' }}>{loadError}</pre>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'center' }}>
+            <button type="button" className="btn btn-violet pill" onClick={() => { setLoadError(null); load(); }}>{t('room.retry')}</button>
+            <button type="button" className="btn btn-ghost pill" onClick={onBack}>{t('room.back')}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!jam) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
 

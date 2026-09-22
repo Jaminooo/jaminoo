@@ -160,7 +160,7 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
     e.preventDefault();
     setBusy(true);
     try {
-      const d = await api<{ jam: { id: string } }>('/api/jams', {
+      const d = await api<{ jam?: { id: string } }>('/api/jams', {
         method: 'POST',
         body: JSON.stringify({ name, desc, type: jtype }),
       });
@@ -168,7 +168,11 @@ export function JamsPanel({ onEnter }: { onEnter: (id: string) => void }) {
       setName('');
       setDesc('');
       setShowCreate(false);
-      onEnter(d.jam.id);
+      if (d.jam?.id) {
+        onEnter(d.jam.id);
+      } else {
+        await loadAll();
+      }
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
     } finally {

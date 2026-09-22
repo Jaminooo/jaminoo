@@ -210,7 +210,10 @@
     "coHost": "Helper",
     "search": "Search",
     "searchPlaceholder": "Song, artist…",
-    "addedToQueue": "Added to queue"
+    "addedToQueue": "Added to queue",
+    "loadFailed": "Couldn't open this jam.",
+    "retry": "Try again",
+    "back": "Back"
   },
   "dm": {
     "title": "Message",

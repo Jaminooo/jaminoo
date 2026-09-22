@@ -210,7 +210,10 @@
     "coHost": "دستیار",
     "search": "جستجو",
     "searchPlaceholder": "آهنگ، خواننده…",
-    "addedToQueue": "به صف اضافه شد"
+    "addedToQueue": "به صف اضافه شد",
+    "loadFailed": "باز کردن این جم ممکن نشد.",
+    "retry": "تلاش دوباره",
+    "back": "بازگشت"
   },
   "dm": {
     "title": "پیام",
