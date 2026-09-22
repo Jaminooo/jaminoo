@@ -3,9 +3,36 @@ const next = require('next');
 const { Server } = require('socket.io');
 const { createAdapter } = require('@socket.io/redis-adapter');
 const { createClient } = require('redis');
+const { execFileSync } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
 
 require('dotenv').config();
+
+function applyPendingMigrations() {
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (!/^postgres(ql)?:\/\//i.test(dbUrl)) {
+    if (dbUrl) console.log(`[boot] Skipping prisma migrate deploy (DATABASE_URL is not postgres)`);
+    return;
+  }
+  let prismaCli;
+  try {
+    prismaCli = require.resolve('prisma/build/index.js');
+  } catch {
+    console.warn('[boot] prisma CLI not installed; skipping automatic migrations. Run prisma migrate deploy manually.');
+    return;
+  }
+  console.log('[boot] Applying pending database migrations...');
+  try {
+    execFileSync(process.execPath, [prismaCli, 'migrate', 'deploy', '--schema', 'prisma/schema.prisma'], {
+      cwd: __dirname,
+      stdio: 'inherit',
+    });
+    console.log('[boot] Database migrations up to date.');
+  } catch (err) {
+    console.error('[boot] prisma migrate deploy failed. Exiting to avoid serving on a stale schema.');
+    throw err;
+  }
+}
 
 function getCookie(raw, name) {
   const m = (raw || '').split(';').map((s) => s.trim()).find((p) => p.startsWith(name + '='));
@@ -85,6 +112,8 @@ async function pushPresence() {
 }
 
 let io;
+
+applyPendingMigrations();
 
 app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));
