@@ -144,6 +144,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const [nowMs, setNowMs] = useState(0);
   const [audioTimeMs, setAudioTimeMs] = useState(0);
   const [audioDurMs, setAudioDurMs] = useState(0);
+  const [audioLive, setAudioLive] = useState(false);
   const [buffering, setBuffering] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -337,17 +338,20 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
     }
   }, [jam?.now?.id, jam?.playing, nowMs, muted, volume]);
 
-  // Smooth, frame-accurate progress while the local element is playing.
+  // Smooth progress while the local element actually plays (throttled to ~10fps).
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !jam?.now || !jam.playing) return;
     let raf = 0;
     let last = -1;
-    const loop = () => {
+    let lastUpdate = 0;
+    const loop = (ts: number) => {
       raf = requestAnimationFrame(loop);
+      if (audio.paused) return;
       const t = Math.round((audio.currentTime || 0) * 1000);
-      if (t !== last) {
+      if (t !== last && ts - lastUpdate >= 100) {
         last = t;
+        lastUpdate = ts;
         setAudioTimeMs(t);
       }
     };
@@ -591,7 +595,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   if (!jam) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
 
   const maxMs = audioDurMs > 0 ? audioDurMs : (jam.durationSec || 0) * 1000;
-  const shownMs = audioDurMs > 0 ? audioTimeMs : nowMs;
+  const shownMs = audioLive && audioDurMs > 0 ? audioTimeMs : nowMs;
   const pct = maxMs > 0 ? Math.min(100, Math.max(0, (shownMs / maxMs) * 100)) : 0;
   const coverUrl = jam.now?.coverUrl || fallbackCover(isNaN(jam.ownerId) ? 1 : jam.ownerId + 5);
 
@@ -713,7 +717,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
 
   return (
     <div className="dj-room" style={{ marginTop: 24 }}>
-      <audio ref={audioRef} preload="auto" onEnded={() => emitWhenConnected('music:ended', jamId)} onError={() => setBlocked(true)} onWaiting={() => setBuffering(true)} onPlaying={() => setBuffering(false)} onCanPlay={() => setBuffering(false)} onStalled={() => setBuffering(true)} onTimeUpdate={(e) => setAudioTimeMs(Math.round((e.currentTarget.currentTime || 0) * 1000))} onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setAudioDurMs(Math.round(d * 1000)); }} />
+      <audio ref={audioRef} preload="auto" onEnded={() => { setAudioLive(false); emitWhenConnected('music:ended', jamId); }} onPlay={() => { setAudioLive(true); setBlocked(false); setBuffering(false); }} onPause={() => setAudioLive(false)} onError={() => setBlocked(true)} onWaiting={() => setBuffering(true)} onPlaying={() => { setAudioLive(true); setBuffering(false); }} onCanPlay={() => setBuffering(false)} onStalled={() => setBuffering(true)} onTimeUpdate={(e) => setAudioTimeMs(Math.round((e.currentTarget.currentTime || 0) * 1000))} onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setAudioDurMs(Math.round(d * 1000)); }} />
       <div className="dj-head">
         <button type="button" className="btn-icon" onClick={onBack} title={t('modal.close')}>
           <ArrowLeft size={16} />
