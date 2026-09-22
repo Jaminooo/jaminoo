@@ -2,6 +2,7 @@ import { handle, json, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { BadRequestError } from '@/lib/api';
 import { rateLimit } from '@/lib/rate-limit';
+import { normalizeFacets, parseFacets } from '@/lib/tweet-facets';
 
 function safeJson(value: string): string[] {
   try {
@@ -23,6 +24,7 @@ export const GET = handle(async () => {
     scheduled: rows.map((row) => ({
       id: row.id,
       text: row.text,
+      facets: parseFacets(row.facets),
       mediaIds: safeJson(row.mediaIds),
       replyToId: row.replyToId,
       publishAt: row.publishAt.toISOString(),
@@ -39,6 +41,7 @@ export const POST = handle(async (req) => {
   const body = await req.json().catch(() => ({}));
   const text = typeof body.text === 'string' ? body.text.trim() : '';
   const mediaIds = JSON.stringify(Array.isArray(body.mediaIds) ? body.mediaIds.map(String) : []);
+  const facets = JSON.stringify(normalizeFacets(body.facets, text.length));
   const replyToId = Number.isInteger(body.replyToId) ? body.replyToId : null;
   const publishAt = new Date(typeof body.publishAt === 'string' ? body.publishAt : Number(body.publishAt ?? 0));
 
@@ -48,12 +51,13 @@ export const POST = handle(async (req) => {
   if (text.length > 560) throw new BadRequestError('Tweet is too long');
 
   const row = await prisma.scheduledTweet.create({
-    data: { userId: me.id, text, mediaIds, replyToId, publishAt },
+    data: { userId: me.id, text, facets, mediaIds, replyToId, publishAt },
   });
   return json({
     scheduled: {
       id: row.id,
       text: row.text,
+      facets: parseFacets(row.facets),
       mediaIds: safeJson(row.mediaIds),
       replyToId: row.replyToId,
       publishAt: row.publishAt.toISOString(),

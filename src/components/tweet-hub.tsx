@@ -1,27 +1,31 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import {
   ArrowLeft,
   BadgeCheck,
   Ban,
   Bell,
   Bird,
+  Bold,
   Bookmark,
   Calendar,
+  CalendarClock,
   Check,
   Eye,
+  EyeOff,
   Flag,
   Globe,
   Hash,
   Heart,
   ImagePlus,
+  Italic,
   Link2,
   ListPlus,
   Lock,
   MapPin,
-MessageCircle,
+  MessageCircle,
   MoreHorizontal,
   CornerUpLeft,
   Pencil,
@@ -34,18 +38,20 @@ MessageCircle,
   ShieldAlert,
   Smile,
   Sparkles,
+  Strikethrough,
   Trash2,
   TrendingUp,
   List,
+  Underline,
   User as UserIcon,
   UsersRound,
   UserPlus,
   VolumeX,
   X,
   Clock,
-  CalendarClock,
   BarChart3,
 } from 'lucide-react';
+import { reflowFacets, toggleStyle, type TweetFacet, type FacetType } from '@/lib/tweet-facets';
 import { api } from '@/lib/client-api';
 import { uploadWithProgress } from '@/lib/client-api';
 import { connectLive, onLive, onLiveConnect, emitLive } from '@/lib/live';
@@ -98,6 +104,7 @@ interface TweetPoll {
 interface Tweet {
   id: number;
   text: string;
+  facets?: TweetFacet[];
   media: TweetMedia[];
   replyToId: number | null;
   replyToAuthor?: string | null;
@@ -242,7 +249,7 @@ const MAX_MEDIA = 4;
 const MAX_TEXT = 280;
 const RECENTS_KEY = 'tweet-recent-searches';
 
-const EMOJIS = ['😀','😂','🤣','😊','😍','🥰','😎','🤩','🙃','😜','🤔','😴','🥳','😭','😅','😉','👍','👎','👏','🙏','💪','🫡','🔥','✨','⭐','💯','🎉','🎊','❤️','💔','💚','💙','🫶','🎂','🎁','🌍','🚀','⚡','🌟'];
+const EMOJIS = ['ðŸ˜€','ðŸ˜‚','ðŸ¤£','ðŸ˜Š','ðŸ˜','ðŸ¥°','ðŸ˜Ž','ðŸ¤©','ðŸ™ƒ','ðŸ˜œ','ðŸ¤”','ðŸ˜´','ðŸ¥³','ðŸ˜­','ðŸ˜…','ðŸ˜‰','ðŸ‘','ðŸ‘Ž','ðŸ‘','ðŸ™','ðŸ’ª','ðŸ«¡','ðŸ”¥','âœ¨','â­','ðŸ’¯','ðŸŽ‰','ðŸŽŠ','â¤ï¸','ðŸ’”','ðŸ’š','ðŸ’™','ðŸ«¶','ðŸŽ‚','ðŸŽ','ðŸŒ','ðŸš€','âš¡','ðŸŒŸ'];
 const REPORT_REASONS = ['SPAM', 'HARASSMENT', 'HATE', 'VIOLENCE', 'SEXUAL', 'FRAUD', 'OTHER'] as const;
 
 function useTimeAgo() {
@@ -287,6 +294,69 @@ function renderText(text: string, onTag?: (tag: string) => void, onMention?: (us
   });
 }
 
+function SpoilerText({ label, children }: { label: string; children: ReactNode }) {
+  const [shown, setShown] = useState(false);
+  if (shown) {
+    return (
+      <span
+        className="tweet-spoiler shown"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {children}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="tweet-spoiler"
+      role="button"
+      tabIndex={0}
+      aria-label={label}
+      title={label}
+      onClick={(event) => { event.stopPropagation(); setShown(true); }}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); setShown(true); } }}
+    >
+      <span className="tweet-spoiler-blur" aria-hidden="true">{children}</span>
+      <span className="tweet-spoiler-badge" aria-hidden="true">â€¢â€¢â€¢</span>
+    </span>
+  );
+}
+
+// Presentation layer around the existing text parser: wraps styled segments in
+// spans, keeps #tags/@mentions interactive, and never injects raw HTML.
+function renderFacetedText(text: string, facets: TweetFacet[] | undefined, spoilerLabel: string, onTag?: (tag: string) => void, onMention?: (username: string) => void) {
+  const list = (facets ?? [])
+    .filter((f) => f.s >= 0 && f.e <= text.length && f.s < f.e)
+    .sort((a, b) => a.s - b.s || b.e - a.e);
+  if (list.length === 0) return renderText(text, onTag, onMention);
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  for (const f of list) {
+    if (f.s > cursor) {
+      parts.push(<Fragment key={`t${cursor}`}>{renderText(text.slice(cursor, f.s), onTag, onMention)}</Fragment>);
+    }
+    const seg = text.slice(f.s, f.e);
+    let styled: ReactNode = seg;
+    if (f.t !== 'sp') {
+      styled = (
+        <span className={`tweet-fmt ${f.t === 'b' ? 'tweet-fmt-b' : f.t === 'i' ? 'tweet-fmt-i' : f.t === 'u' ? 'tweet-fmt-u' : 'tweet-fmt-st'}`}>
+          {renderText(seg, onTag, onMention)}
+        </span>
+      );
+    }
+    parts.push(
+      <Fragment key={`f${f.s}-${f.e}-${f.t}`}>
+        {f.t === 'sp' ? <SpoilerText label={spoilerLabel}>{renderText(seg, onTag, onMention)}</SpoilerText> : styled}
+      </Fragment>
+    );
+    cursor = f.e;
+  }
+  if (cursor < text.length) {
+    parts.push(<Fragment key={`t${cursor}`}>{renderText(text.slice(cursor), onTag, onMention)}</Fragment>);
+  }
+  return parts;
+}
+
 function isVideo(tweet: Tweet, item?: TweetMedia) {
   return (item ?? tweet.media[0])?.mime.startsWith('video/');
 }
@@ -323,7 +393,7 @@ function formatCount(value: number) {
 }
 
 function pollRemaining(poll: TweetPoll): string {
-  if (!poll.closesAt) return '∞';
+  if (!poll.closesAt) return 'âˆž';
   const total = new Date(poll.closesAt).getTime() - Date.now();
   if (total <= 0) return '0m';
   const minutes = Math.floor(total / 60000);
@@ -359,8 +429,8 @@ function TweetPollView({ poll, onVote }: { poll: TweetPoll; onVote: (optionId: n
       </div>
       <span className="tweet-poll-meta">
         {poll.open
-          ? t('tweetHub.poll.votes', { count: poll.totalVotes }) + (poll.closesAt ? ` · ${t('tweetHub.poll.closesIn', { time: pollRemaining(poll) })}` : '')
-          : t('tweetHub.poll.endedLabel') + ' · ' + t('tweetHub.poll.votes', { count: poll.totalVotes })}
+          ? t('tweetHub.poll.votes', { count: poll.totalVotes }) + (poll.closesAt ? ` Â· ${t('tweetHub.poll.closesIn', { time: pollRemaining(poll) })}` : '')
+          : t('tweetHub.poll.endedLabel') + ' Â· ' + t('tweetHub.poll.votes', { count: poll.totalVotes })}
       </span>
     </div>
   );
@@ -403,15 +473,16 @@ function QuotedCard({ tweet, onOpen, onAuthor, onTag, onMention }: {
   onTag: (tag: string) => void;
   onMention: (username: string) => void;
 }) {
+  const t = useTranslations();
   const timeAgo = useTimeAgo();
   return (
     <button type="button" className="tweet-quote-card" onClick={onOpen}>
       <span className="tweet-quote-head">
         <JaminoAvatar avatarId={tweet.author.avatarId} size={20} photo={tweet.author.avatarPhoto} name={tweet.author.username} />
         <b>{tweet.author.name || `@${tweet.author.username}`}</b>
-        <span>@{tweet.author.username} · {timeAgo(tweet.createdAt)}</span>
+        <span>@{tweet.author.username} Â· {timeAgo(tweet.createdAt)}</span>
       </span>
-      {tweet.text && <span className="tweet-quote-text">{renderText(tweet.text, onTag, onMention)}</span>}
+      {tweet.text && <span className="tweet-quote-text">{renderFacetedText(tweet.text, tweet.facets, t('tweetHub.spoiler.reveal'), onTag, onMention)}</span>}
       {tweet.media[0] && (
         <span className="tweet-quote-media">
           {isVideo(tweet) ? <video src={tweet.media[0].url} muted playsInline preload="metadata" /> : <img src={tweet.media[0].url} alt="" loading="lazy" />}
@@ -450,7 +521,7 @@ function TweetActions({
         <Repeat2 size={17} /><span>{tweet.retweets}</span>
       </button>
       <button type="button" className="tweet-action-chev" onClick={(event) => { event.stopPropagation(); setQuoteOpen((o) => !o); }} title={t('tweetHub.action.repostMenu')} aria-label={t('tweetHub.action.repostMenu')}>
-        <span className="tweet-chev">▾</span>
+        <span className="tweet-chev">â–¾</span>
       </button>
       {quoteOpen && (
         <div className="tweet-quote-menu">
@@ -602,7 +673,7 @@ function TweetCard({
               <b>{tweet.author.name || `@${tweet.author.username}`}</b>
               <span className="tweet-handle">@{tweet.author.username}</span>
             </button>
-            <span className="tweet-time">· {timeAgo(tweet.createdAt)}</span>
+            <span className="tweet-time">Â· {timeAgo(tweet.createdAt)}</span>
             <TweetOptionsMenu
               tweet={tweet}
               isOwner={isOwner}
@@ -622,7 +693,7 @@ function TweetCard({
             <span className="tweet-reply-label">{t('tweetHub.card.inReplyTo', { name: tweet.replyToAuthor })}</span>
           )}
           <button type="button" className="tweet-text-btn" onClick={onOpen}>
-            {tweet.text && <p className="tweet-text">{renderText(tweet.text, onTag, onMention)}</p>}
+            {tweet.text && <p className="tweet-text">{renderFacetedText(tweet.text, tweet.facets, t('tweetHub.spoiler.reveal'), onTag, onMention)}</p>}
           </button>
           {tweet.quoted && (
             <QuotedCard tweet={tweet.quoted} onOpen={onOpen} onAuthor={onAuthor} onTag={onTag} onMention={onMention} />
@@ -679,6 +750,9 @@ function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const mentionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const urlsRef = useRef<string[]>([]);
+  const [facets, setFacets] = useState<TweetFacet[]>(editTweet?.facets ?? []);
+  const selRef = useRef<{ s: number; e: number } | null>(null);
+  const [selActive, setSelActive] = useState(false);
   const remaining = MAX_TEXT - text.length;
   const effectiveReplyId = replyToId ?? ((threading && threadLastId) ? threadLastId : null);
   const isReply = !!effectiveReplyId;
@@ -690,9 +764,12 @@ function Composer({
 
   useEffect(() => {
     if (!draftsEligible) return;
-    api<{ draft: { id: number; text: string; mediaIds: string[]; quotedTweetId: number | null; updatedAt: string } | null }>('/api/tweets/drafts')
+    api<{ draft: { id: number; text: string; facets: TweetFacet[]; mediaIds: string[]; quotedTweetId: number | null; updatedAt: string } | null }>('/api/tweets/drafts')
       .then((data) => {
-        if (data.draft && data.draft.text) setText(data.draft.text);
+        if (data.draft && data.draft.text) {
+          setText(data.draft.text);
+          setFacets(data.draft.facets ?? []);
+        }
         hydratedRef.current = true;
       })
       .catch(() => { hydratedRef.current = true; });
@@ -709,12 +786,12 @@ function Composer({
     }
     setDraftStatus('saving');
     draftTimer.current = setTimeout(() => {
-      api('/api/tweets/drafts', { method: 'POST', body: JSON.stringify({ text }) })
+      api('/api/tweets/drafts', { method: 'POST', body: JSON.stringify({ text, facets }) })
         .then(() => setDraftStatus('saved'))
         .catch(() => setDraftStatus(''));
     }, 700);
     return () => { if (draftTimer.current) clearTimeout(draftTimer.current); };
-  }, [text, draftsEligible]);
+  }, [text, facets, draftsEligible]);
 
   useEffect(() => () => urlsRef.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
@@ -745,12 +822,43 @@ function Composer({
     }, 250);
   }, []);
 
+  const applyText = (next: string) => {
+    setText(next);
+    setFacets((cur) => reflowFacets(text, next, cur));
+  };
+
+  const captureSelection = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    const s = el.selectionStart ?? 0;
+    const e = el.selectionEnd ?? 0;
+    const has = e > s;
+    selRef.current = has ? { s, e } : null;
+    setSelActive(has);
+  };
+
+  const toggleFacet = (type: FacetType) => {
+    const el = inputRef.current;
+    const sel = selRef.current;
+    if (!el || !sel) return;
+    const { s, e } = sel;
+    setFacets((cur) => toggleStyle(cur, type, s, e));
+    el.focus();
+    el.setSelectionRange(s, e);
+  };
+
+  const selectionHasStyle = (type: FacetType): boolean => {
+    const sel = selRef.current;
+    if (!sel) return false;
+    return facets.some((r) => r.t === type && r.s < sel.e && r.e > sel.s);
+  };
+
   const insertMention = (username: string) => {
     const el = inputRef.current;
     const caret = el?.selectionStart ?? text.length;
     const prefix = text.slice(0, caret).replace(/@([A-Za-z0-9_]{1,30})$/, `@${username} `);
     const next = prefix + text.slice(caret);
-    setText(next);
+    applyText(next);
     setMentions([]);
     requestAnimationFrame(() => { if (el) el.setSelectionRange(prefix.length, prefix.length); });
   };
@@ -759,7 +867,7 @@ function Composer({
     const el = inputRef.current;
     const caret = el?.selectionStart ?? text.length;
     const next = text.slice(0, caret) + emoji + text.slice(caret);
-    setText(next);
+    applyText(next);
     requestAnimationFrame(() => { if (el) el.setSelectionRange(caret + emoji.length, caret + emoji.length); });
   };
 
@@ -797,8 +905,14 @@ function Composer({
         setMediaIds(ids);
         setProgress(null);
       }
+      const trimmed = text.trim();
+      const lead = text.length - text.trimStart().length;
+      const sendFacets = lead > 0
+        ? facets.map((f) => ({ ...f, s: Math.max(0, f.s - lead), e: Math.max(0, f.e - lead) })).filter((f) => f.s < f.e)
+        : facets;
       const payload: Record<string, unknown> = {
-        text: text.trim(),
+        text: trimmed,
+        facets: sendFacets.length > 0 ? sendFacets : undefined,
         mediaIds: ids.length > 0 ? ids : undefined,
         poll: pollActive ? {
           question: poll!.question,
@@ -810,7 +924,7 @@ function Composer({
       if (quote && !editTweet) payload.quotedTweetId = quote.id;
 
       if (editTweet) {
-        const data = await api<{ tweet: Tweet }>(`/api/tweets/${editTweet.id}`, { method: 'PATCH', body: JSON.stringify({ text: text.trim() }) });
+        const data = await api<{ tweet: Tweet }>(`/api/tweets/${editTweet.id}`, { method: 'PATCH', body: JSON.stringify({ text: trimmed, facets: sendFacets.length > 0 ? sendFacets : undefined }) });
         onPosted(data.tweet);
         toast(t('tweetHub.toast.tweetUpdated'), 'ok');
       } else {
@@ -828,6 +942,9 @@ function Composer({
         toast(isReply ? t('tweetHub.toast.replyPosted') : t('tweetHub.toast.live'), 'ok');
       }
       setText('');
+      setFacets([]);
+      selRef.current = null;
+      setSelActive(false);
       setFiles((current) => { current.forEach((f) => URL.revokeObjectURL(f.url)); return []; });
       setMediaIds([]);
       setMentions([]);
@@ -853,17 +970,59 @@ function Composer({
         )}
         {editTweet && <div className="tweet-composer-note"><Pencil size={13} /> {t('tweetHub.editingNote')}</div>}
         {draftStatus && <div className="tweet-composer-note"><Clock size={13} /> {draftStatus === 'saving' ? t('tweetHub.draft.saving') : t('tweetHub.draft.saved')}</div>}
+        <div className={`tweet-fmt-bar${selActive ? ' active' : ''}`} role="toolbar" aria-label={t('tweetHub.fmt.toolbar')}>
+          {[
+            { t: 'b' as FacetType, label: t('tweetHub.fmt.bold'), icon: <Bold size={14} /> },
+            { t: 'i' as FacetType, label: t('tweetHub.fmt.italic'), icon: <Italic size={14} /> },
+            { t: 'u' as FacetType, label: t('tweetHub.fmt.underline'), icon: <Underline size={14} /> },
+            { t: 'st' as FacetType, label: t('tweetHub.fmt.strike'), icon: <Strikethrough size={14} /> },
+            { t: 'sp' as FacetType, label: t('tweetHub.fmt.spoiler'), icon: <EyeOff size={14} /> },
+          ].map((item) => {
+            const active = selActive && selectionHasStyle(item.t);
+            return (
+              <button
+                type="button"
+                key={item.t}
+                className={`tweet-fmt-btn${active ? ' on' : ''}`}
+                aria-pressed={active}
+                title={item.label}
+                aria-label={item.label}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  if (!selActive || !selRef.current) {
+                    toast(t('tweetHub.fmt.selectFirst'));
+                    inputRef.current?.focus();
+                    return;
+                  }
+                  toggleFacet(item.t);
+                }}
+              >
+                {item.icon}
+              </button>
+            );
+          })}
+        </div>
         <textarea
           id="tweet-composer-input"
           ref={inputRef}
           className={autofocusClass}
           value={text}
-          onChange={(event) => { setText(event.target.value.slice(0, MAX_TEXT)); updateMentions(event.target.value); }}
+          onChange={(event) => { const next = event.target.value.slice(0, MAX_TEXT); applyText(next); updateMentions(next); }}
+          onSelect={captureSelection}
+          onKeyUp={captureSelection}
+          onMouseUp={captureSelection}
+          onTouchEnd={captureSelection}
           placeholder={resolvedPlaceholder}
           rows={compact ? 2 : 3}
           autoFocus={autoFocus}
           maxLength={MAX_TEXT}
         />
+        {facets.length > 0 && text.length > 0 && (
+          <div className="tweet-fmt-preview" aria-hidden="true">
+            <span className="tweet-fmt-preview-label">{t('tweetHub.fmt.preview')}</span>
+            <span className="tweet-text tweet-fmt-preview-text">{renderFacetedText(text, facets, t('tweetHub.spoiler.reveal'))}</span>
+          </div>
+        )}
         {mentions.length > 0 && (
           <div className="tweet-mention-suggest">
             {mentions.map((user) => (
@@ -993,7 +1152,7 @@ function Composer({
             ))}
           </div>
         )}
-        {scheduleOpen && <ScheduleTweetModal text={text} onClose={() => setScheduleOpen(false)} onScheduled={() => setScheduleOpen(false)} />}
+        {scheduleOpen && <ScheduleTweetModal text={text} facets={facets} onClose={() => setScheduleOpen(false)} onScheduled={() => setScheduleOpen(false)} />}
       </div>
     </form>
   );
@@ -1120,7 +1279,7 @@ function EditProfileModal({ profile, onClose, onSaved }: {
           </label>
           <label className="tweet-edit-field">
             <span>{t('tweetHub.profile.website')}</span>
-            <input value={website} onChange={(event) => setWebsite(event.target.value)} maxLength={120} placeholder="https://…" />
+            <input value={website} onChange={(event) => setWebsite(event.target.value)} maxLength={120} placeholder="https://â€¦" />
           </label>
           <label className="tweet-edit-field">
             <span>{t('tweetHub.profile.location')}</span>
@@ -1242,8 +1401,9 @@ function MoveToCollectionModal({ tweet, collections, onPick, onClose }: {
   );
 }
 
-function ScheduleTweetModal({ text, onClose, onScheduled }: {
+function ScheduleTweetModal({ text, facets, onClose, onScheduled }: {
   text: string;
+  facets: TweetFacet[];
   onClose: () => void;
   onScheduled: () => void;
 }) {
@@ -1257,7 +1417,7 @@ function ScheduleTweetModal({ text, onClose, onScheduled }: {
     if (!when || busy) return;
     setBusy(true);
     try {
-      await api('/api/tweets/schedule', { method: 'POST', body: JSON.stringify({ text: text.trim(), publishAt: new Date(when).toISOString() }) });
+      await api('/api/tweets/schedule', { method: 'POST', body: JSON.stringify({ text: text.trim(), facets: facets.length > 0 ? facets : undefined, publishAt: new Date(when).toISOString() }) });
       toast(t('tweetHub.schedule.scheduled'), 'ok');
       onScheduled();
     } catch (error) {
@@ -1274,7 +1434,7 @@ function ScheduleTweetModal({ text, onClose, onScheduled }: {
         </header>
         <form className="tweet-modal-scroll tweet-schedule-form" onSubmit={submit}>
           <p className="tweet-rail-empty">{t('tweetHub.schedule.hint')}</p>
-          <p className="tweet-sched-preview">{text}</p>
+          <p className="tweet-sched-preview">{renderFacetedText(text, facets, t('tweetHub.spoiler.reveal'))}</p>
           <input className="tweet-poll-q" type="datetime-local" value={when} min={min} onChange={(event) => setWhen(event.target.value)} required />
           <button type="submit" className="btn btn-tweet" disabled={busy || !when}>{busy ? t('tweetHub.schedule.scheduling') : t('tweetHub.schedule.scheduleBtn')}</button>
         </form>
@@ -2431,7 +2591,7 @@ export function TweetHub() {
               ) : (
                 recentSearches.map((term) => (
                   <button type="button" className="tweet-trend" key={term} onClick={() => { setSearchInput(term); setSearchQuery(term); setView('search'); }}>
-                    <span className="tweet-trend-tag" style={{ fontWeight: 500 }}>{term.startsWith('#') || term.startsWith('@') ? term : `“${term}”`}</span>
+                    <span className="tweet-trend-tag" style={{ fontWeight: 500 }}>{term.startsWith('#') || term.startsWith('@') ? term : `â€œ${term}â€`}</span>
                   </button>
                 ))
               )}
@@ -2542,7 +2702,7 @@ export function TweetHub() {
                           <List size={14} />
                           <span>
                             <b>{list.name}</b>
-                            <small>{list.isPrivate ? <><Lock size={11} /> {t('tweetHub.lists.privateBadge')}</> : t('tweetHub.lists.publicBadge')} · {t('tweetHub.lists.counts', { members: list.memberCount, tweets: list.tweetCount })}</small>
+                            <small>{list.isPrivate ? <><Lock size={11} /> {t('tweetHub.lists.privateBadge')}</> : t('tweetHub.lists.publicBadge')} Â· {t('tweetHub.lists.counts', { members: list.memberCount, tweets: list.tweetCount })}</small>
                           </span>
                         </button>
                       ))}
@@ -2655,7 +2815,7 @@ export function TweetHub() {
                                 <b>{new Date(row.publishAt).toLocaleString()}</b>
                                 <small className={`tweet-sched-status s-${row.status.toLowerCase()}`}>
                                   {row.status === 'PUBLISHED' ? t('tweetHub.schedule.published') : row.status === 'CANCELED' ? t('tweetHub.schedule.canceledLabel') : row.status === 'FAILED' ? t('tweetHub.schedule.failed') : t('tweetHub.schedule.pending')}
-                                  {row.text ? ` · ${row.text.slice(0, 60)}${row.text.length > 60 ? '…' : ''}` : ''}
+                                  {row.text ? ` Â· ${row.text.slice(0, 60)}${row.text.length > 60 ? 'â€¦' : ''}` : ''}
                                 </small>
                               </span>
                             </span>
@@ -2680,7 +2840,7 @@ export function TweetHub() {
                     <div className="tweet-suggestion" key={user.id}>
                       <button type="button" className="tweet-suggestion-id" onClick={() => openProfile(user.username, user.id)}>
                         <JaminoAvatar avatarId={user.avatarId} size={38} photo={user.avatarPhoto} name={user.username} />
-                        <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} · {user.followers === 1 ? t('tweetHub.search.oneFollower') : t('tweetHub.search.followersCount', { count: user.followers })}</small></span>
+                        <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} Â· {user.followers === 1 ? t('tweetHub.search.oneFollower') : t('tweetHub.search.followersCount', { count: user.followers })}</small></span>
                       </button>
                       {me?.id !== user.id && (
                         <button type="button" className={`btn ${user.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(user.id)}>
@@ -2803,8 +2963,8 @@ export function TweetHub() {
           <button type="button" className="btn-icon tweet-lightbox-close" onClick={() => setLightbox(null)} aria-label={t('tweetHub.close')}><X size={20} /></button>
           {lightbox.media.length > 1 && (
             <>
-              <button type="button" className="tweet-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.media.length) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.prev')}>‹</button>
-              <button type="button" className="tweet-lightbox-nav next" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.next')}>›</button>
+              <button type="button" className="tweet-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.media.length) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.prev')}>â€¹</button>
+              <button type="button" className="tweet-lightbox-nav next" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.next')}>â€º</button>
             </>
           )}
           <div className="tweet-lightbox-media" onMouseDown={(e) => e.stopPropagation()}>
@@ -2831,7 +2991,7 @@ export function TweetHub() {
                   <button type="button" className="tweet-identity" onClick={() => openProfile(replyParent.author.username, replyParent.author.id)}>
                     <b>{replyParent.author.name || `@${replyParent.author.username}`}</b>
                   </button>
-                  <p>{renderText(replyParent.text, searchTag, openProfile)}</p>
+                  <p>{renderFacetedText(replyParent.text, replyParent.facets, t('tweetHub.spoiler.reveal'), searchTag, openProfile)}</p>
                 </div>
               )}
               <div className="tweet-modal-primary">
@@ -2840,7 +3000,7 @@ export function TweetHub() {
                     <b>{activeTweet.author.name || `@${activeTweet.author.username}`}</b>
                     <span className="tweet-handle">@{activeTweet.author.username}</span>
                   </button>
-                  <span className="tweet-time">· {timeAgo(activeTweet.createdAt)}</span>
+                  <span className="tweet-time">Â· {timeAgo(activeTweet.createdAt)}</span>
                   <TweetOptionsMenu
                     tweet={activeTweet}
                     isOwner={me?.id === activeTweet.author.id}
@@ -2860,7 +3020,7 @@ export function TweetHub() {
                     </button>
                   )}
                 </div>
-                {activeTweet.text && <p className="tweet-modal-text">{renderText(activeTweet.text, searchTag, openProfile)}</p>}
+                {activeTweet.text && <p className="tweet-modal-text">{renderFacetedText(activeTweet.text, activeTweet.facets, t('tweetHub.spoiler.reveal'), searchTag, openProfile)}</p>}
                 <TweetMediaGrid tweet={activeTweet} onOpen={(index) => setLightbox({ media: activeTweet.media, index })} />
                 {activeTweet.quoted && (
                   <QuotedCard tweet={activeTweet.quoted} onOpen={() => openTweet(activeTweet.quoted!)} onAuthor={() => openProfile(activeTweet.quoted!.author.username, activeTweet.quoted!.author.id)} onTag={searchTag} onMention={openProfile} />

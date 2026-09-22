@@ -6,6 +6,7 @@ import { tweetIncludes } from '@/lib/tweet-db';
 import { pushNotification } from '@/lib/notifications';
 import { BadRequestError } from '@/lib/api';
 import { validatePollInput } from '@/lib/poll-validation';
+import { normalizeFacets, stringifyFacets } from '@/lib/tweet-facets';
 import { TWEET_MEDIA_KINDS } from '@/lib/media-kinds';
 
 const MAX_TEXT = 280;
@@ -19,6 +20,7 @@ export interface CreateTweetInput {
   retweetOfId?: number;
   quotedTweetId?: number;
   poll?: { question?: unknown; options?: unknown; durationMinutes?: unknown } | null;
+  facets?: unknown;
 }
 
 export interface CreateTweetOptions {
@@ -134,6 +136,7 @@ export async function createTweetRecord(input: CreateTweetInput, opts: CreateTwe
     data: {
       authorId: opts.authorId,
       text,
+      facets: stringifyFacets(normalizeFacets(input.facets, text.length)),
       replyToId: replyToId > 0 ? replyToId : null,
       retweetOfId: retweetOfId > 0 ? retweetOfId : null,
       quotedTweetId: quotedTweetId > 0 ? quotedTweetId : null,

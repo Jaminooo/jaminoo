@@ -1,6 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { serializeTweet } from '@/lib/tweet';
+import { normalizeFacets, stringifyFacets } from '@/lib/tweet-facets';
 import { tweetIncludes, recordTweetView, canViewAuthor } from '@/lib/tweet-db';
 import { persistTweetTags, persistTweetMentions } from '@/lib/tweet-create';
 import { livePublish } from '@/lib/live-publish';
@@ -56,7 +57,7 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
 
   const updated = await prisma.tweet.update({
     where: { id },
-    data: { text },
+    data: { text, facets: stringifyFacets(normalizeFacets(body.facets, text.length)) },
     include: tweetIncludes(me.id),
   });
 

@@ -787,6 +787,7 @@ model Tweet {
   id           Int      @id @default(autoincrement())
   authorId     Int
   text         String   @default("")
+  facets       String   @default("[]")
   replyToId    Int?
   retweetOfId  Int?
   quotedTweetId Int?
@@ -1054,6 +1055,7 @@ model Draft {
   id        Int      @id @default(autoincrement())
   userId    Int
   text      String   @default("")
+  facets    String   @default("[]")
   mediaIds  String   @default("[]")
   quotedTweetId Int?
   createdAt DateTime @default(now())
@@ -1069,6 +1071,7 @@ model ScheduledTweet {
   id           Int      @id @default(autoincrement())
   userId       Int
   text         String   @default("")
+  facets       String   @default("[]")
   mediaIds     String   @default("[]")
   replyToId    Int?
   publishAt    DateTime

@@ -230,7 +230,7 @@ export const POST = handle(async (req) => {
   }
 
   const { tweet } = await createTweetRecord(
-    { text, replyToId, retweetOfId, quotedTweetId, mediaIds: body.mediaIds, mediaAssetId: body.mediaAssetId },
+    { text, replyToId, retweetOfId, quotedTweetId, mediaIds: body.mediaIds, mediaAssetId: body.mediaAssetId, facets: body.facets },
     { authorId: me.id, myUsername: me.username, parent, quoted }
   );
 

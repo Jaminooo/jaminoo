@@ -609,3 +609,23 @@
 .tweet-toggle.on span { transform: translateX(min(17px, 100%)); background: var(--accent); }
 html[dir="rtl"] .tweet-toggle.on span { transform: translateX(-17px); transition: transform .18s ease, background .18s ease; }
 .tweet-toggle:disabled { opacity: .6; }
+
+/* Text formatting (facets) */
+.tweet-fmt-bar { display: flex; align-items: center; gap: 2px; width: max-content; max-width: 100%; margin: 4px 0 8px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--panel) 94%, transparent); opacity: .6; transition: opacity .15s ease, border-color .15s ease; }
+.tweet-fmt-bar.active { opacity: 1; border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.tweet-fmt-btn { display: inline-grid; place-items: center; width: 28px; height: 28px; flex: 0 0 auto; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; transition: background .12s ease, color .12s ease; }
+.tweet-fmt-btn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.tweet-fmt-btn.on { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.tweet-fmt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tweet-fmt-b { font-weight: 700; }
+.tweet-fmt-i { font-style: italic; }
+.tweet-fmt-u { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.tweet-fmt-st { text-decoration: line-through; text-decoration-thickness: 1px; }
+.tweet-spoiler { position: relative; display: inline-block; max-width: 100%; border-radius: 4px; background: color-mix(in srgb, var(--text) 16%, transparent); cursor: pointer; }
+.tweet-spoiler .tweet-spoiler-blur { display: inline-block; filter: blur(4px); user-select: none; opacity: .75; }
+.tweet-spoiler .tweet-spoiler-badge { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-weight: 700; letter-spacing: 2px; pointer-events: none; }
+.tweet-spoiler.shown { background: transparent; cursor: default; }
+.tweet-spoiler.shown .tweet-spoiler-blur { filter: none; opacity: 1; }
+.tweet-fmt-preview { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); }
+.tweet-fmt-preview-label { flex: 0 0 auto; padding-top: 2px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.tweet-fmt-preview .tweet-fmt-preview-text { min-width: 0; margin: 0; }

@@ -1,3 +1,5 @@
+import { parseFacets, type TweetFacet } from '@/lib/tweet-facets';
+
 function serializeMedia(t: any) {
   const rows = t.assets ?? [];
   return rows
@@ -26,6 +28,7 @@ export interface SerializedTweetAuthor {
 export interface SerializedTweet {
   id: number;
   text: string;
+  facets: TweetFacet[];
   media: SerializedTweetMedia[];
   replyToId: number | null;
   replyToAuthor: string | null;
@@ -94,6 +97,7 @@ export function serializeTweet(t: any, retweeted = false, depth = 0): Serialized
   return {
     id: t.id,
     text: t.text,
+    facets: parseFacets(t.facets),
     media: serializeMedia(t),
     replyToId: t.replyToId ?? null,
     replyToAuthor: t.replyTo?.author?.username ?? null,

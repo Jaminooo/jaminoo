@@ -31,7 +31,7 @@ export const POST = handle(async (req) => {
     }
     try {
       await createTweetRecord(
-        { text: row.text, mediaIds, replyToId: row.replyToId ?? undefined },
+        { text: row.text, facets: row.facets, mediaIds, replyToId: row.replyToId ?? undefined },
         { authorId: row.userId, myUsername: row.user.username }
       );
       await prisma.scheduledTweet.update({

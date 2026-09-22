@@ -1481,6 +1481,19 @@
       "saving": "Saving draft…",
       "saved": "Draft saved"
     },
+    "fmt": {
+      "toolbar": "Text formatting",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "strike": "Strikethrough",
+      "spoiler": "Spoiler",
+      "preview": "Preview",
+      "selectFirst": "Select some text to format it."
+    },
+    "spoiler": {
+      "reveal": "Spoiler — click to reveal"
+    },
     "removeMedia": "Remove media",
     "uploading": "Uploading… {percent}%",
     "addMedia": "Add photos or video",
