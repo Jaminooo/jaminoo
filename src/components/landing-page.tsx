@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowRight, Headphones, MessageCircle, PlaySquare, Sparkles, UsersRound, Globe, Zap, Shield, Music2 } from 'lucide-react';
+import { ArrowDown, ArrowRight, Headphones, MessageCircle, PlaySquare, Sparkles, UsersRound, Globe, Zap, Shield, Music2, Play } from 'lucide-react';
 import { useLocale, useTranslations } from '@/providers/use-translations';
 import { JamiMascot } from '@/components/jami-mascot';
 import { motion } from 'framer-motion';
@@ -42,6 +42,7 @@ export function LandingPage() {
         <div className="landing-nav-links">
           <a href="#features">{t('landing.features')}</a>
           <a href="#how-it-works">{t('landing.how')}</a>
+          <a href="#demo">{t('landing.demo')}</a>
         </div>
 
         <div className="landing-nav-actions">
@@ -194,6 +195,80 @@ export function LandingPage() {
             <span>Privacy by design</span>
           </motion.div>
         </div>
+      </section>
+
+      {/* How it works */}
+      <section className="landing-section landing-flow-section" id="how-it-works">
+        <div className="landing-section-heading">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="landing-kicker">{t('landing.flow')}</div>
+            <h2>{t('landing.flowTitle')}</h2>
+          </motion.div>
+          <p className="heading-desc">{t('landing.flowIntro')}</p>
+        </div>
+
+        <div className="landing-flow-grid">
+          <motion.div className="landing-flow-card" whileHover={{ y: -6 }}>
+            <strong>01</strong>
+            <JamiMascot state="chat" size={82} />
+            <div>
+              <h3>{t('landing.find')}</h3>
+              <p>{t('landing.findDesc')}</p>
+            </div>
+          </motion.div>
+          <motion.div className="landing-flow-card" whileHover={{ y: -6 }}>
+            <strong>02</strong>
+            <JamiMascot state="party" size={82} />
+            <div>
+              <h3>{t('landing.energy')}</h3>
+              <p>{t('landing.energyDesc')}</p>
+            </div>
+          </motion.div>
+          <motion.div className="landing-flow-card" whileHover={{ y: -6 }}>
+            <strong>03</strong>
+            <JamiMascot state="happy" size={82} />
+            <div>
+              <h3>{t('landing.channel')}</h3>
+              <p>{t('landing.channelDesc')}</p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Demo */}
+      <section className="landing-section" id="demo">
+        <div className="landing-section-heading">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+          >
+            <div className="landing-kicker">{t('landing.demoKicker')}</div>
+            <h2>{t('landing.demoTitle')}</h2>
+          </motion.div>
+          <p className="heading-desc">{t('landing.demoDesc')}</p>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="landing-demo"
+        >
+          <div className="landing-demo-video">
+            <video controls playsInline preload="metadata" aria-label={t('landing.preview')}>
+              <source src="/defaults/videos/demo.mp4" type="video/mp4" />
+            </video>
+            <span className="landing-demo-badge">
+              <Play size={11} />
+              {t('landing.preview')}
+            </span>
+          </div>
+        </motion.div>
       </section>
 
       <footer className="landing-footer">
