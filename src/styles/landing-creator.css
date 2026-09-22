@@ -527,7 +527,7 @@
   }
 }
 
-/* ---- 12. MODALS Ã¢â€ â€™ bottom sheets / full-height on phones ---- */
+/* ---- 12. MODALS -> bottom sheets / full-height on phones ---- */
 @media (max-width: 640px) {
   .modal-backdrop,
   .music-modal-backdrop,

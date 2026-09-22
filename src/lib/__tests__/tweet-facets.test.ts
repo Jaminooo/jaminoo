@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  FACET_TYPES,
   MAX_FACETS,
+  buildFacetSegments,
   normalizeFacets,
   parseFacets,
   reflowFacets,
@@ -184,5 +186,81 @@ describe('text vs facets independence', () => {
     const hostile = `hello <script>alert('x')</script>`;
     const ranges: TweetFacet[] = [{ s: 6, e: 14, t: 'b' }];
     expect(reflowFacets(hostile, hostile + '!', ranges)).toEqual([{ s: 6, e: 14, t: 'b' }]);
+  });
+});
+
+describe('buildFacetSegments', () => {
+  const text = 'hello world';
+
+  it('returns no segments when there are no facets', () => {
+    expect(buildFacetSegments(text, [])).toEqual([]);
+  });
+
+  it('covers the whole text with plain segments around styled runs', () => {
+    const segs = buildFacetSegments(text, [{ s: 6, e: 11, t: 'b' }]);
+    expect(segs).toEqual([
+      { start: 0, end: 6, styles: [] },
+      { start: 6, end: 11, styles: ['b'] },
+    ]);
+  });
+
+  it('nests overlapping styles into a single segment instead of duplicating text', () => {
+    // bold and spoiler over the SAME range: this used to render the text twice.
+    const segs = buildFacetSegments(text, [
+      { s: 0, e: 11, t: 'b' },
+      { s: 0, e: 11, t: 'sp' },
+    ]);
+    expect(segs).toEqual([
+      { start: 0, end: 11, styles: ['b', 'sp'] },
+    ]);
+    const covered = segs.reduce((sum, s) => sum + (s.end - s.start), 0);
+    expect(covered).toBe(text.length);
+  });
+
+  it('splits at every boundary of partial overlaps', () => {
+    const segs = buildFacetSegments(text, [
+      { s: 0, e: 5, t: 'b' },
+      { s: 3, e: 8, t: 'i' },
+    ]);
+    expect(segs).toEqual([
+      { start: 0, end: 3, styles: ['b'] },
+      { start: 3, end: 5, styles: ['b', 'i'] },
+      { start: 5, end: 8, styles: ['i'] },
+      { start: 8, end: 11, styles: [] },
+    ]);
+  });
+
+  it('splits when a style is fully contained in another', () => {
+    const segs = buildFacetSegments(text, [
+      { s: 0, e: 11, t: 'b' },
+      { s: 6, e: 11, t: 'sp' },
+    ]);
+    expect(segs).toEqual([
+      { start: 0, end: 6, styles: ['b'] },
+      { start: 6, end: 11, styles: ['b', 'sp'] },
+    ]);
+  });
+
+  it('reports every facet type on a fully overlapping selection', () => {
+    const ranges: TweetFacet[] = FACET_TYPES.map((t) => ({ s: 6, e: 11, t }));
+    const segs = buildFacetSegments(text, ranges);
+    expect(segs).toEqual([
+      { start: 0, end: 6, styles: [] },
+      { start: 6, end: 11, styles: ['b', 'i', 'u', 'st', 'sp'] },
+    ]);
+  });
+
+  it('orders styles with spoiler last so renderers can nest it outermost', () => {
+    const ranges: TweetFacet[] = [
+      { s: 0, e: 11, t: 'sp' },
+      { s: 0, e: 11, t: 'b' },
+    ];
+    const segs = buildFacetSegments(text, ranges);
+    expect(segs[0].styles[segs[0].styles.length - 1]).toBe('sp');
+  });
+
+  it('treats out-of-range or empty facets as plain text', () => {
+    expect(buildFacetSegments(text, [{ s: 5, e: 5, t: 'b' }])).toEqual([]);
+    expect(buildFacetSegments(text, [{ s: 0, e: 999, t: 'b' }])).toEqual([]);
   });
 });

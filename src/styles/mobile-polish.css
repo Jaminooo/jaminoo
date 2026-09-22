@@ -1,8 +1,8 @@
-/* Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
-   JAMINO Ã¢â‚¬â€ RESPONSIVE + GLASS REDESIGN LAYER
-   Design tokens Ã‚Â· viewport/keyboard safety Ã‚Â· mobile navigation Ã‚Â·
-   room sheets Ã‚Â· modal sheets Ã‚Â· touch targets Ã‚Â· typography Ã‚Â· RTL
-   Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â */
+/* ============================================================ */
+/*   JAMINO - RESPONSIVE + GLASS REDESIGN LAYER
+/*   Design tokens / viewport + keyboard safety / mobile navigation /
+/*   room sheets / modal sheets / touch targets / typography / RTL
+/* ============================================================ */
 
 /* ---- 1. Core design tokens (also fixes previously-undefined vars) ---- */
 :root {
@@ -102,7 +102,7 @@ table-wrap {
   display: none;
 }
 
-/* ---- 8. Panels: sidebar Ã¢â€ â€™ bottom nav on tablets/phones ---- */
+/* ---- 8. Panels: sidebar -> bottom nav on tablets/phones ---- */
 @media (max-width: 960px) {
   .panel-body {
     display: block;
@@ -224,13 +224,13 @@ table-wrap {
   }
 }
 
-/* ---- 10. ROOM Ã¢â€ â€™ mobile app (chat primary, sheets for members/music) ---- */
+/* ---- 10. ROOM -> mobile app (chat primary, sheets for members/music) ---- */
 .room-mobile-tabs {
   display: none;
 }
 
 @media (max-width: 820px) {
-  /* switch off the 3-column grid Ã¢â€ â€™ chat is the primary surface */
+  /* switch off the 3-column grid -> chat is the primary surface */
   .room-grid,
   .room-grid.rl-classic,
   .room-grid.rl-stack,

@@ -617,6 +617,12 @@ html[dir="rtl"] .tweet-toggle.on span { transform: translateX(-17px); transition
 .tweet-fmt-btn:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
 .tweet-fmt-btn.on { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
 .tweet-fmt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tweet-wysiwyg { position: relative; }
+.tweet-wysiwyg textarea { position: relative; z-index: 1; padding: 0; color: transparent; caret-color: var(--text); background: transparent; overflow-wrap: break-word; }
+.tweet-wysiwyg textarea::selection { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.tweet-wysiwyg textarea::placeholder { color: var(--muted); }
+.tweet-wysiwyg-ink { position: absolute; inset: 0; z-index: 0; overflow: hidden; padding: 0; text-align: start; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font-size: 17px; line-height: 1.5; color: var(--text); pointer-events: none; }
+
 .tweet-fmt-b { font-weight: 700; }
 .tweet-fmt-i { font-style: italic; }
 .tweet-fmt-u { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
@@ -626,7 +632,4 @@ html[dir="rtl"] .tweet-toggle.on span { transform: translateX(-17px); transition
 .tweet-spoiler .tweet-spoiler-badge { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-weight: 700; letter-spacing: 2px; pointer-events: none; }
 .tweet-spoiler.shown { background: transparent; cursor: default; }
 .tweet-spoiler.shown .tweet-spoiler-blur { filter: none; opacity: 1; }
-.tweet-fmt-preview { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--panel) 92%, transparent); }
-.tweet-fmt-preview-label { flex: 0 0 auto; padding-top: 2px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
-.tweet-fmt-preview .tweet-fmt-preview-text { min-width: 0; margin: 0; }
 .tweet-error-card { display: grid; gap: 10px; padding: 14px 4px 4px; }

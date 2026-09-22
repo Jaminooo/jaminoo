@@ -1,4 +1,4 @@
-/* ===== Video Hub Â· completed feature styles ===== */
+/* ===== Video Hub - completed feature styles ===== */
 
 .video-feed-toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .video-feed-search { display: flex; align-items: center; gap: 6px; min-width: 200px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }

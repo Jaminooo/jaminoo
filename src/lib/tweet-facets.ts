@@ -14,6 +14,39 @@ export interface TweetFacet {
   t: FacetType;
 }
 
+// An atomic run of text with the exact set of styles active over it, produced by
+// buildFacetSegments. Rendering these as nested spans (never sequential) keeps
+// overlapping styles from duplicating the same text.
+export interface FacetSegment {
+  start: number;
+  end: number;
+  styles: FacetType[];
+}
+
+// Split the facet-covered region into atomic segments (positions where the set
+// of active styles changes), so overlapping styles nest instead of duplicating.
+export function buildFacetSegments(text: string, facets: ReadonlyArray<TweetFacet>): FacetSegment[] {
+  const list = (facets ?? [])
+    .filter((f) => f.s >= 0 && f.e <= text.length && f.s < f.e)
+    .sort((a, b) => a.s - b.s || b.e - a.e);
+  if (list.length === 0) return [];
+  const points = new Set<number>([0, text.length]);
+  for (const f of list) { points.add(f.s); points.add(f.e); }
+  const pts = [...points].sort((a, b) => a - b);
+  const segments: FacetSegment[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const start = pts[i];
+    const end = pts[i + 1];
+    if (start >= end) continue;
+    const styles: FacetType[] = [];
+    for (const t of FACET_TYPES) {
+      if (list.some((f) => f.t === t && f.s <= start && f.e >= end)) styles.push(t);
+    }
+    segments.push({ start, end, styles });
+  }
+  return segments;
+}
+
 export const FACET_TYPES: readonly FacetType[] = ['b', 'i', 'u', 'st', 'sp'];
 
 export const MAX_FACETS = 60;

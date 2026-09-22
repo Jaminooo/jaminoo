@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
   ArrowLeft,
@@ -51,7 +51,7 @@ import {
   Clock,
   BarChart3,
 } from 'lucide-react';
-import { reflowFacets, toggleStyle, type TweetFacet, type FacetType } from '@/lib/tweet-facets';
+import { buildFacetSegments, reflowFacets, toggleStyle, type TweetFacet, type FacetType } from '@/lib/tweet-facets';
 import { api } from '@/lib/client-api';
 import { uploadWithProgress } from '@/lib/client-api';
 import { connectLive, onLive, onLiveConnect, emitLive } from '@/lib/live';
@@ -249,7 +249,7 @@ const MAX_MEDIA = 4;
 const MAX_TEXT = 280;
 const RECENTS_KEY = 'tweet-recent-searches';
 
-const EMOJIS = ['ðŸ˜€','ðŸ˜‚','ðŸ¤£','ðŸ˜Š','ðŸ˜','ðŸ¥°','ðŸ˜Ž','ðŸ¤©','ðŸ™ƒ','ðŸ˜œ','ðŸ¤”','ðŸ˜´','ðŸ¥³','ðŸ˜­','ðŸ˜…','ðŸ˜‰','ðŸ‘','ðŸ‘Ž','ðŸ‘','ðŸ™','ðŸ’ª','ðŸ«¡','ðŸ”¥','âœ¨','â­','ðŸ’¯','ðŸŽ‰','ðŸŽŠ','â¤ï¸','ðŸ’”','ðŸ’š','ðŸ’™','ðŸ«¶','ðŸŽ‚','ðŸŽ','ðŸŒ','ðŸš€','âš¡','ðŸŒŸ'];
+const EMOJIS = ['😀','😂','🤣','😊','😍','🥰','😎','🤩','🙃','😜','🤔','😴','🥳','😭','😅','😉','👍','👎','👏','🙏','💪','🫡','🔥','✨','⭐','💯','🎉','🎊','❤️','💔','💚','💙','🫶','🎂','🎁','🌍','🚀','⚡','🌟'];
 const REPORT_REASONS = ['SPAM', 'HARASSMENT', 'HATE', 'VIOLENCE', 'SEXUAL', 'FRAUD', 'OTHER'] as const;
 
 function useTimeAgo() {
@@ -294,6 +294,8 @@ function renderText(text: string, onTag?: (tag: string) => void, onMention?: (us
   });
 }
 
+const SPOILER_MASK = '•••';
+
 function SpoilerText({ label, children }: { label: string; children: ReactNode }) {
   const [shown, setShown] = useState(false);
   if (shown) {
@@ -317,42 +319,77 @@ function SpoilerText({ label, children }: { label: string; children: ReactNode }
       onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); setShown(true); } }}
     >
       <span className="tweet-spoiler-blur" aria-hidden="true">{children}</span>
-      <span className="tweet-spoiler-badge" aria-hidden="true">â€¢â€¢â€¢</span>
+      <span className="tweet-spoiler-badge" aria-hidden="true">{SPOILER_MASK}</span>
     </span>
   );
 }
 
+// Style nesting order (innermost -> outermost). Spoiler stays outermost so
+// reveal shows all inner styling. Overlapping facets of different types must
+// nest, otherwise the same text would be rendered once per facet.
+const FACET_NEST: readonly FacetType[] = ['b', 'i', 'u', 'st', 'sp'];
+
 // Presentation layer around the existing text parser: wraps styled segments in
 // spans, keeps #tags/@mentions interactive, and never injects raw HTML.
 function renderFacetedText(text: string, facets: TweetFacet[] | undefined, spoilerLabel: string, onTag?: (tag: string) => void, onMention?: (username: string) => void) {
-  const list = (facets ?? [])
-    .filter((f) => f.s >= 0 && f.e <= text.length && f.s < f.e)
-    .sort((a, b) => a.s - b.s || b.e - a.e);
-  if (list.length === 0) return renderText(text, onTag, onMention);
+  const segments = buildFacetSegments(text, facets ?? []);
+  if (segments.length === 0) return renderText(text, onTag, onMention);
   const parts: ReactNode[] = [];
   let cursor = 0;
-  for (const f of list) {
-    if (f.s > cursor) {
-      parts.push(<Fragment key={`t${cursor}`}>{renderText(text.slice(cursor, f.s), onTag, onMention)}</Fragment>);
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.start > cursor) {
+      parts.push(<Fragment key={`t${cursor}-${seg.start}`}>{renderText(text.slice(cursor, seg.start), onTag, onMention)}</Fragment>);
     }
-    const seg = text.slice(f.s, f.e);
-    let styled: ReactNode = seg;
-    if (f.t !== 'sp') {
-      styled = (
-        <span className={`tweet-fmt ${f.t === 'b' ? 'tweet-fmt-b' : f.t === 'i' ? 'tweet-fmt-i' : f.t === 'u' ? 'tweet-fmt-u' : 'tweet-fmt-st'}`}>
-          {renderText(seg, onTag, onMention)}
+    let node: ReactNode = renderText(text.slice(seg.start, seg.end), onTag, onMention);
+    for (const t of FACET_NEST) {
+      if (!seg.styles.includes(t)) continue;
+      if (t === 'b') node = <span className="tweet-fmt tweet-fmt-b">{node}</span>;
+      else if (t === 'i') node = <span className="tweet-fmt tweet-fmt-i">{node}</span>;
+      else if (t === 'u') node = <span className="tweet-fmt tweet-fmt-u">{node}</span>;
+      else if (t === 'st') node = <span className="tweet-fmt tweet-fmt-st">{node}</span>;
+      else node = <SpoilerText label={spoilerLabel}>{node}</SpoilerText>;
+    }
+    parts.push(<Fragment key={`s${i}-${seg.start}`}>{node}</Fragment>);
+    cursor = seg.end;
+  }
+  if (cursor < text.length) {
+    parts.push(<Fragment key={`t${cursor}-end`}>{renderText(text.slice(cursor), onTag, onMention)}</Fragment>);
+  }
+  return parts;
+}
+
+// Non-interactive variant used by the composer overlay (it sits behind the
+// textarea, so mentions/tags/spoilers must not be focusable or clickable).
+function renderComposerText(text: string, facets: TweetFacet[]) {
+  const segments = buildFacetSegments(text, facets);
+  if (segments.length === 0) return text;
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.start > cursor) {
+      parts.push(<Fragment key={`t${cursor}-${seg.start}`}>{text.slice(cursor, seg.start)}</Fragment>);
+    }
+    let node: ReactNode = text.slice(seg.start, seg.end);
+    for (const t of FACET_NEST) {
+      if (!seg.styles.includes(t)) continue;
+      if (t === 'b') node = <span className="tweet-fmt tweet-fmt-b">{node}</span>;
+      else if (t === 'i') node = <span className="tweet-fmt tweet-fmt-i">{node}</span>;
+      else if (t === 'u') node = <span className="tweet-fmt tweet-fmt-u">{node}</span>;
+      else if (t === 'st') node = <span className="tweet-fmt tweet-fmt-st">{node}</span>;
+      else node = (
+        <span className="tweet-spoiler" aria-hidden="true">
+          <span className="tweet-spoiler-blur">{node}</span>
+          <span className="tweet-spoiler-badge">{SPOILER_MASK}</span>
         </span>
       );
     }
-    parts.push(
-      <Fragment key={`f${f.s}-${f.e}-${f.t}`}>
-        {f.t === 'sp' ? <SpoilerText label={spoilerLabel}>{renderText(seg, onTag, onMention)}</SpoilerText> : styled}
-      </Fragment>
-    );
-    cursor = f.e;
+    parts.push(<Fragment key={`s${i}-${seg.start}`}>{node}</Fragment>);
+    cursor = seg.end;
   }
   if (cursor < text.length) {
-    parts.push(<Fragment key={`t${cursor}`}>{renderText(text.slice(cursor), onTag, onMention)}</Fragment>);
+    parts.push(<Fragment key={`t${cursor}-end`}>{text.slice(cursor)}</Fragment>);
   }
   return parts;
 }
@@ -393,7 +430,7 @@ function formatCount(value: number) {
 }
 
 function pollRemaining(poll: TweetPoll): string {
-  if (!poll.closesAt) return 'âˆž';
+  if (!poll.closesAt) return '∞';
   const total = new Date(poll.closesAt).getTime() - Date.now();
   if (total <= 0) return '0m';
   const minutes = Math.floor(total / 60000);
@@ -429,8 +466,8 @@ function TweetPollView({ poll, onVote }: { poll: TweetPoll; onVote: (optionId: n
       </div>
       <span className="tweet-poll-meta">
         {poll.open
-          ? t('tweetHub.poll.votes', { count: poll.totalVotes }) + (poll.closesAt ? ` Â· ${t('tweetHub.poll.closesIn', { time: pollRemaining(poll) })}` : '')
-          : t('tweetHub.poll.endedLabel') + ' Â· ' + t('tweetHub.poll.votes', { count: poll.totalVotes })}
+          ? t('tweetHub.poll.votes', { count: poll.totalVotes }) + (poll.closesAt ? ` · ${t('tweetHub.poll.closesIn', { time: pollRemaining(poll) })}` : '')
+          : t('tweetHub.poll.endedLabel') + ' · ' + t('tweetHub.poll.votes', { count: poll.totalVotes })}
       </span>
     </div>
   );
@@ -480,7 +517,7 @@ function QuotedCard({ tweet, onOpen, onAuthor, onTag, onMention }: {
       <span className="tweet-quote-head">
         <JaminoAvatar avatarId={tweet.author.avatarId} size={20} photo={tweet.author.avatarPhoto} name={tweet.author.username} />
         <b>{tweet.author.name || `@${tweet.author.username}`}</b>
-        <span>@{tweet.author.username} Â· {timeAgo(tweet.createdAt)}</span>
+        <span>@{tweet.author.username} · {timeAgo(tweet.createdAt)}</span>
       </span>
       {tweet.text && <span className="tweet-quote-text">{renderFacetedText(tweet.text, tweet.facets, t('tweetHub.spoiler.reveal'), onTag, onMention)}</span>}
       {tweet.media[0] && (
@@ -521,7 +558,7 @@ function TweetActions({
         <Repeat2 size={17} /><span>{tweet.retweets}</span>
       </button>
       <button type="button" className="tweet-action-chev" onClick={(event) => { event.stopPropagation(); setQuoteOpen((o) => !o); }} title={t('tweetHub.action.repostMenu')} aria-label={t('tweetHub.action.repostMenu')}>
-        <span className="tweet-chev">â–¾</span>
+        <span className="tweet-chev">▾</span>
       </button>
       {quoteOpen && (
         <div className="tweet-quote-menu">
@@ -673,7 +710,7 @@ function TweetCard({
               <b>{tweet.author.name || `@${tweet.author.username}`}</b>
               <span className="tweet-handle">@{tweet.author.username}</span>
             </button>
-            <span className="tweet-time">Â· {timeAgo(tweet.createdAt)}</span>
+            <span className="tweet-time">· {timeAgo(tweet.createdAt)}</span>
             <TweetOptionsMenu
               tweet={tweet}
               isOwner={isOwner}
@@ -747,12 +784,24 @@ function Composer({
   const [threading, setThreading] = useState(false);
   const [threadLastId, setThreadLastId] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inkRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const mentionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const urlsRef = useRef<string[]>([]);
   const [facets, setFacets] = useState<TweetFacet[]>(editTweet?.facets ?? []);
   const selRef = useRef<{ s: number; e: number } | null>(null);
   const [selActive, setSelActive] = useState(false);
+  const syncInkScroll = useCallback(() => {
+    const el = inputRef.current;
+    const ink = inkRef.current;
+    if (!el || !ink) return;
+    ink.scrollTop = el.scrollTop;
+    ink.scrollLeft = el.scrollLeft;
+  }, []);
+
+  useLayoutEffect(() => {
+    syncInkScroll();
+  });
   const remaining = MAX_TEXT - text.length;
   const effectiveReplyId = replyToId ?? ((threading && threadLastId) ? threadLastId : null);
   const isReply = !!effectiveReplyId;
@@ -1002,27 +1051,25 @@ function Composer({
             );
           })}
         </div>
-        <textarea
-          id="tweet-composer-input"
-          ref={inputRef}
-          className={autofocusClass}
-          value={text}
-          onChange={(event) => { const next = event.target.value.slice(0, MAX_TEXT); applyText(next); updateMentions(next); }}
-          onSelect={captureSelection}
-          onKeyUp={captureSelection}
-          onMouseUp={captureSelection}
-          onTouchEnd={captureSelection}
-          placeholder={resolvedPlaceholder}
-          rows={compact ? 2 : 3}
-          autoFocus={autoFocus}
-          maxLength={MAX_TEXT}
-        />
-        {facets.length > 0 && text.length > 0 && (
-          <div className="tweet-fmt-preview" aria-hidden="true">
-            <span className="tweet-fmt-preview-label">{t('tweetHub.fmt.preview')}</span>
-            <span className="tweet-text tweet-fmt-preview-text">{renderFacetedText(text, facets, t('tweetHub.spoiler.reveal'))}</span>
-          </div>
-        )}
+        <div className="tweet-wysiwyg">
+          <div className="tweet-wysiwyg-ink" ref={inkRef} aria-hidden="true">{renderComposerText(text, facets)}</div>
+          <textarea
+            id="tweet-composer-input"
+            ref={inputRef}
+            className={`tweet-wysiwyg-input${autofocusClass ? ` ${autofocusClass}` : ''}`}
+            value={text}
+            onChange={(event) => { const next = event.target.value.slice(0, MAX_TEXT); applyText(next); updateMentions(next); }}
+            onSelect={captureSelection}
+            onKeyUp={captureSelection}
+            onMouseUp={captureSelection}
+            onTouchEnd={captureSelection}
+            onScroll={syncInkScroll}
+            placeholder={resolvedPlaceholder}
+            rows={compact ? 2 : 3}
+            autoFocus={autoFocus}
+            maxLength={MAX_TEXT}
+          />
+        </div>
         {mentions.length > 0 && (
           <div className="tweet-mention-suggest">
             {mentions.map((user) => (
@@ -1279,7 +1326,7 @@ function EditProfileModal({ profile, onClose, onSaved }: {
           </label>
           <label className="tweet-edit-field">
             <span>{t('tweetHub.profile.website')}</span>
-            <input value={website} onChange={(event) => setWebsite(event.target.value)} maxLength={120} placeholder="https://â€¦" />
+            <input value={website} onChange={(event) => setWebsite(event.target.value)} maxLength={120} placeholder="https://…" />
           </label>
           <label className="tweet-edit-field">
             <span>{t('tweetHub.profile.location')}</span>
@@ -2601,7 +2648,7 @@ export function TweetHub() {
               ) : (
                 recentSearches.map((term) => (
                   <button type="button" className="tweet-trend" key={term} onClick={() => { setSearchInput(term); setSearchQuery(term); setView('search'); }}>
-                    <span className="tweet-trend-tag" style={{ fontWeight: 500 }}>{term.startsWith('#') || term.startsWith('@') ? term : `â€œ${term}â€`}</span>
+                    <span className="tweet-trend-tag" style={{ fontWeight: 500 }}>{term.startsWith('#') || term.startsWith('@') ? term : `“${term}”`}</span>
                   </button>
                 ))
               )}
@@ -2723,7 +2770,7 @@ export function TweetHub() {
                           <List size={14} />
                           <span>
                             <b>{list.name}</b>
-                            <small>{list.isPrivate ? <><Lock size={11} /> {t('tweetHub.lists.privateBadge')}</> : t('tweetHub.lists.publicBadge')} Â· {t('tweetHub.lists.counts', { members: list.memberCount, tweets: list.tweetCount })}</small>
+                            <small>{list.isPrivate ? <><Lock size={11} /> {t('tweetHub.lists.privateBadge')}</> : t('tweetHub.lists.publicBadge')} · {t('tweetHub.lists.counts', { members: list.memberCount, tweets: list.tweetCount })}</small>
                           </span>
                         </button>
                       ))}
@@ -2836,7 +2883,7 @@ export function TweetHub() {
                                 <b>{new Date(row.publishAt).toLocaleString()}</b>
                                 <small className={`tweet-sched-status s-${row.status.toLowerCase()}`}>
                                   {row.status === 'PUBLISHED' ? t('tweetHub.schedule.published') : row.status === 'CANCELED' ? t('tweetHub.schedule.canceledLabel') : row.status === 'FAILED' ? t('tweetHub.schedule.failed') : t('tweetHub.schedule.pending')}
-                                  {row.text ? ` Â· ${row.text.slice(0, 60)}${row.text.length > 60 ? 'â€¦' : ''}` : ''}
+                                  {row.text ? ` · ${row.text.slice(0, 60)}${row.text.length > 60 ? '…' : ''}` : ''}
                                 </small>
                               </span>
                             </span>
@@ -2861,7 +2908,7 @@ export function TweetHub() {
                     <div className="tweet-suggestion" key={user.id}>
                       <button type="button" className="tweet-suggestion-id" onClick={() => openProfile(user.username, user.id)}>
                         <JaminoAvatar avatarId={user.avatarId} size={38} photo={user.avatarPhoto} name={user.username} />
-                        <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} Â· {user.followers === 1 ? t('tweetHub.search.oneFollower') : t('tweetHub.search.followersCount', { count: user.followers })}</small></span>
+                        <span><b>{user.name || `@${user.username}`}</b><small>@{user.username} · {user.followers === 1 ? t('tweetHub.search.oneFollower') : t('tweetHub.search.followersCount', { count: user.followers })}</small></span>
                       </button>
                       {me?.id !== user.id && (
                         <button type="button" className={`btn ${user.following ? 'btn-ghost' : 'btn-tweet'} pill-sm`} onClick={() => void toggleFollow(user.id)}>
@@ -2984,8 +3031,8 @@ export function TweetHub() {
           <button type="button" className="btn-icon tweet-lightbox-close" onClick={() => setLightbox(null)} aria-label={t('tweetHub.close')}><X size={20} /></button>
           {lightbox.media.length > 1 && (
             <>
-              <button type="button" className="tweet-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.media.length) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.prev')}>â€¹</button>
-              <button type="button" className="tweet-lightbox-nav next" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.next')}>â€º</button>
+              <button type="button" className="tweet-lightbox-nav prev" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.media.length) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.prev')}>‹</button>
+              <button type="button" className="tweet-lightbox-nav next" onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.media.length }); }} aria-label={t('tweetHub.lightbox.next')}>›</button>
             </>
           )}
           <div className="tweet-lightbox-media" onMouseDown={(e) => e.stopPropagation()}>
@@ -3021,7 +3068,7 @@ export function TweetHub() {
                     <b>{activeTweet.author.name || `@${activeTweet.author.username}`}</b>
                     <span className="tweet-handle">@{activeTweet.author.username}</span>
                   </button>
-                  <span className="tweet-time">Â· {timeAgo(activeTweet.createdAt)}</span>
+                  <span className="tweet-time">· {timeAgo(activeTweet.createdAt)}</span>
                   <TweetOptionsMenu
                     tweet={activeTweet}
                     isOwner={me?.id === activeTweet.author.id}
