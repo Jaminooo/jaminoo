@@ -55,10 +55,10 @@ export const GET = handle(async (_req, { params }: Ctx) => {
         orderBy: { createdAt: 'asc' },
         take: 100,
       },
-      currentSong: { include: SONG_PREVIEW },
+      currentSong: { select: SONG_PREVIEW },
       queueItems: {
         include: {
-          song: { include: SONG_PREVIEW },
+          song: { select: SONG_PREVIEW },
           addedByRef: { select: { id: true, username: true, isGuest: true } },
           votes: { select: { userId: true } },
         },
