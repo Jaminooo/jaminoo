@@ -144,6 +144,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const [nowMs, setNowMs] = useState(0);
   const [audioTimeMs, setAudioTimeMs] = useState(0);
   const [audioDurMs, setAudioDurMs] = useState(0);
+  const [buffering, setBuffering] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [volume, setVolume] = useState(0.8);
@@ -153,6 +154,9 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const typingTimer = useRef<number | null>(null);
   const membersRef = useRef<ChatUser[]>([]);
   const playingRef = useRef(false);
+  const seekingRef = useRef(false);
+  const seekTimerRef = useRef<number | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
   const { onContextMenu } = useContextMenu();
 
   const isOwner = jam?.ownerId === me?.id;
@@ -317,19 +321,39 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
     }
     audio.volume = muted ? 0 : volume;
     if (jam?.playing) {
-      // Authoritative seek from the server state; only correct when drift is big.
-      const target = Math.max(0, nowMs / 1000);
-      const drift = Math.abs((audio.currentTime || 0) - target);
-      if (drift > 4 || audio.paused) {
-        try {
-          audio.currentTime = target;
-        } catch {}
+      if (!seekingRef.current) {
+        // Authoritative seek from the server state; only correct when drift is big.
+        const target = Math.max(0, nowMs / 1000);
+        const drift = Math.abs((audio.currentTime || 0) - target);
+        if (drift > 4 || audio.paused) {
+          try {
+            audio.currentTime = target;
+          } catch {}
+        }
       }
       audio.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
     } else {
       audio.pause();
     }
   }, [jam?.now?.id, jam?.playing, nowMs, muted, volume]);
+
+  // Smooth, frame-accurate progress while the local element is playing.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !jam?.now || !jam.playing) return;
+    let raf = 0;
+    let last = -1;
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      const t = Math.round((audio.currentTime || 0) * 1000);
+      if (t !== last) {
+        last = t;
+        setAudioTimeMs(t);
+      }
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [jam?.now?.id, jam?.playing]);
 
   const sendText = async (text: string) => {
     if (sendingText) return;
@@ -396,6 +420,49 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   };
 
   const control = (action: string, extra?: Record<string, number>) => emitWhenConnected('music:control', { jamId, action, ...extra });
+  const sendPendingSeek = () => {
+    if (seekTimerRef.current !== null) {
+      window.clearTimeout(seekTimerRef.current);
+      seekTimerRef.current = null;
+    }
+    const position = pendingSeekRef.current;
+    pendingSeekRef.current = null;
+    if (position === null || position <= 0 || position > maxMs) {
+      seekingRef.current = false;
+      return;
+    }
+    control('seek', { position });
+    seekingRef.current = false;
+  };
+
+  const seekFromPointer = (clientX: number, el: HTMLDivElement) => {
+    if (!canControl || !jam?.now || maxMs <= 0) return;
+    const rect = el.getBoundingClientRect();
+    if (!rect.width) return;
+    let ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    if (document.documentElement.dir === 'rtl') ratio = 1 - ratio;
+    const position = Math.round(ratio * maxMs);
+    seekingRef.current = true;
+    pendingSeekRef.current = position;
+    setNowMs(position);
+    setAudioTimeMs(position);
+    const audio = audioRef.current;
+    if (audio) {
+      try {
+        audio.currentTime = position / 1000;
+      } catch {}
+    }
+    if (seekTimerRef.current !== null) window.clearTimeout(seekTimerRef.current);
+    seekTimerRef.current = window.setTimeout(sendPendingSeek, 220);
+  };
+
+  const endSeek = () => {
+    if (seekTimerRef.current !== null) {
+      window.clearTimeout(seekTimerRef.current);
+      seekTimerRef.current = null;
+    }
+    sendPendingSeek();
+  };
 
   const doSearch = async () => {
     if (!searchQ.trim()) return;
@@ -646,7 +713,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
 
   return (
     <div className="dj-room" style={{ marginTop: 24 }}>
-      <audio ref={audioRef} preload="auto" onEnded={() => emitWhenConnected('music:ended', jamId)} onError={() => setBlocked(true)} onTimeUpdate={(e) => setAudioTimeMs(Math.round((e.currentTarget.currentTime || 0) * 1000))} onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setAudioDurMs(Math.round(d * 1000)); }} />
+      <audio ref={audioRef} preload="auto" onEnded={() => emitWhenConnected('music:ended', jamId)} onError={() => setBlocked(true)} onWaiting={() => setBuffering(true)} onPlaying={() => setBuffering(false)} onCanPlay={() => setBuffering(false)} onStalled={() => setBuffering(true)} onTimeUpdate={(e) => setAudioTimeMs(Math.round((e.currentTarget.currentTime || 0) * 1000))} onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setAudioDurMs(Math.round(d * 1000)); }} />
       <div className="dj-head">
         <button type="button" className="btn-icon" onClick={onBack} title={t('modal.close')}>
           <ArrowLeft size={16} />
@@ -701,8 +768,32 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
           <b className="dj-song-title">{jam.now?.title ?? t('jams.waitingForDJ')}</b>
           <span className="dj-song-artist">{jam.now?.artist?.name ?? ''}</span>
           <div className="dj-progress">
-            <div className="dj-progress-bar"><div style={{ width: `${pct}%` }} /></div>
-            <span className="dj-progress-time">{shownMs ? fmtTime(shownMs) : '0:00'} / {fmtTime(maxMs)}</span>
+            <div
+              className={`dj-progress-bar${canControl && jam.now && maxMs > 0 ? ' seekable' : ''}`}
+              onPointerDown={(e) => {
+                if (!canControl || !jam.now || maxMs <= 0) return;
+                e.currentTarget.setPointerCapture?.(e.pointerId);
+                seekFromPointer(e.clientX, e.currentTarget);
+              }}
+              onPointerMove={(e) => {
+                if (!seekingRef.current || !canControl) return;
+                seekFromPointer(e.clientX, e.currentTarget);
+              }}
+              onPointerUp={(e) => {
+                e.currentTarget.releasePointerCapture?.(e.pointerId);
+                endSeek();
+              }}
+              onPointerCancel={(e) => {
+                e.currentTarget.releasePointerCapture?.(e.pointerId);
+                endSeek();
+              }}
+            >
+              <div style={{ width: `${pct}%` }} />
+            </div>
+            <span className="dj-progress-time">
+              {buffering && jam.playing && jam.now && <Loader2 className="spin" size={11} style={{ verticalAlign: -1, marginRight: 4 }} />}
+              {shownMs ? fmtTime(shownMs) : '0:00'} / {fmtTime(maxMs)}
+            </span>
           </div>
         </div>
         {jam.now && (

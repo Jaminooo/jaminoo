@@ -77,6 +77,20 @@
   overflow: hidden;
 }
 
+.dj-progress-bar.seekable {
+  cursor: pointer;
+  height: 6px;
+  transition: height 0.15s ease;
+}
+
+.dj-progress-bar.seekable:hover {
+  height: 8px;
+}
+
+.dj-progress-bar.seekable > div {
+  transition: width 0.08s linear;
+}
+
 .dj-progress-bar > div {
   height: 100%;
   border-radius: 999px;
