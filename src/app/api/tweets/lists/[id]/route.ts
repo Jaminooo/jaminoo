@@ -1,7 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { serializeTweet, serializeTweetAuthor } from '@/lib/tweet';
-import { hiddenAuthorIds } from '@/lib/tweet-db';
+import { tweetIncludes, hiddenAuthorIds } from '@/lib/tweet-db';
 
 export const GET = handle(async (req, { params }) => {
   const me = await requireUser();
@@ -44,12 +44,18 @@ export const GET = handle(async (req, { params }) => {
             },
           },
         },
-        { authorId: { notIn: [me.id, ...hidden] } },
+        { authorId: { notIn: hidden } },
       ],
     },
     orderBy: { createdAt: 'desc' },
     take: 40,
+    include: tweetIncludes(me.id),
   });
+
+  const myRetweets = tweets.length > 0
+    ? await prisma.tweet.findMany({ where: { retweetOfId: { in: tweets.map((t) => t.id) }, authorId: me.id }, select: { retweetOfId: true } })
+    : [];
+  const retweetedSet = new Set(myRetweets.map((r) => r.retweetOfId));
 
   return json({
     list: {
@@ -65,7 +71,7 @@ export const GET = handle(async (req, { params }) => {
       ...serializeTweetAuthor(m.member),
       joinedAt: m.createdAt.toISOString(),
     })),
-    tweets: tweets.map((t) => serializeTweet(t)),
+    tweets: tweets.map((t) => serializeTweet(t, retweetedSet.has(t.id))),
     nextCursor: tweets.length === 40 ? String(tweets[tweets.length - 1].id) : null,
   });
 });

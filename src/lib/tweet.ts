@@ -38,6 +38,7 @@ export interface SerializedTweet {
   updatedAt: string;
   author: SerializedTweetAuthor;
   quoted: SerializedTweet | null;
+  retweetOf: SerializedTweet | null;
   likes: number;
   retweets: number;
   replies: number;
@@ -94,6 +95,7 @@ export function serializePoll(poll: any): SerializedPoll | null {
 export function serializeTweet(t: any, retweeted = false, depth = 0): SerializedTweet {
   const author = serializeTweetAuthor(t.author);
   const quoted = t.quoted && depth < 1 ? serializeTweet(t.quoted, false, depth + 1) : null;
+  const retweetOf = t.retweetOf && depth < 1 ? serializeTweet(t.retweetOf, false, depth + 1) : null;
   return {
     id: t.id,
     text: t.text,
@@ -107,6 +109,7 @@ export function serializeTweet(t: any, retweeted = false, depth = 0): Serialized
     updatedAt: t.updatedAt?.toISOString() ?? t.createdAt.toISOString(),
     author,
     quoted,
+    retweetOf,
     likes: t._count ? t._count.likes ?? 0 : (t.likesCount ?? 0),
     retweets: t._count ? t._count.retweets ?? 0 : (t.retweetsCount ?? 0),
     replies: t._count ? t._count.replies ?? 0 : (t.repliesCount ?? 0),

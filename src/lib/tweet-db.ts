@@ -25,7 +25,7 @@ const QUOTE_NEST_INCLUDE = {
   _count: { select: { likes: true, retweets: true, replies: true } },
 };
 
-export function tweetIncludes(userId: number, withQuoted = true) {
+export function nestedTweetInclude(userId: number) {
   return {
     author: TWEET_ACTOR_SELECT,
     assets: {
@@ -33,7 +33,7 @@ export function tweetIncludes(userId: number, withQuoted = true) {
       include: { media: { select: { id: true, mime: true } } },
     },
     replyTo: { select: { id: true, author: TWEET_ACTOR_SELECT } },
-    ...(withQuoted ? { quoted: { include: QUOTE_NEST_INCLUDE } } : {}),
+    quoted: { include: QUOTE_NEST_INCLUDE },
     _count: { select: { likes: true, retweets: true, replies: true, quotes: true } },
     likes: { where: { userId }, select: { id: true } },
     bookmarks: { where: { userId }, select: { id: true } },
@@ -48,6 +48,13 @@ export function tweetIncludes(userId: number, withQuoted = true) {
         },
       },
     },
+  };
+}
+
+export function tweetIncludes(userId: number) {
+  return {
+    ...nestedTweetInclude(userId),
+    retweetOf: { include: nestedTweetInclude(userId) },
   };
 }
 

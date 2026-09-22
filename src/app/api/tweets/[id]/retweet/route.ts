@@ -1,5 +1,7 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
+import { serializeTweet } from '@/lib/tweet';
+import { tweetIncludes } from '@/lib/tweet-db';
 import { pushNotification } from '@/lib/notifications';
 import { livePublish } from '@/lib/live-publish';
 import { rateLimit } from '@/lib/rate-limit';
@@ -17,10 +19,15 @@ export const POST = handle(async (_req, { params }: Ctx) => {
   const existing = await prisma.tweet.findFirst({ where: { retweetOfId: id, authorId: me.id }, select: { id: true } });
   if (existing) {
     await prisma.tweet.delete({ where: { id: existing.id } });
+    livePublish(['tweet:public', `user:${me.id}`], 'tweet:delete', { tweetId: existing.id, authorId: me.id });
   } else {
-    await prisma.tweet.create({ data: { authorId: me.id, text: '', retweetOfId: id } });
+    const created = await prisma.tweet.create({ data: { authorId: me.id, text: '', retweetOfId: id } });
     if (tweet.authorId !== me.id) {
       await pushNotification(tweet.authorId, 'TWEET_RETWEET', { fromId: me.id, tweetId: id });
+    }
+    const serialized = await prisma.tweet.findUnique({ where: { id: created.id }, include: tweetIncludes(me.id) });
+    if (serialized) {
+      livePublish(['tweet:public', `user:${me.id}`], 'tweet:new', { tweet: serializeTweet(serialized, false), authorId: me.id });
     }
   }
   const retweets = await prisma.tweet.count({ where: { retweetOfId: id } });

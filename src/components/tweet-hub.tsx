@@ -111,6 +111,7 @@ interface Tweet {
   retweetOfId: number | null;
   quotedTweetId: number | null;
   quoted: Tweet | null;
+  retweetOf?: Tweet | null;
   createdAt: string;
   updatedAt: string;
   author: TweetAuthor;
@@ -663,6 +664,8 @@ function TweetCard({
   onAddToList,
   onMoveToCollection,
   onStats,
+  onOpenTweet,
+  onOpenUser,
 }: {
   tweet: Tweet;
   onOpen: () => void;
@@ -686,6 +689,8 @@ function TweetCard({
   onAddToList?: () => void;
   onMoveToCollection?: () => void;
   onStats?: () => void;
+  onOpenTweet?: (tweet: Tweet) => void;
+  onOpenUser?: (username: string, id?: number) => void;
 }) {
   const me = useAppStore((state) => state.me);
   const isOwner = me?.id === tweet.author.id;
@@ -734,6 +739,15 @@ function TweetCard({
           </button>
           {tweet.quoted && (
             <QuotedCard tweet={tweet.quoted} onOpen={onOpen} onAuthor={onAuthor} onTag={onTag} onMention={onMention} />
+          )}
+          {tweet.retweetOf && (
+            <QuotedCard
+              tweet={tweet.retweetOf}
+              onOpen={() => (onOpenTweet ? onOpenTweet(tweet.retweetOf!) : onOpen())}
+              onAuthor={() => (onOpenUser ? onOpenUser(tweet.retweetOf!.author.username, tweet.retweetOf!.author.id) : onAuthor())}
+              onTag={onTag}
+              onMention={onMention}
+            />
           )}
           <TweetMediaGrid tweet={tweet} onOpen={onMedia ?? (() => {})} />
           {tweet.poll && <TweetPollView poll={tweet.poll} onVote={onVote ?? (() => {})} />}
@@ -978,15 +992,17 @@ function Composer({
         toast(t('tweetHub.toast.tweetUpdated'), 'ok');
       } else {
         const target = effectiveReplyId ? `/api/tweets/${effectiveReplyId}/replies` : '/api/tweets';
-        const data = await api<{ tweet: Tweet }>(target, { method: 'POST', body: JSON.stringify(payload) });
-        onPosted(data.tweet);
+        const data = await api<{ tweet?: Tweet; reply?: Tweet }>(target, { method: 'POST', body: JSON.stringify(payload) });
+        const created = data.tweet ?? data.reply;
+        if (!created) throw new Error(t('tweetHub.toast.postFailed'));
+        onPosted(created);
         setDraftStatus('');
         if (draftsEligible) void api('/api/tweets/drafts', { method: 'DELETE' }).catch(() => {});
         if (!replyToId) {
           setThreading(true);
-          setThreadLastId(data.tweet.id);
+          setThreadLastId(created.id);
         } else if (threading) {
-          setThreadLastId(data.tweet.id);
+          setThreadLastId(created.id);
         }
         toast(isReply ? t('tweetHub.toast.replyPosted') : t('tweetHub.toast.live'), 'ok');
       }
@@ -1899,12 +1915,12 @@ export function TweetHub() {
     const onLike = onLive('tweet:like', (data) => {
       const id = Number(data?.tweetId ?? 0);
       if (!id || typeof data.likes !== 'number') return;
-      patchCounts((tweet) => (tweet.id === id ? { ...tweet, likeCount: data.likes } : tweet));
+      patchCounts((tweet) => (tweet.id === id ? { ...tweet, likes: data.likes, liked: !!data.liked } : tweet));
     });
     const onRepost = onLive('tweet:repost', (data) => {
       const id = Number(data?.tweetId ?? 0);
       if (!id || typeof data.reposts !== 'number') return;
-      patchCounts((tweet) => (tweet.id === id ? { ...tweet, repostCount: data.reposts } : tweet));
+      patchCounts((tweet) => (tweet.id === id ? { ...tweet, retweets: data.reposts, retweeted: !!data.reposted } : tweet));
     });
     const onReply = onLive('tweet:reply', (data) => {
       const id = Number(data?.tweetId ?? 0);
@@ -2177,8 +2193,8 @@ export function TweetHub() {
     } catch { /* sidebar lists are non-critical */ }
   }, []);
 
-  const openList = async (list: TweetListRow) => {
-    if (activeList?.id === list.id) return;
+  const openList = async (list: TweetListRow, force = false) => {
+    if (!force && activeList?.id === list.id) return;
     setActiveList(list);
     setListFeed([]);
     setListDetail(null);
@@ -2197,9 +2213,10 @@ export function TweetHub() {
 
   const openListById = async (id: number, name?: string) => {
     setView('lists');
-    setActiveList({ id, name: name ?? `#${id}`, description: '', isPrivate: false, createdAt: '', ownerId: 0, owner: { id: 0, username: '', name: '', avatarId: 0, avatarPhoto: null, bannerPhoto: null, bio: '', website: '', location: '' }, memberCount: 0, tweetCount: 0 });
+    const stub = { id, name: name ?? `#${id}`, description: '', isPrivate: false, createdAt: '', ownerId: 0, owner: { id: 0, username: '', name: '', avatarId: 0, avatarPhoto: null, bannerPhoto: null, bio: '', website: '', location: '' }, memberCount: 0, tweetCount: 0 };
+    setActiveList(stub);
     setListFeed([]);
-    await openList({ id, name: name ?? `#${id}`, description: '', isPrivate: false, createdAt: '', ownerId: 0, owner: { id: 0, username: '', name: '', avatarId: 0, avatarPhoto: null, bannerPhoto: null, bio: '', website: '', location: '' }, memberCount: 0, tweetCount: 0 });
+    void openList(stub, true);
   };
 
   const createList = async (event: FormEvent) => {
@@ -2948,17 +2965,17 @@ export function TweetHub() {
                 <TweetCard
                   key={tweet.id}
                   tweet={tweet}
-                  onOpen={() => openTweet(tweet)}
+                  onOpen={() => openTweet(tweet.retweetOf ?? tweet)}
                   onLike={() => void toggleLike(tweet)}
                   onRetweet={() => void toggleRetweet(tweet)}
                   onQuote={() => openQuote(tweet)}
                   onBookmark={() => void toggleBookmark(tweet)}
                   onShare={() => void copyLink(tweet)}
                   onDelete={() => setConfirmDelete(tweet)}
-                  onAuthor={() => openProfile(tweet.author.username, tweet.author.id)}
-                  onTag={searchTag}
-                  onMention={openProfile}
-                  onReply={() => openTweet(tweet)}
+                  onAuthor={() => openProfile((tweet.retweetOf ?? tweet).author.username, (tweet.retweetOf ?? tweet).author.id)}
+onTag={searchTag}
+                   onMention={openProfile}
+                   onReply={() => openTweet(tweet.retweetOf ?? tweet)}
                   onEdit={() => startEdit(tweet)}
                   onMute={() => void muteUser(tweet)}
                   onBlock={() => setBlockConfirm(tweet)}
@@ -2969,6 +2986,8 @@ export function TweetHub() {
                   onMoveToCollection={tweet.saved ? () => setMoveTarget(tweet) : undefined}
                   onStats={me?.id === tweet.author.id ? () => openStats(tweet) : undefined}
                   onVote={(optionId) => void votePoll(tweet, optionId)}
+                  onOpenTweet={openTweet}
+                  onOpenUser={openProfile}
                 />
               ))}
               <div ref={sentinelRef} className="tweet-feed-sentinel">
@@ -3114,17 +3133,17 @@ export function TweetHub() {
                   <TweetCard
                     key={reply.id}
                     tweet={reply}
-                    onOpen={() => openTweet(reply)}
+                    onOpen={() => openTweet(reply.retweetOf ?? reply)}
                     onLike={() => void toggleLike(reply)}
                     onRetweet={() => void toggleRetweet(reply)}
                     onQuote={() => openQuote(reply)}
                     onBookmark={() => void toggleBookmark(reply)}
                     onShare={() => void copyLink(reply)}
                     onDelete={() => setConfirmDelete(reply)}
-                    onAuthor={() => openProfile(reply.author.username, reply.author.id)}
+                    onAuthor={() => openProfile((reply.retweetOf ?? reply).author.username, (reply.retweetOf ?? reply).author.id)}
                     onTag={searchTag}
                     onMention={openProfile}
-                    onReply={() => openTweet(reply)}
+                    onReply={() => openTweet(reply.retweetOf ?? reply)}
                     onEdit={() => startEdit(reply)}
                     onMute={() => void muteUser(reply)}
                     onBlock={() => setBlockConfirm(reply)}
@@ -3133,6 +3152,8 @@ export function TweetHub() {
                     onPin={(pinned) => void togglePin({ ...reply, pinned })}
                     onVote={(optionId) => void votePoll(reply, optionId)}
                     onStats={me?.id === reply.author.id ? () => openStats(reply) : undefined}
+                    onOpenTweet={openTweet}
+                    onOpenUser={openProfile}
                   />
                 ))}
               </div>

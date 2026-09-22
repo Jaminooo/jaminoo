@@ -61,5 +61,5 @@ export const POST = handle(async (req, { params }: Ctx) => {
   livePublish(['tweet:public', `user:${me.id}`], 'tweet:new', { tweet, authorId: me.id });
   livePublish([`tweet:${parent.id}`], 'tweet:reply', { tweetId: parent.id, tweet, authorId: me.id });
 
-  return json({ reply: tweet }, 201);
+  return json({ tweet, reply: tweet }, 201);
 });
