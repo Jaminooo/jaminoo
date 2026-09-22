@@ -142,6 +142,8 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const [pane, setPane] = useState<'chat' | 'queue' | 'members'>('chat');
   const [sideTab, setSideTab] = useState<'queue' | 'members'>('queue');
   const [nowMs, setNowMs] = useState(0);
+  const [audioTimeMs, setAudioTimeMs] = useState(0);
+  const [audioDurMs, setAudioDurMs] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [volume, setVolume] = useState(0.8);
@@ -301,15 +303,21 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
+      setAudioDurMs(0);
+      setAudioTimeMs(0);
       return;
     }
     if (audio.dataset.songId !== String(now.id)) {
       audio.dataset.songId = String(now.id);
       audio.src = `/api/music/stream/${now.id}`;
       audio.load();
+      // New song: drop stale duration/position from the previous track.
+      setAudioDurMs(0);
+      setAudioTimeMs(Math.max(0, Math.round(nowMs / 1000) * 1000));
     }
     audio.volume = muted ? 0 : volume;
     if (jam?.playing) {
+      // Authoritative seek from the server state; only correct when drift is big.
       const target = Math.max(0, nowMs / 1000);
       const drift = Math.abs((audio.currentTime || 0) - target);
       if (drift > 4 || audio.paused) {
@@ -515,8 +523,9 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
 
   if (!jam) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
 
-  const maxMs = (jam.durationSec || 0) * 1000;
-  const pct = maxMs > 0 ? Math.min(100, Math.max(0, (nowMs / maxMs) * 100)) : 0;
+  const maxMs = audioDurMs > 0 ? audioDurMs : (jam.durationSec || 0) * 1000;
+  const shownMs = audioDurMs > 0 ? audioTimeMs : nowMs;
+  const pct = maxMs > 0 ? Math.min(100, Math.max(0, (shownMs / maxMs) * 100)) : 0;
   const coverUrl = jam.now?.coverUrl || fallbackCover(isNaN(jam.ownerId) ? 1 : jam.ownerId + 5);
 
   const chatPane = (
@@ -637,7 +646,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
 
   return (
     <div className="dj-room" style={{ marginTop: 24 }}>
-      <audio ref={audioRef} preload="auto" onEnded={() => emitWhenConnected('music:ended', jamId)} onError={() => setBlocked(true)} />
+      <audio ref={audioRef} preload="auto" onEnded={() => emitWhenConnected('music:ended', jamId)} onError={() => setBlocked(true)} onTimeUpdate={(e) => setAudioTimeMs(Math.round((e.currentTarget.currentTime || 0) * 1000))} onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setAudioDurMs(Math.round(d * 1000)); }} />
       <div className="dj-head">
         <button type="button" className="btn-icon" onClick={onBack} title={t('modal.close')}>
           <ArrowLeft size={16} />
@@ -693,7 +702,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
           <span className="dj-song-artist">{jam.now?.artist?.name ?? ''}</span>
           <div className="dj-progress">
             <div className="dj-progress-bar"><div style={{ width: `${pct}%` }} /></div>
-            <span className="dj-progress-time">{nowMs ? fmtTime(nowMs) : '0:00'} / {fmtTime(maxMs)}</span>
+            <span className="dj-progress-time">{shownMs ? fmtTime(shownMs) : '0:00'} / {fmtTime(maxMs)}</span>
           </div>
         </div>
         {jam.now && (
