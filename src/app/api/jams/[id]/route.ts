@@ -109,6 +109,8 @@ export const GET = handle(async (_req, { params }: Ctx) => {
       durationSec: jam.currentSong?.durationSec ?? 0,
       skipCount,
       skipMine,
+      autodj: jam.autodj,
+      currentAutoDj: jam.currentAutoDj,
       queue,
     },
   });

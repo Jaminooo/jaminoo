@@ -5,6 +5,7 @@ const { createAdapter } = require('@socket.io/redis-adapter');
 const { createClient } = require('redis');
 const { execFileSync } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
+const { pickAutoDjSong, mergeTaste, tasteFromSongs } = require('./src/lib/audio/autodj.cjs');
 
 require('dotenv').config();
 
@@ -76,6 +77,15 @@ const jamOnline = new Map();
 
 // Map of jamId -> Map<songId, Set<userId>> — collective-skip votes (in-memory mirror of JamSkipVote).
 const skipVotes = new Map();
+
+// Set of jamIds currently being advanced — one global lock so concurrent
+// clients can't double-advance the same music queue.
+const advanceLocks = new Set();
+
+// Auto-DJ recent rotation per jam — song ids picked by the radio, so it
+// doesn't repeat itself too soon. In-memory; resets on restart.
+const autodjRecent = new Map();
+const autodjRecentWindow = 12;
 
 async function friendsOf(userId) {
   const cached = friendCache.get(userId);
@@ -397,6 +407,8 @@ app.prepare().then(async () => {
         durationSec: jam.currentSong ? jam.currentSong.durationSec : 0,
         skipVotes: songId ? skipCount(jam.id, songId) : 0,
         skipRequired: required,
+        autodj: !!jam.autodj,
+        currentAutoDj: !!jam.currentAutoDj,
       });
     };
 
@@ -424,25 +436,134 @@ app.prepare().then(async () => {
       if (tx.length) await prisma.$transaction(tx);
     };
 
-    const advanceLocks = new Set();
+    // --- Auto-DJ: keep a music jam alive with songs picked from member taste ---
+    // In-memory recent rotation and the advance lock live at module scope so
+    // they're shared across all socket connections (see top of file).
+
+    const recordAutodjPlay = (jamId, songId) => {
+      const list = autodjRecent.get(jamId) || [];
+      list.unshift(songId);
+      autodjRecent.set(jamId, list.slice(0, autodjRecentWindow));
+    };
+
+    /**
+     * Compute the room's collective taste (genre -> weight) from the online
+     * members' music favorites and recent user-wide play history, merged with
+     * one full weight for the song currently/last playing in this jam so the
+     * radio at least keeps the current vibe when there is no history yet.
+     */
+    const collectTaste = async (jam) => {
+      const memberIds = jam.members.map((m) => m.userId);
+      const favoriteSongs = await prisma.songFavorite.findMany({
+        where: { userId: { in: memberIds } },
+        include: { song: { select: { genres: true } } },
+        take: 200,
+      });
+      const taste = tasteFromSongs(favoriteSongs.map((f) => f.song));
+      if (jam.currentSongId) {
+        const prev = await prisma.song.findUnique({ where: { id: jam.currentSongId }, select: { genres: true } });
+        if (prev) Object.entries(tasteFromSongs([prev])).forEach(([g, w]) => { taste[g] = (taste[g] || 0) + w; });
+      }
+      return taste;
+    };
+
+    /**
+     * Build the candidate pool: every playable song except ones currently in
+     * this jam's queue. Prefers songs that have a streamable audio file or
+     * link; falls back to any song row when the catalog is sparse.
+     */
+    const autodjCandidates = async (jam) => {
+      const queueIds = new Set(jam.queueItems.map((qi) => qi.songId));
+      const inQueue = queueIds.size > 0 ? { id: { notIn: [...queueIds] } } : {};
+      const rows = await prisma.song.findMany({
+        where: inQueue,
+        orderBy: [{ plays: 'desc' }],
+        take: 300,
+        select: { id: true, title: true, artistId: true, genres: true, durationSec: true, plays: true, featured: true, audioFile: true, audioLink: true },
+      });
+      const playable = rows.filter((s) => s.audioFile || s.audioLink).map((s) => ({
+        id: s.id,
+        title: s.title,
+        artistId: s.artistId,
+        genres: JSON.parse(s.genres || '[]'),
+        durationSec: s.durationSec,
+        plays: s.plays,
+        featured: s.featured,
+      }));
+      return playable.length > 3 ? playable : rows.map((s) => ({
+        id: s.id,
+        title: s.title,
+        artistId: s.artistId,
+        genres: JSON.parse(s.genres || '[]'),
+        durationSec: s.durationSec,
+        plays: s.plays,
+        featured: s.featured,
+      }));
+    };
+
+    /**
+     * Pick and start an Auto-DJ song for a jam whose queue has run empty.
+     * Returns the started song (or null when there is nothing to play).
+     */
+    const startAutoDj = async (jamId) => {
+      const jam = await refreshJam(jamId);
+      if (!jam || jam.kind !== 'MUSIC' || jam.closed || !jam.autodj) return null;
+      if (jam.queueItems.length > 0 || jam.currentPlaying) return null;
+
+      let candidates = [];
+      let taste = {};
+      try {
+        [candidates, taste] = await Promise.all([autodjCandidates(jam), collectTaste(jam)]);
+      } catch (e) {
+        console.error('autodj candidate/taste error:', e && e.message);
+        return null;
+      }
+      const recent = autodjRecent.get(jamId) || [];
+      const pick = pickAutoDjSong({
+        candidates,
+        taste,
+        recentIds: recent,
+        queueIds: jam.queueItems.map((qi) => qi.songId),
+        currentSongId: jam.currentSongId,
+      });
+      if (!pick) return null;
+
+      await prisma.jam.update({
+        where: { id: jamId },
+        data: { currentSongId: pick.id, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0, currentAutoDj: true },
+      });
+      await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: pick.id } });
+      clearSkips(jamId, pick.id);
+      recordAutodjPlay(jamId, pick.id);
+      const fresh = await refreshJam(jamId);
+      if (fresh) {
+        broadcastState(fresh);
+        broadcastQueue(fresh);
+      }
+      return pick;
+    };
+
     const advanceQueue = async (jamId) => {
       if (advanceLocks.has(jamId)) return;
       advanceLocks.add(jamId);
       try {
         const jam = await refreshJam(jamId);
-        if (!jam || !jam.currentSongId) return;
+        if (!jam || !jam.currentSongId) { advanceLocks.delete(jamId); return; }
         await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: jam.currentSongId } });
         clearSkips(jamId, jam.currentSongId);
         const next = jam.queueItems.length ? jam.queueItems[0] : null;
         if (next) {
           await prisma.jam.update({
             where: { id: jamId },
-            data: { currentSongId: next.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
+            data: { currentSongId: next.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0, currentAutoDj: false },
           });
           await prisma.jamQueueItem.delete({ where: { id: next.id } });
           await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: next.songId } });
         } else {
           await prisma.jam.update({ where: { id: jamId }, data: { currentPlaying: false, currentPosition: 0 } });
+          // Queue is empty — let Auto-DJ (if enabled) pick the next song so
+          // the room never goes silent.
+          await startAutoDj(jamId);
         }
         const fresh = await refreshJam(jamId);
         if (fresh) {
@@ -626,7 +747,7 @@ app.prepare().then(async () => {
               const first = fresh.queueItems[0];
               await prisma.jam.update({
                 where: { id: jamId },
-                data: { currentSongId: first.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
+                data: { currentSongId: first.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0, currentAutoDj: false },
               });
               await prisma.jamQueueItem.delete({ where: { id: first.id } });
               await prisma.jamSkipVote.deleteMany({ where: { jamId, songId: first.songId } });
@@ -692,14 +813,14 @@ app.prepare().then(async () => {
             const position = Math.max(0, Math.min((song.durationSec || 0) * 1000, Number(d.position) || 0));
             await prisma.jam.update({
               where: { id: jamId },
-              data: { currentSongId: songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: position },
+              data: { currentSongId: songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: position, currentAutoDj: false },
             });
           } else if (!cur.currentSongId) {
             const first = cur.queueItems[0];
             if (first) {
               await prisma.jam.update({
                 where: { id: jamId },
-                data: { currentSongId: first.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0 },
+                data: { currentSongId: first.songId, currentStartedAt: new Date(), currentPlaying: true, currentPosition: 0, currentAutoDj: false },
               });
               await prisma.jamQueueItem.delete({ where: { id: first.id } });
             }
@@ -745,6 +866,32 @@ app.prepare().then(async () => {
         if (fresh) broadcastState(fresh);
       } catch (e) {
         console.error('music:control error:', e && e.message);
+      }
+    });
+
+    socket.on('music:autodj', async (d) => {
+      if (!d || typeof d !== 'object' || typeof d.jamId !== 'string') return;
+      const jamId = d.jamId;
+      const enabled = d.enabled === true;
+      try {
+        const jam = await prisma.jam.findUnique({
+          where: { id: jamId },
+          select: { id: true, ownerId: true, kind: true, members: true, autodj: true },
+        });
+        if (!jam || jam.kind !== 'MUSIC') return;
+        const meMember = jam.members.find((m) => m.userId === userId);
+        const canControl = jam.ownerId === userId || !!socket.data.isAdmin || meMember?.role === 'MINI_HOST';
+        if (!canControl) return;
+        await prisma.jam.update({ where: { id: jamId }, data: { autodj: enabled } });
+        const fresh = await refreshJam(jamId);
+        if (fresh) {
+          broadcastState(fresh);
+          io.to(`jam:${jamId}`).emit('jam:update', jamId);
+          // Turning Auto-DJ on with nothing playing kicks it off.
+          if (enabled && !fresh.currentPlaying) await startAutoDj(jamId);
+        }
+      } catch (e) {
+        console.error('music:autodj error:', e && e.message);
       }
     });
 

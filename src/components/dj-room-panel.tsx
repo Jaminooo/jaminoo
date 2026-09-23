@@ -114,6 +114,8 @@ interface JamDetail {
   durationSec: number;
   skipCount: number;
   skipMine: boolean;
+  autodj: boolean;
+  currentAutoDj: boolean;
   queue: QueueRow[];
 }
 
@@ -198,9 +200,9 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
     const socket = connectLive();
     const off = onLiveConnect(() => emitLive('jam:join', jamId));
     emitWhenConnected('jam:join', jamId);
-    onLive('music:state', (d: { jamId: string; now: SongPreview | null; playing: boolean; positionMs: number; atMs: number; durationSec: number; skipVotes: number; skipRequired: number }) => {
+    onLive('music:state', (d: { jamId: string; now: SongPreview | null; playing: boolean; positionMs: number; atMs: number; durationSec: number; skipVotes: number; skipRequired: number; autodj?: boolean; currentAutoDj?: boolean }) => {
       if (d.jamId !== jamId) return;
-      setJam((prev) => (prev ? { ...prev, now: d.now, playing: d.playing, durationSec: d.durationSec } : prev));
+      setJam((prev) => (prev ? { ...prev, now: d.now, playing: d.playing, durationSec: d.durationSec, autodj: d.autodj ?? prev.autodj, currentAutoDj: d.currentAutoDj ?? prev.currentAutoDj } : prev));
       playingRef.current = d.playing;
       if (d.now && d.now.id !== votedSongId) {
         setVotedSongId(d.now.id);
@@ -435,6 +437,11 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   };
 
   const control = (action: string, extra?: Record<string, number>) => emitWhenConnected('music:control', { jamId, action, ...extra });
+  const toggleAutoDj = (enabled: boolean) => {
+    if (!canControl) return;
+    setJam((prev) => (prev ? { ...prev, autodj: enabled } : prev));
+    emitWhenConnected('music:autodj', { jamId, enabled });
+  };
   const sendPendingSeek = () => {
     if (seekTimerRef.current !== null) {
       window.clearTimeout(seekTimerRef.current);
@@ -793,7 +800,10 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
         </div>
         <div className="dj-player-now">
           <span className="jamset-now-label"><Radio size={11} /> {t('jams.nowPlaying')}</span>
-          <b className="dj-song-title">{jam.now?.title ?? t('jams.waitingForDJ')}</b>
+          <b className="dj-song-title">
+            {jam.now?.title ?? t('jams.waitingForDJ')}
+            {jam.now && jam.currentAutoDj && <span className="dj-autodj-badge"><Radio size={10} /> {t('room.autodjTag')}</span>}
+          </b>
           <span className="dj-song-artist">{jam.now?.artist?.name ?? ''}</span>
           <div className="dj-progress">
             <div
@@ -834,6 +844,17 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
             <button type="button" className="btn-icon dj-btn-big" title={t('room.skipSong')} onClick={() => (canControl ? control('skip') : voteSkip())}>
               <SkipForward size={18} />
             </button>
+            {canControl && (
+              <button
+                type="button"
+                className={`btn-icon dj-btn-big${jam.autodj ? ' active' : ''}`}
+                title={jam.autodj ? t('room.autodjOff') : t('room.autodjOn')}
+                aria-pressed={jam.autodj}
+                onClick={() => toggleAutoDj(!jam.autodj)}
+              >
+                <Radio size={18} />
+              </button>
+            )}
             {hasLyrics && (
               <button
                 type="button"

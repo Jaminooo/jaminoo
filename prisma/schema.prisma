@@ -163,6 +163,8 @@ model Jam {
   currentStartedAt DateTime?
   currentPlaying   Boolean  @default(false)
   currentPosition  Int      @default(0)
+  autodj           Boolean  @default(true) // Auto-DJ: keep playing from member taste when the queue is empty
+  currentAutoDj    Boolean  @default(false) // Last started song was picked by Auto-DJ
   currentCinemaVideoId Int?
   currentCinemaStartedAt DateTime?
   currentCinemaPlaying Boolean @default(false)

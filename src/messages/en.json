@@ -211,6 +211,9 @@
     "search": "Search",
     "searchPlaceholder": "Song, artist…",
     "addedToQueue": "Added to queue",
+    "autodjOn": "Enable smart radio",
+    "autodjOff": "Disable smart radio",
+    "autodjTag": "Smart radio",
     "loadFailed": "Couldn't open this jam.",
     "retry": "Try again",
     "back": "Back"

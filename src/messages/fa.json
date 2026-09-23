@@ -211,6 +211,9 @@
     "search": "جستجو",
     "searchPlaceholder": "آهنگ، خواننده…",
     "addedToQueue": "به صف اضافه شد",
+    "autodjOn": "رادیو هوشمند روشن",
+    "autodjOff": "رادیو هوشمند خاموش",
+    "autodjTag": "رادیو هوشمند",
     "loadFailed": "باز کردن این جم ممکن نشد.",
     "retry": "تلاش دوباره",
     "back": "بازگشت"

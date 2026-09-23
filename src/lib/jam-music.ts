@@ -58,6 +58,8 @@ export async function jamMusicState(jamId: string, viewerId: number, viewerIsAdm
       canControl,
       skipVotes,
       skipMine,
+      autodj: !!jam.autodj,
+      currentAutoDj: !!jam.currentAutoDj,
     },
     queue: jam.queueItems.map((qi) => ({
       id: qi.id,
