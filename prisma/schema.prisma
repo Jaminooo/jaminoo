@@ -221,10 +221,11 @@ model JamMessage {
 model Media {
   id        String @id
   userId    Int
-  kind      String @default("IMAGE") // IMAGE | VOICE
+  kind      String @default("IMAGE") // IMAGE | VOICE | *_ASSET
   filename  String
   mime      String
   size      Int
+  data      Bytes? // DB mirror of the uploaded bytes so files survive ephemeral disk wipes
   createdAt DateTime @default(now())
 
   user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -1,6 +1,6 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
-import { unlink } from 'fs/promises';
+import { unlink, readFile } from 'fs/promises';
 import path from 'path';
 import { NextResponse } from 'next/server';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
@@ -102,41 +102,12 @@ export const GET = handle(async (req, { params }: Ctx) => {
   if (!media) return err('Not found', 404);
   if (!(await canAccessMedia(me.id, media.id, me.isAdmin))) return err('Forbidden', 403);
   const fpath = path.join(UPLOAD_DIR, media.filename);
+
+  let buffer: Buffer;
   try {
-    const fs = await import('fs/promises');
-    const buffer = await fs.readFile(fpath);
-    const range = req.headers.get('range');
-    let start = 0;
-    let end = buffer.length - 1;
-    let status = 200;
-
-    if (range) {
-      const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
-      if (!match) return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${buffer.length}` } });
-      if (match[1]) start = Number(match[1]);
-      if (match[2]) end = Number(match[2]);
-      if (!match[1] && match[2]) {
-        const suffixLength = Number(match[2]);
-        start = Math.max(0, buffer.length - suffixLength);
-        end = buffer.length - 1;
-      }
-      end = Math.min(end, buffer.length - 1);
-      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start > end || start >= buffer.length) {
-        return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${buffer.length}` } });
-      }
-      status = 206;
-    }
-
-    const body = buffer.subarray(start, end + 1);
-    const headers: Record<string, string> = {
-      'Content-Type': media.mime,
-      'Content-Length': String(body.length),
-      'Accept-Ranges': 'bytes',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': media.kind.endsWith('_ASSET') ? 'public, max-age=3600' : 'private, max-age=3600',
-    };
-    if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${buffer.length}`;
-    return new NextResponse(new Uint8Array(body), { status, headers });
+    // DB mirror survives ephemeral disk wipes (Render); disk stays primary
+    // for large assets that are too big to mirror.
+    buffer = media.data ? Buffer.from(media.data) : await readFile(fpath);
   } catch {
     // Uploaded file was wiped (fresh deploy without persistent disk). Stream
     // the bundled default so clients never see a broken image/video.
@@ -144,6 +115,39 @@ export const GET = handle(async (req, { params }: Ctx) => {
     if (!fallback) return err('File missing', 404);
     return streamFile(req, fallback.path, fallback.mime);
   }
+
+  const range = req.headers.get('range');
+  let start = 0;
+  let end = buffer.length - 1;
+  let status = 200;
+
+  if (range) {
+    const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+    if (!match) return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${buffer.length}` } });
+    if (match[1]) start = Number(match[1]);
+    if (match[2]) end = Number(match[2]);
+    if (!match[1] && match[2]) {
+      const suffixLength = Number(match[2]);
+      start = Math.max(0, buffer.length - suffixLength);
+      end = buffer.length - 1;
+    }
+    end = Math.min(end, buffer.length - 1);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start > end || start >= buffer.length) {
+      return new NextResponse(null, { status: 416, headers: { 'Content-Range': `bytes */${buffer.length}` } });
+    }
+    status = 206;
+  }
+
+  const body = buffer.subarray(start, end + 1);
+  const headers: Record<string, string> = {
+    'Content-Type': media.mime,
+    'Content-Length': String(body.length),
+    'Accept-Ranges': 'bytes',
+    'X-Content-Type-Options': 'nosniff',
+    'Cache-Control': media.kind.endsWith('_ASSET') ? 'public, max-age=3600' : 'private, max-age=3600',
+  };
+  if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${buffer.length}`;
+  return new NextResponse(new Uint8Array(body), { status, headers });
 });
 
 export const DELETE = handle(async (_req, { params }: Ctx) => {

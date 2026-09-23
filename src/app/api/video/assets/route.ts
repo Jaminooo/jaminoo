@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
+import { persistMediaBytes } from '@/lib/media-store';
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 const IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
@@ -72,6 +73,7 @@ export const POST = handle(async (req: Request) => {
       size: file.size,
     },
   });
+  await persistMediaBytes(record.id, buffer, mime);
 
   return json({
     asset: {

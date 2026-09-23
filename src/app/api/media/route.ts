@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
+import { persistMediaBytes } from '@/lib/media-store';
 
 function sniffImage(buf: Buffer): string | null {
   if (buf.length >= 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 && buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a) {
@@ -64,6 +65,7 @@ export const POST = handle(async (req: Request) => {
   const record = await prisma.media.create({
     data: { id, userId: me.id, kind: 'IMAGE', filename, mime, size: file.size },
   });
+  await persistMediaBytes(record.id, buf, mime);
 
   return json(
     {

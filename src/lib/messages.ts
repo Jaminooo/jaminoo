@@ -6,6 +6,7 @@ import { randomBytes } from 'crypto';
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
+import { persistMediaBytes } from '@/lib/media-store';
 
 type MsgRow = {
   id: number;
@@ -54,7 +55,9 @@ export async function storeVoice(file: File, userId: number) {
   await mkdir(UPLOAD_DIR, { recursive: true });
   await writeFile(path.join(UPLOAD_DIR, filename), buf);
 
-  return prisma.media.create({
+  const record = await prisma.media.create({
     data: { id, userId, kind: 'VOICE', filename, mime, size: file.size },
   });
+  await persistMediaBytes(record.id, buf, mime);
+  return record;
 }

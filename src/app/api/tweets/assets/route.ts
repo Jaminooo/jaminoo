@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { UPLOAD_DIR } from '@/lib/upload-storage';
 import { kindForMime } from '@/lib/media-kinds';
+import { persistMediaBytes } from '@/lib/media-store';
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
@@ -53,6 +54,7 @@ export const POST = handle(async (req: Request) => {
   const record = await prisma.media.create({
     data: { id, userId: me.id, kind: kindForMime(mime), filename, mime, size: file.size },
   });
+  await persistMediaBytes(record.id, buffer, mime);
 
   return json({
     asset: {
