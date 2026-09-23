@@ -279,6 +279,23 @@ let io;
 // shelf so the Cinema/Anime hubs and room players have playable content.
 // Only runs on empty tables — user/admin data is never touched or overwritten.
 const DEMO_MEDIA_BASE = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
+// The old Google sample bucket is geo-blocked for some regions (returns 403
+// "not available in your location"), so demo rows resolve through these public,
+// range-capable mirrors. Plain <video> playback needs no CORS.
+const DEMO_MEDIA_REPLACEMENTS = {
+  'BigBuckBunny.mp4': 'https://cdn.jsdelivr.net/gh/mediaelement/mediaelement-files@master/big_buck_bunny.mp4',
+  'Sintel.mp4': 'https://cdn.jsdelivr.net/gh/mediaelement/mediaelement-files@master/echo-hereweare.mp4',
+  'ElephantsDream.mp4': 'https://mdn.github.io/learning-area/html/multimedia-and-embedding/video-and-audio-content/rabbit320.mp4',
+  'TearsOfSteel.mp4': 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+  'SubaruOutbackOnStreetAndDirt.mp4': 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4',
+  'ForBiggerFun.mp4': 'https://www.w3schools.com/html/mov_bbb.mp4',
+  'ForBiggerJoyrides.mp4': 'https://cdn.jsdelivr.net/gh/mediaelement/mediaelement-files@master/big_buck_bunny.mp4',
+  'ForBiggerEscapes.mp4': 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4',
+  'ForBiggerMeltdowns.mp4': 'https://www.w3schools.com/html/mov_bbb.mp4',
+};
+function demoMediaUrl(file) {
+  return DEMO_MEDIA_REPLACEMENTS[file] || `${DEMO_MEDIA_BASE}${file}`;
+}
 async function ensureDemoEntertainment() {
   const [cinemaCount, animeCount] = await Promise.all([
     prisma.cinemaVideo.count().catch(() => 0),
@@ -299,7 +316,7 @@ async function ensureDemoEntertainment() {
       const existing = await prisma.cinemaVideo.findFirst({ where: { title: m.title } });
       if (existing) continue;
       await prisma.cinemaVideo.create({
-        data: { title: m.title, kind: m.kind, description: m.description, externalUrl: `${DEMO_MEDIA_BASE}${m.file}`, durationSec: m.durationSec, visibility: 'PUBLIC' },
+        data: { title: m.title, kind: m.kind, description: m.description, externalUrl: demoMediaUrl(m.file), durationSec: m.durationSec, visibility: 'PUBLIC' },
       });
     }
     console.log('[boot] Demo cinema titles seeded.');
@@ -315,7 +332,7 @@ async function ensureDemoEntertainment() {
     const existing = await prisma.cinemaVideo.findFirst({ where: { title: c.title } });
     if (existing) continue;
     await prisma.cinemaVideo.create({
-      data: { title: c.title, kind: 'CARTOON', description: c.description, externalUrl: `${DEMO_MEDIA_BASE}${c.file}`, durationSec: c.durationSec, visibility: 'PUBLIC' },
+      data: { title: c.title, kind: 'CARTOON', description: c.description, externalUrl: demoMediaUrl(c.file), durationSec: c.durationSec, visibility: 'PUBLIC' },
     });
     console.log(`[boot] Demo cartoon seeded: ${c.title}`);
   }
@@ -359,7 +376,7 @@ async function ensureDemoEntertainment() {
       });
       for (const ep of s.episodes) {
         await prisma.animeEpisode.create({
-          data: { animeId: anime.id, slug: ep.slug, title: ep.title, number: ep.number, externalUrl: `${DEMO_MEDIA_BASE}${ep.file}`, durationSec: ep.durationSec },
+          data: { animeId: anime.id, slug: ep.slug, title: ep.title, number: ep.number, externalUrl: demoMediaUrl(ep.file), durationSec: ep.durationSec },
         });
       }
     }
@@ -413,7 +430,7 @@ async function ensureDemoVideo() {
         description: post.desc,
         kind: post.kind,
         mediaType: post.mediaType,
-        externalUrl: post.file ? `${DEMO_MEDIA_BASE}${post.file}` : '',
+        externalUrl: post.file ? demoMediaUrl(post.file) : '',
         durationSec: post.durationSec,
         visibility: 'PUBLIC',
         workflowStatus: 'PUBLISHED',
@@ -423,11 +440,38 @@ async function ensureDemoVideo() {
   console.log('[boot] Demo video catalog seeded.');
 }
 
+// Rewrites demo rows that still point at the geo-blocked Google sample bucket
+// to their working mirror URLs. Runs every boot; after the first pass the
+// 'gtv-videos-bucket' pattern no longer matches, so it is naturally idempotent.
+// User/admin media (own URLs) is never touched.
+async function repairDemoMediaUrls() {
+  const rewrite = async (model, rows) => {
+    let fixed = 0;
+    for (const row of rows) {
+      const file = row.externalUrl.replace(DEMO_MEDIA_BASE, '');
+      if (!DEMO_MEDIA_REPLACEMENTS[file]) continue; // unknown file — not a demo row
+      await model.update({ where: { id: row.id }, data: { externalUrl: DEMO_MEDIA_REPLACEMENTS[file] } });
+      fixed++;
+    }
+    return fixed;
+  };
+  const [cinema, anime, posts] = await Promise.all([
+    prisma.cinemaVideo.findMany({ where: { externalUrl: { contains: 'gtv-videos-bucket' } } }),
+    prisma.animeEpisode.findMany({ where: { externalUrl: { contains: 'gtv-videos-bucket' } } }),
+    prisma.videoPost.findMany({ where: { externalUrl: { contains: 'gtv-videos-bucket' } } }),
+  ]);
+  const total = (await rewrite(prisma.cinemaVideo, cinema))
+    + (await rewrite(prisma.animeEpisode, anime))
+    + (await rewrite(prisma.videoPost, posts));
+  if (total > 0) console.log(`[boot] Repaired ${total} demo media URLs (geo-blocked Google bucket -> mirrors).`);
+}
+
 applyPendingMigrations();
 ensureDemoCatalog().catch((e) => console.error('[boot] demo catalog seed error:', e && e.message));
 backfillDemoLyrics().catch((e) => console.error('[boot] demo lyrics backfill error:', e && e.message));
 ensureDemoEntertainment().catch((e) => console.error('[boot] demo entertainment seed error:', e && e.message));
 ensureDemoVideo().catch((e) => console.error('[boot] demo video seed error:', e && e.message));
+repairDemoMediaUrls().catch((e) => console.error('[boot] demo media repair error:', e && e.message));
 
 app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));
