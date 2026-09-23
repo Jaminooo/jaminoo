@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { LucideIcon } from 'lucide-react';
@@ -12,7 +12,7 @@ import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { connectLive, onLive } from '@/lib/live';
 import { VinylPlayer } from '@/components/vinyl-player';
-import { WATCH_QUALITIES, DEFAULT_QUALITY, type WatchQuality } from '@/lib/watch-select';
+import { WATCH_QUALITIES, DEFAULT_QUALITY, resolveWatchSource, type QualitySources, type WatchQuality } from '@/lib/watch-select';
 import {
   animeItem as toWatchAnime,
   buildCategoryRails,
@@ -39,6 +39,7 @@ interface CinemaRow {
   description: string;
   kind: string;
   externalUrl: string | null;
+  qualitySources?: QualitySources;
   thumbnailUrl: string | null;
   subtitlesUrl: string | null;
   durationSec: number;
@@ -65,17 +66,22 @@ interface AnimeRow {
 
 interface EpisodeItem {
   id: number;
-  animeId: number;
+  animeId?: number;
+  cinemaVideoId?: number;
+  season?: number;
   number: number;
   title: string;
   durationSec: number;
   externalUrl: string | null;
+  qualitySources?: QualitySources;
   thumbnailUrl?: string | null;
   subtitlesUrl?: string | null;
 }
 
 interface PlayingMedia {
   url: string;
+  source: string | null;
+  qualitySources: QualitySources;
   poster: string | null;
   subtitles: string | null;
   title: string;
@@ -142,8 +148,10 @@ export function WatchHub() {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<WatchItem | null>(null);
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
   const [playing, setPlaying] = useState<PlayingMedia | null>(null);
   const [activeEpisode, setActiveEpisode] = useState<EpisodeItem | null>(null);
+  const detailRequestRef = useRef(0);
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('');
   const [loading, setLoading] = useState(true);
@@ -226,24 +234,64 @@ export function WatchHub() {
     localStorage.setItem('jamino_watch_list', JSON.stringify([...next]));
   };
 
+  const toPlayingMedia = (source: string | null | undefined, sources: QualitySources | undefined, poster: string | null, subtitles: string | null, title: string): PlayingMedia => ({
+    url: resolveWatchSource(source, sources, quality),
+    source: source || null,
+    qualitySources: sources || {},
+    poster,
+    subtitles,
+    title,
+  });
+
   const openDetail = async (item: WatchItem) => {
+    const requestId = ++detailRequestRef.current;
     setSelected(item);
     setEpisodes([]);
-    setPlaying(null);
     setActiveEpisode(null);
-    if (item.kind === 'ANIME' && item.slug) {
-      try {
-        const data = await api<{ episodes: EpisodeItem[] }>(`/api/anime/${item.slug}/episodes`);
-        setEpisodes(data.episodes || []);
-      } catch {
-        setEpisodes([]);
+    setEpisodesLoading(item.kind === 'ANIME' || item.kind === 'SERIES');
+    setPlaying(toPlayingMedia(item.mediaUrl, undefined, item.artworkUrl, item.subtitlesUrl, item.title));
+    try {
+      if (item.kind === 'ANIME' && item.slug) {
+        try {
+          const data = await api<{ episodes: EpisodeItem[] }>(`/api/anime/${item.slug}/episodes`);
+          if (requestId !== detailRequestRef.current) return;
+          const nextEpisodes = data.episodes || [];
+          setEpisodes(nextEpisodes);
+          const first = nextEpisodes[0];
+          if (first) {
+            setActiveEpisode(first);
+            setPlaying(toPlayingMedia(first.externalUrl, first.qualitySources, first.thumbnailUrl ?? item.artworkUrl, first.subtitlesUrl ?? null, `${item.title} · ${t('watch.episode', { n: first.number })}`));
+          }
+        } catch {
+          if (requestId !== detailRequestRef.current) return;
+          setEpisodes([]);
+        }
+      } else if (item.source === 'cinema') {
+        const data = await api<{ item: CinemaRow; episodes: EpisodeItem[] }>(`/api/cinema/${item.externalId}`);
+        if (requestId !== detailRequestRef.current) return;
+        const detail = data.item;
+        setPlaying(toPlayingMedia(detail.externalUrl, detail.qualitySources, detail.thumbnailUrl || item.artworkUrl, detail.subtitlesUrl, item.title));
+        const nextEpisodes = data.episodes || [];
+        setEpisodes(nextEpisodes);
+        const first = nextEpisodes[0];
+        if (first) {
+          setActiveEpisode(first);
+          setPlaying(toPlayingMedia(first.externalUrl, first.qualitySources, first.thumbnailUrl ?? detail.thumbnailUrl, first.subtitlesUrl ?? detail.subtitlesUrl, `${item.title} · S${first.season || 1} · ${t('watch.episode', { n: first.number })}`));
+        }
       }
+    } catch (error) {
+      if (requestId !== detailRequestRef.current) return;
+      toast(error instanceof Error ? error.message : t('watch.loadError'), 'error');
+    } finally {
+      if (requestId === detailRequestRef.current) setEpisodesLoading(false);
     }
   };
 
   const closeDetail = () => {
+    detailRequestRef.current += 1;
     setSelected(null);
     setEpisodes([]);
+    setEpisodesLoading(false);
     setPlaying(null);
     setActiveEpisode(null);
   };
@@ -261,12 +309,13 @@ export function WatchHub() {
 
   const DEMO_PLAYBACK = '/defaults/videos/demo.mp4';
   const playMovie = (item: WatchItem) => {
-    setPlaying({ url: item.mediaUrl || DEMO_PLAYBACK, poster: item.artworkUrl, subtitles: item.subtitlesUrl, title: item.title });
+    setActiveEpisode(null);
+    setPlaying(toPlayingMedia(item.mediaUrl || DEMO_PLAYBACK, item.source === 'cinema' ? playing?.qualitySources : undefined, item.artworkUrl, item.subtitlesUrl, item.title));
   };
 
   const playEpisode = (item: WatchItem, ep: EpisodeItem) => {
     setActiveEpisode(ep);
-    setPlaying({ url: ep.externalUrl || DEMO_PLAYBACK, poster: ep.thumbnailUrl ?? null, subtitles: ep.subtitlesUrl ?? null, title: `${item.title} · ${t('watch.episode', { n: ep.number })}` });
+    setPlaying(toPlayingMedia(ep.externalUrl || DEMO_PLAYBACK, ep.qualitySources, ep.thumbnailUrl ?? item.artworkUrl, ep.subtitlesUrl ?? null, `${item.title} · S${ep.season || 1} · ${t('watch.episode', { n: ep.number })}`));
   };
 
   const startParty = async () => {
@@ -405,7 +454,7 @@ export function WatchHub() {
   }
 
   const catalogueTitle = tab === 'my-list' ? t('watch.savedForLater') : t('watch.pickNext');
-  const canStartParty = selected ? (selected.kind === 'ANIME' ? episodes.some((e) => e.externalUrl) : Boolean(selected.mediaUrl)) : false;
+  const canStartParty = selected ? (selected.kind === 'ANIME' ? episodes.some((episode) => episode.externalUrl) : Boolean(selected.mediaUrl || playing?.source)) : false;
 
   return (
     <div className="hub-shell hub-shell-watch watch-hub-root">
@@ -583,6 +632,7 @@ export function WatchHub() {
                 <VinylPlayer
                   key={playing.title}
                   variant="feature"
+                  autoplayInView
                   src={playing.url}
                   poster={playing.poster}
                   subtitlesUrl={playing.subtitles}
@@ -627,18 +677,20 @@ export function WatchHub() {
                 )}
               </div>
             </div>
-            {selected.kind === 'ANIME' && (
+            {(selected.kind === 'ANIME' || selected.kind === 'SERIES') && (
               <div className="anime-detail-episodes">
                 <div className="anime-detail-section-title">
                   <span>{t('watch.episodes')}</span>
                   <small>{t('watch.published', { n: episodes.length })}</small>
                 </div>
-                {episodes.length === 0 ? (
+                {episodesLoading ? (
+                  <p className="anime-dim">{t('watch.loading')}</p>
+                ) : episodes.length === 0 ? (
                   <p className="anime-dim">{t('watch.noEpisodes')}</p>
                 ) : (
                   episodes.map((ep) => (
                     <div key={ep.id} className={`anime-episode-row${activeEpisode?.id === ep.id ? ' active' : ''}`}>
-                      <strong>#{String(ep.number).padStart(2, '0')}</strong>
+                      <strong>S{ep.season || 1} · #{String(ep.number).padStart(2, '0')}</strong>
                       <span className="anime-episode-title">{ep.title || t('watch.episode', { n: ep.number })}</span>
                       <span className="anime-dim">{ep.durationSec ? formatDuration(ep.durationSec) : ''}</span>
                       <button type="button" className="btn btn-violet pill-sm" onClick={() => { setActiveEpisode(ep); openTheater(selected, ep); }}>
@@ -655,7 +707,7 @@ export function WatchHub() {
                   <button type="button" className="btn btn-violet" onClick={() => openTheater(selected)}>
                     <Play size={15} fill="currentColor" /> {t('watch.theater')}
                   </button>
-                  <button type="button" className="btn btn-ghost" onClick={() => playEpisode(selected, episodes[0])}>
+                  <button type="button" className="btn btn-ghost" disabled={!episodes[0]} onClick={() => episodes[0] && playEpisode(selected, episodes[0])}>
                     <Clapperboard size={15} /> {t('watch.preview')}
                   </button>
                   <button
@@ -693,7 +745,10 @@ export function WatchHub() {
                       type="button"
                       key={q}
                       className={`anime-quality-chip${q === quality ? ' active' : ''}`}
-                      onClick={() => setQuality(q)}
+                      onClick={() => {
+                        setQuality(q);
+                        setPlaying((current) => current ? { ...current, url: resolveWatchSource(current.source, current.qualitySources, q) } : current);
+                      }}
                     >
                       {q === 'auto' ? t('watchPage.qualityAuto') : q === '2160p' ? '4K' : q}
                     </button>

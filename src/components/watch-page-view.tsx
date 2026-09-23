@@ -277,6 +277,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
             <VinylPlayer
               key={playSrc}
               variant="feature"
+              autoplayInView
               src={playSrc}
               poster={playPoster}
               subtitlesUrl={activeEpisode?.subtitlesUrl || subtitlesUrl}
