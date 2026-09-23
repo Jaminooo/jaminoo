@@ -302,6 +302,90 @@
 .vp-bigplay:hover .vp-bigplay-circle { background: var(--jamino-gradient); }
 .vp-bigplay svg { fill: #fff; }
 
+/* Watch Hub: editorial featured carousel and glass discovery surfaces. */
+.watch-hub-root {
+  --anime-accent: var(--jamino-violet);
+  --anime-accent-2: var(--jamino-cyan);
+  --anime-panel: rgba(155, 140, 255, .12);
+  --anime-card-bg: color-mix(in srgb, var(--jamino-glass-strong) 90%, transparent);
+  --anime-glow: 0 0 0 3px rgba(155, 140, 255, .1);
+}
+
+.watch-hub-root .anime-hub-main { max-width: 1380px; padding-top: 30px; }
+.watch-hub-root .watch-hero {
+  min-height: 390px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr);
+  border-color: rgba(188, 180, 255, .18);
+  background:
+    radial-gradient(ellipse 46% 88% at 86% 42%, rgba(103, 220, 224, .14), transparent 70%),
+    radial-gradient(ellipse 48% 82% at 67% 60%, rgba(155, 140, 255, .17), transparent 74%),
+    linear-gradient(130deg, rgba(20, 22, 38, .96), rgba(13, 17, 34, .91) 54%, rgba(12, 27, 37, .93));
+  box-shadow: 0 30px 90px rgba(1, 3, 18, .32), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+.watch-hub-root .watch-hero::after { opacity: .56; background: linear-gradient(90deg, transparent, rgba(155, 140, 255, .1), rgba(103, 220, 224, .12), transparent); }
+.watch-hero-copy-slide { min-height: 190px; }
+.watch-hero-copy-slide h1 { max-width: 660px; overflow-wrap: anywhere; }
+.watch-hero-copy-slide h1 em { color: var(--jamino-cyan); }
+.watch-hero-copy-slide p { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.watch-hero-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 14px 0 10px; }
+.watch-hero-meta > span,
+.watch-hero-meta .anime-type-badge { display: inline-flex; align-items: center; gap: 5px; min-height: 26px; padding: 4px 9px; border: 1px solid rgba(220, 225, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .055); color: var(--muted); font-size: 11px; font-style: normal; letter-spacing: 0; text-transform: none; }
+.watch-hero-meta .anime-type-badge { color: var(--jamino-cyan); border-color: rgba(103, 220, 224, .23); }
+.watch-hero-meta .watch-hero-rating { color: #f7d77b; }
+.watch-hero-art { min-height: 325px; }
+.watch-hero-poster-slide { position: absolute; inset: 0; }
+.watch-hero-poster-slide > .anime-card-art { width: 100%; height: 100%; }
+.watch-hub-root .anime-hero-poster { width: 198px; height: 278px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 18px; transform: rotate(4deg); box-shadow: 20px 26px 65px rgba(1, 3, 18, .5), 0 0 44px rgba(155, 140, 255, .13); }
+.watch-hero-orbit { width: 310px; height: 230px; border-color: rgba(103, 220, 224, .35); box-shadow: 0 0 76px rgba(103, 220, 224, .11); animation: anime-orbit 32s linear infinite; }
+.watch-hero-controls { position: absolute; left: 2px; bottom: 0; z-index: 4; display: flex; align-items: center; gap: 12px; }
+.watch-hero-arrow { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--jamino-glass-line); border-radius: 50%; background: var(--jamino-glass-strong); color: var(--text); cursor: pointer; backdrop-filter: blur(12px); }
+.watch-hero-arrow:hover { border-color: rgba(103, 220, 224, .44); color: var(--jamino-cyan); }
+.watch-hero-arrow:not(.next) svg { transform: rotate(180deg); }
+.watch-hero-dots { display: flex; align-items: center; gap: 6px; }
+.watch-hero-dots button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .32); cursor: pointer; transition: width .2s ease, background .2s ease; }
+.watch-hero-dots button.active { width: 22px; background: var(--jamino-gradient); }
+.watch-hub-root .anime-hero-float { right: 0; bottom: 46px; border-color: var(--jamino-glass-line); background: var(--jamino-glass-strong); box-shadow: var(--jamino-glass-shadow); }
+.watch-hub-root .anime-tabs { margin-inline: -2px; padding: 10px 2px; border-bottom: 1px solid var(--line-soft); }
+.watch-hub-root .anime-tabs button { display: inline-flex; align-items: center; gap: 7px; border-color: transparent; }
+.watch-hub-root .anime-tabs button.active { background: var(--jamino-gradient); border-color: transparent; box-shadow: 0 8px 24px rgba(113, 133, 255, .18); }
+.watch-hub-root .anime-search,
+.watch-hub-root .anime-genre-filter select { border-color: var(--jamino-glass-line); border-radius: 14px; background: var(--jamino-glass); box-shadow: inset 0 1px 0 var(--jamino-glass-highlight); backdrop-filter: blur(14px); }
+.watch-hub-root .anime-rail-card-media,
+.watch-hub-root .anime-card { border-color: var(--jamino-glass-line); border-radius: 16px; box-shadow: 0 14px 34px rgba(2, 4, 17, .12); }
+.watch-hub-root .anime-rail-card-media { transition: border-color .22s ease, box-shadow .22s ease; }
+.watch-hub-root .anime-rail-card:hover .anime-rail-card-media { border-color: rgba(155, 140, 255, .58); box-shadow: 0 16px 34px rgba(2, 4, 17, .24), 0 0 24px rgba(155, 140, 255, .1); }
+.watch-hub-root .anime-rail-card-title { transition: color .2s ease; }
+.watch-hub-root .anime-rail { min-width: 0; }
+.watch-hub-root .anime-rail-track { margin-inline: -4px; padding: 4px 4px 14px; }
+.watch-hub-root .anime-rail-card { width: 158px; }
+.watch-hub-root .anime-shelf-head h2 { font-size: clamp(19px, 2.2vw, 24px); }
+.watch-hub-root .anime-mega { border-color: var(--jamino-glass-line); background: linear-gradient(145deg, var(--jamino-glass), var(--jamino-glass-strong)); box-shadow: var(--jamino-glass-shadow), inset 0 1px 0 var(--jamino-glass-highlight); backdrop-filter: blur(24px) saturate(135%); }
+.watch-hub-root .anime-mega-chip { border-color: var(--jamino-glass-line); background: rgba(255, 255, 255, .045); }
+
+[data-theme='light'] .watch-hub-root .watch-hero { background: radial-gradient(ellipse 46% 88% at 86% 42%, rgba(103, 170, 180, .12), transparent 70%), radial-gradient(ellipse 48% 82% at 67% 60%, rgba(125, 105, 230, .12), transparent 74%), linear-gradient(130deg, rgba(255, 255, 255, .96), rgba(242, 243, 252, .94) 54%, rgba(235, 248, 248, .94)); }
+[data-theme='light'] .watch-hub-root .watch-hero-meta > span { color: var(--muted); }
+
+@media (max-width: 900px) {
+  .watch-hub-root .watch-hero { grid-template-columns: minmax(0, 1fr) minmax(230px, .7fr); padding: 30px; }
+  .watch-hero-copy-slide { min-height: 170px; }
+  .watch-hub-root .anime-rail-card { width: 142px; }
+}
+@media (max-width: 640px) {
+  .watch-hub-root .anime-hub-main { padding: 18px 14px 64px; }
+  .watch-hub-root .watch-hero { grid-template-columns: 1fr; gap: 8px; min-height: 0; padding: 25px 20px 18px; }
+  .watch-hero-copy-slide { min-height: 175px; }
+  .watch-hero-copy-slide h1 { font-size: clamp(32px, 10vw, 46px); }
+  .watch-hub-root .watch-hero-art { min-height: 270px; }
+  .watch-hub-root .anime-hero-poster { width: 154px; height: 216px; }
+  .watch-hero-orbit { width: 245px; height: 176px; }
+  .watch-hero-controls { left: 50%; bottom: -2px; transform: translateX(-50%); }
+  .watch-hub-root .anime-hero-float { right: 2px; bottom: 8px; }
+  .watch-hub-root .anime-tabs { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .watch-hub-root .anime-tabs::-webkit-scrollbar { display: none; }
+  .watch-hub-root .anime-tabs button { flex: 0 0 auto; padding: 8px 11px; }
+  .watch-hub-root .anime-rail-card { width: 124px; }
+}
+
 .jamino-spotlight {
   --spotlight-x: 50%;
   --spotlight-y: 50%;

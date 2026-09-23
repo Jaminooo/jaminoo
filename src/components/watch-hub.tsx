@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { AnimatePresence, motion } from 'motion/react';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronDown, ChevronRight, Clapperboard, Clock3, Film, Filter, Flame, Globe, LayoutGrid, ListPlus, Play, Radio, Search, Sparkles, Star, Tv2, UsersRound, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
@@ -460,22 +461,35 @@ export function WatchHub() {
     <div className="hub-shell hub-shell-watch watch-hub-root">
       <WorkspaceTopbar onHome={() => setProduct('home')} product="Watch Hub" />
       <main className="anime-hub-main">
-        <section className="anime-hero">
+        <section className="anime-hero watch-hero">
           <div className="anime-hero-copy">
             <span className="hub-kicker"><Flame size={13} /> {t('watch.kicker')}</span>
-            <h1>
-              {t('watch.heroTitleA')}
-              <br />
-              <em>{t('watch.heroTitleB')}</em>
-            </h1>
-            <p>{t('watch.heroDesc')}</p>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                className="watch-hero-copy-slide"
+                key={heroItem?.key ?? 'watch-hero-empty'}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.24, ease: 'easeOut' }}
+              >
+                <h1>{heroItem?.title ?? <>{t('watch.heroTitleA')} <em>{t('watch.heroTitleB')}</em></>}</h1>
+                <div className="watch-hero-meta">
+                  {heroItem && kindChip(heroItem)}
+                  {heroItem?.year ? <span>{heroItem.year}</span> : null}
+                  {heroItem?.rating ? <span className="watch-hero-rating"><Star size={13} fill="currentColor" /> {heroItem.rating.toFixed(1)}</span> : null}
+                  {heroItem?.genres.slice(0, 2).map((itemGenre) => <span key={itemGenre}>{itemGenre}</span>)}
+                </div>
+                <p>{heroItem?.description || t('watch.heroDesc')}</p>
+              </motion.div>
+            </AnimatePresence>
             <div className="anime-hero-actions">
               <button
                 type="button"
                 className="btn btn-violet"
-                onClick={() => document.getElementById('anime-catalogue')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => heroItem ? openTheater(heroItem) : document.getElementById('anime-catalogue')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                <Play size={15} fill="currentColor" /> {t('watch.explore')}
+                <Play size={15} fill="currentColor" /> {heroItem ? t('watch.watch') : t('watch.explore')}
               </button>
               <button type="button" className={`btn btn-ghost${browseOpen ? ' is-active' : ''}`} onClick={() => setBrowseOpen((v) => !v)} aria-expanded={browseOpen}>
                 <LayoutGrid size={15} /> {t('watch.browseGenres')} <ChevronDown size={14} className="anime-mega-chevron" />
@@ -488,8 +502,24 @@ export function WatchHub() {
           <div className="anime-hero-art">
             <div className="anime-hero-orbit" />
             <div className="anime-hero-poster">
-              {heroItem ? <Cover item={heroItem} wide /> : <div className="anime-card-art anime-card-art-wide" style={{ background: 'linear-gradient(135deg, hsl(352 86% 30%), hsl(44 95% 26%))' }} />}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  className="watch-hero-poster-slide"
+                  key={heroItem?.key ?? 'watch-poster-empty'}
+                  initial={{ opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: .98 }}
+                  transition={{ duration: .3, ease: 'easeOut' }}
+                >
+                  {heroItem ? <Cover item={heroItem} wide /> : <div className="anime-card-art anime-card-art-wide" style={{ background: 'linear-gradient(135deg, hsl(252 72% 30%), hsl(184 68% 26%))' }} />}
+                </motion.div>
+              </AnimatePresence>
             </div>
+            {heroPicks.length > 1 && <div className="watch-hero-controls" aria-label={t('watch.featured')}>
+              <button type="button" className="watch-hero-arrow" aria-label={t('watch.previousFeatured')} onClick={() => setHeroIndex((index) => (index - 1 + heroPicks.length) % heroPicks.length)}><ChevronRight size={16} /></button>
+              <div className="watch-hero-dots">{heroPicks.map((item, index) => <button type="button" key={item.key} aria-label={t('watch.showFeaturedTitle', { n: index + 1 })} aria-current={heroIndex === index ? 'true' : undefined} className={heroIndex === index ? 'active' : ''} onClick={() => setHeroIndex(index)} />)}</div>
+              <button type="button" className="watch-hero-arrow next" aria-label={t('watch.nextFeatured')} onClick={() => setHeroIndex((index) => (index + 1) % heroPicks.length)}><ChevronRight size={16} /></button>
+            </div>}
             <div className="anime-hero-float">
               <UsersRound size={15} />
               <span>
