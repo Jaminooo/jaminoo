@@ -13,6 +13,7 @@
   --hub-anime: #c084fc;
   --hub-tweet: #fbbf24;
   --hub-cinema: #f43f5e;
+  --hub-watch: #fb4d6d;
 }
 
 [data-theme='light'] {
@@ -22,6 +23,7 @@
   --hub-anime: #9333ea;
   --hub-tweet: #d97706;
   --hub-cinema: #e11d48;
+  --hub-watch: #e11d48;
 }
 
 /* -- accent scoping -- */
@@ -31,6 +33,7 @@
 .hub-shell-anime { --accent: var(--hub-anime); --anime-accent: var(--hub-anime); }
 .hub-shell-tweet { --accent: var(--hub-tweet); }
 .hub-shell-cinema { --accent: var(--hub-cinema); }
+.hub-shell-watch { --accent: var(--hub-watch); --anime-accent: var(--hub-watch); }
 .screen-panel { --accent: var(--hub-community); }
 
 /* -- shell backdrops: accent glow over the shared surface -- */
@@ -62,6 +65,12 @@
   background:
     radial-gradient(900px 430px at 14% -10%, color-mix(in srgb, var(--hub-cinema) 16%, transparent), transparent 60%),
     radial-gradient(620px 360px at 90% 6%, color-mix(in srgb, var(--hub-video) 9%, transparent), transparent 54%),
+    var(--bg);
+}
+.hub-shell-watch {
+  background:
+    radial-gradient(900px 430px at 14% -10%, color-mix(in srgb, var(--hub-watch) 16%, transparent), transparent 60%),
+    radial-gradient(620px 360px at 90% 6%, color-mix(in srgb, var(--hub-anime) 10%, transparent), transparent 54%),
     var(--bg);
 }
 

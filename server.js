@@ -305,6 +305,21 @@ async function ensureDemoEntertainment() {
     console.log('[boot] Demo cinema titles seeded.');
   }
 
+  // Cartoons are a distinct cinema kind. Topped up even when the base cinema
+  // table already has content so the Watch Hub's Cartoons tab is never empty.
+  const cartoonDemos = [
+    { title: 'Puzzle Friends', description: 'A cheerful puzzle crew rebuilds a floating island one piece at a time.', file: 'ForBiggerEscapes.mp4', durationSec: 15 },
+    { title: 'Cosmic Kitten', description: 'A tiny kitten accidentally pilots a starship through the cutest nebulas.', file: 'ForBiggerMeltdowns.mp4', durationSec: 15 },
+  ];
+  for (const c of cartoonDemos) {
+    const existing = await prisma.cinemaVideo.findFirst({ where: { title: c.title } });
+    if (existing) continue;
+    await prisma.cinemaVideo.create({
+      data: { title: c.title, kind: 'CARTOON', description: c.description, externalUrl: `${DEMO_MEDIA_BASE}${c.file}`, durationSec: c.durationSec, visibility: 'PUBLIC' },
+    });
+    console.log(`[boot] Demo cartoon seeded: ${c.title}`);
+  }
+
   if (animeCount === 0) {
     console.log('[boot] Empty anime catalog — seeding demo titles...');
     const series = [

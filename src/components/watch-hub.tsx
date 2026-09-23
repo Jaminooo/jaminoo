@@ -1,0 +1,546 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
+import type { LucideIcon } from 'lucide-react';
+import { ChevronRight, Clapperboard, Clock3, Film, Filter, Flame, Globe, ListPlus, Play, Radio, Search, Sparkles, Star, Tv2, UsersRound, X } from 'lucide-react';
+import { api } from '@/lib/client-api';
+import { toast } from '@/components/toast';
+import { useTranslations } from '@/providers/use-translations';
+import { useAppStore } from '@/store/app-store';
+import { WorkspaceTopbar } from '@/components/hub-gateway';
+import { connectLive, onLive } from '@/lib/live';
+import { VinylPlayer } from '@/components/vinyl-player';
+import {
+  animeItem as toWatchAnime,
+  buildWatchShelves,
+  cinematicItem as toWatchCinema,
+  filterByWatchTab,
+  matchWatchQuery,
+  mergeWatchCatalog,
+  watchPartyPlan,
+  watchTitleHue,
+  type WatchItem,
+  type WatchTab,
+} from '@/lib/watch-catalog';
+
+// Raw API shapes — structural supersets of what watch-catalog needs.
+interface CinemaRow {
+  id: number;
+  title: string;
+  description: string;
+  kind: string;
+  externalUrl: string | null;
+  thumbnailUrl: string | null;
+  subtitlesUrl: string | null;
+  durationSec: number;
+}
+
+interface AnimeRow {
+  id: number;
+  slug: string;
+  title: string;
+  original: string;
+  overview: string;
+  coverUrl: string | null;
+  trailerUrl: string;
+  type: string;
+  status: string;
+  year: number;
+  episodes: number;
+  rating: number;
+  genres: string[];
+  studio: string;
+  colorFrom: number;
+  colorTo: number;
+}
+
+interface EpisodeItem {
+  id: number;
+  animeId: number;
+  number: number;
+  title: string;
+  durationSec: number;
+  externalUrl: string | null;
+  thumbnailUrl?: string | null;
+  subtitlesUrl?: string | null;
+}
+
+interface PlayingMedia {
+  url: string;
+  poster: string | null;
+  subtitles: string | null;
+  title: string;
+}
+
+type Shelf = { title: string; kicker: string; icon: LucideIcon; items: WatchItem[]; tone: string };
+
+const ALL_GENRES = [
+  'Action', 'Adventure', 'Comedy', 'Drama', 'Fantasy', 'Sci-Fi', 'Slice of Life',
+  'Sports', 'Mystery', 'Horror', 'Romance', 'Isekai', 'Supernatural', 'Mecha', 'Music',
+];
+
+const KIND_ICON: Record<string, LucideIcon> = { MOVIE: Film, SERIES: Tv2, ANIME: Clapperboard, CARTOON: Sparkles };
+
+function Cover({ item, wide = false }: { item: WatchItem; wide?: boolean }) {
+  const style: React.CSSProperties = item.artworkUrl
+    ? {}
+    : { background: `linear-gradient(135deg, hsl(${item.colorFrom || 260}, 70%, 24%), hsl(${item.colorTo || 340}, 70%, 22%))` };
+  const Icon = KIND_ICON[item.kind] ?? Film;
+  return (
+    <div className={`anime-card-art${wide ? ' anime-card-art-wide' : ''}`} style={style}>
+      {item.artworkUrl ? (
+        <Image src={item.artworkUrl} alt={item.title} fill unoptimized loading="lazy" />
+      ) : (
+        <span className="anime-card-placeholder"><Icon size={24} /></span>
+      )}
+    </div>
+  );
+}
+
+function RatingBadge({ rating }: { rating: number }) {
+  if (!rating) return null;
+  return <span className="anime-rating-badge"><Star size={11} fill="currentColor" /> {rating.toFixed(1)}</span>;
+}
+
+function formatDuration(durationSec: number) {
+  const m = Math.floor(durationSec / 60);
+  const s = String(Math.floor(durationSec % 60)).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+export function WatchHub() {
+  const t = useTranslations();
+  const setProduct = useAppStore((s) => s.setProduct);
+  const setTab = useAppStore((s) => s.setTab);
+  const setRoomId = useAppStore((s) => s.setRoomId);
+  const [tab, setTabView] = useState<WatchTab>('home');
+  const [cinemaItems, setCinemaItems] = useState<CinemaRow[]>([]);
+  const [animeItems, setAnimeItems] = useState<AnimeRow[]>([]);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<WatchItem | null>(null);
+  const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
+  const [playing, setPlaying] = useState<PlayingMedia | null>(null);
+  const [activeEpisode, setActiveEpisode] = useState<EpisodeItem | null>(null);
+  const [query, setQuery] = useState('');
+  const [genre, setGenre] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('jamino_watch_list');
+      if (raw) {
+        const arr: string[] = JSON.parse(raw);
+        if (Array.isArray(arr)) setSaved(new Set(arr.filter((k) => typeof k === 'string' && k.includes(':'))));
+      }
+    } catch {}
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [cinema, anime] = await Promise.all([
+        api<{ items: CinemaRow[] }>('/api/cinema?kind=ALL'),
+        api<{ items: AnimeRow[] }>('/api/anime?sort=latest'),
+      ]);
+      setCinemaItems(cinema.items || []);
+      setAnimeItems(anime.items || []);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('watch.loadError'), 'error');
+      setCinemaItems([]);
+      setAnimeItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    connectLive();
+    const offCinema = onLive('cinema:update', () => void load());
+    const offAnime = onLive('anime:update', () => void load());
+    return () => { offCinema(); offAnime(); };
+  }, [load]);
+
+  const unified = useMemo<WatchItem[]>(() => mergeWatchCatalog(cinemaItems, animeItems), [cinemaItems, animeItems]);
+
+  const filtered = useMemo(() => {
+    let list = tab === 'my-list' ? unified.filter((i) => saved.has(i.key)) : filterByWatchTab(unified, tab);
+    if (query.trim()) list = list.filter((i) => matchWatchQuery(i, query));
+    if (genre) list = list.filter((i) => i.genres.includes(genre));
+    return list;
+  }, [unified, tab, saved, query, genre]);
+
+  const shelves = useMemo<Shelf[]>(() => {
+    const all = unified.filter((i) => !query.trim() && !genre);
+    const built = buildWatchShelves(all);
+    return [
+      { title: t('watch.featured'), kicker: t('watch.featuredKicker'), icon: Star, items: built.featured, tone: 'violet' },
+      { title: t('watch.fresh'), kicker: t('watch.freshKicker'), icon: Clock3, items: built.fresh, tone: 'amber' },
+      { title: t('watch.airing'), kicker: t('watch.airingKicker'), icon: Radio, items: built.updated, tone: 'cyan' },
+    ].filter((s) => s.items.length > 0);
+  }, [unified, query, genre, t]);
+
+  const toggleSaved = (item: WatchItem) => {
+    const next = new Set(saved);
+    if (next.has(item.key)) next.delete(item.key); else next.add(item.key);
+    setSaved(next);
+    localStorage.setItem('jamino_watch_list', JSON.stringify([...next]));
+  };
+
+  const openDetail = async (item: WatchItem) => {
+    setSelected(item);
+    setEpisodes([]);
+    setPlaying(null);
+    setActiveEpisode(null);
+    if (item.kind === 'ANIME' && item.slug) {
+      try {
+        const data = await api<{ episodes: EpisodeItem[] }>(`/api/anime/${item.slug}/episodes`);
+        setEpisodes(data.episodes || []);
+      } catch {
+        setEpisodes([]);
+      }
+    }
+  };
+
+  const closeDetail = () => {
+    setSelected(null);
+    setEpisodes([]);
+    setPlaying(null);
+    setActiveEpisode(null);
+  };
+
+  const playMovie = (item: WatchItem) => {
+    if (!item.mediaUrl) return;
+    setPlaying({ url: item.mediaUrl, poster: item.artworkUrl, subtitles: item.subtitlesUrl, title: item.title });
+  };
+
+  const playEpisode = (item: WatchItem, ep: EpisodeItem) => {
+    if (!ep.externalUrl) return;
+    setActiveEpisode(ep);
+    setPlaying({ url: ep.externalUrl, poster: ep.thumbnailUrl ?? null, subtitles: ep.subtitlesUrl ?? null, title: `${item.title} · ${t('watch.episode', { n: ep.number })}` });
+  };
+
+  const startParty = async () => {
+    if (!selected) return;
+    const fallbackEpisode = episodes.find((e) => e.externalUrl);
+    const episode = activeEpisode || fallbackEpisode;
+    try {
+      const data = await api<{ jam: { id: string } }>('/api/jams', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: `${t('watch.hubTitle')} · ${selected.title}`,
+          desc: t('watch.watchPartyDesc'),
+          type: 'PRIVATE',
+          kind: selected.kind === 'ANIME' ? 'ANIME' : 'MOVIE',
+        }),
+      });
+      const plan = watchPartyPlan(selected, { jamId: data.jam.id, episodeId: episode?.id });
+      if (plan) await api(plan.mediaPath, { method: 'PATCH', body: JSON.stringify(plan.mediaBody) });
+      closeDetail();
+      setProduct('community');
+      setTab('jams');
+      setRoomId(data.jam.id);
+      toast(t('watch.partyCreated'), 'ok');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('watch.partyError'), 'error');
+    }
+  };
+
+  const kindLabel = (item: WatchItem) =>
+    item.kind === 'MOVIE' ? t('watch.typeMovie') : item.kind === 'SERIES' ? t('watch.typeSeries') : item.kind === 'CARTOON' ? t('watch.typeCartoon') : t('watch.typeAnime');
+
+  const kindChip = (item: WatchItem) => (
+    <i className={`anime-type-badge ${item.kind === 'MOVIE' ? 'movie' : item.kind === 'SERIES' ? 'series' : item.kind === 'CARTOON' ? 'cartoon' : 'anime'}`}>
+      {kindLabel(item)}
+    </i>
+  );
+
+  const statusLabel = (item: WatchItem) =>
+    item.status === 'AIRING' ? t('watch.statusAiring') : item.status === 'UPCOMING' ? t('watch.statusUpcoming') : t('watch.statusFinished');
+
+  const renderCard = (item: WatchItem, compact = false) => (
+    <article className={`anime-card${compact ? ' anime-card-compact' : ''}`} key={item.key}>
+      <button type="button" className="anime-card-hit" onClick={() => void openDetail(item)} aria-label={t('watch.open', { title: item.title })}>
+        <div className="anime-card-media">
+          <Cover item={item} />
+          <RatingBadge rating={item.rating} />
+          {kindChip(item)}
+          <span className="anime-card-play"><Play size={16} fill="currentColor" /></span>
+        </div>
+        <div className="anime-card-copy">
+          <b>{item.title}</b>
+          <small>{item.source === 'anime' ? (item.subtitle || item.year) : item.kind === 'CARTOON' ? t('watch.typeCartoon') : item.year || ''}</small>
+          <div className="anime-card-meta">
+            <span className="anime-status">{item.kind === 'ANIME' ? statusLabel(item) : kindLabel(item)}</span>
+            {item.kind === 'ANIME' ? <span>{item.episodes} {t('watch.eps')}</span> : item.durationSec ? <span>{formatDuration(item.durationSec)}</span> : null}
+            <span>{item.year || t('watch.tba')}</span>
+          </div>
+        </div>
+      </button>
+      <button
+        type="button"
+        className={`btn-icon violet anime-save-button${saved.has(item.key) ? ' is-saved' : ''}`}
+        title={saved.has(item.key) ? t('watch.saved') : t('watch.save')}
+        onClick={() => toggleSaved(item)}
+      >
+        <ListPlus size={16} />
+      </button>
+    </article>
+  );
+
+  const heroItem: WatchItem | null = unified[0] ?? null;
+
+  const tabs: { id: WatchTab; label: string; icon: LucideIcon }[] = [
+    { id: 'home', label: t('watch.home'), icon: Clapperboard },
+    { id: 'movies', label: t('watch.movies'), icon: Film },
+    { id: 'series', label: t('watch.series'), icon: Tv2 },
+    { id: 'anime', label: t('watch.anime'), icon: Clapperboard },
+    { id: 'cartoons', label: t('watch.cartoons'), icon: Sparkles },
+    { id: 'my-list', label: t('watch.myList'), icon: ListPlus },
+  ];
+
+  const catalogueKicker =
+    tab === 'my-list' ? t('watch.yourList') : tab === 'home' ? t('watch.searchResults') : t('watch.browse', { kind: kindLabelForTab(tab) });
+
+  function kindLabelForTab(tabKey: WatchTab): string {
+    if (tabKey === 'movies') return t('watch.typeMovie');
+    if (tabKey === 'series') return t('watch.typeSeries');
+    if (tabKey === 'anime') return t('watch.typeAnime');
+    if (tabKey === 'cartoons') return t('watch.typeCartoon');
+    return t('watch.hubTitle');
+  }
+
+  const catalogueTitle = tab === 'my-list' ? t('watch.savedForLater') : t('watch.pickNext');
+  const canStartParty = selected ? (selected.kind === 'ANIME' ? episodes.some((e) => e.externalUrl) : Boolean(selected.mediaUrl)) : false;
+
+  return (
+    <div className="hub-shell hub-shell-watch watch-hub-root">
+      <WorkspaceTopbar onHome={() => setProduct('home')} product="Watch Hub" />
+      <main className="anime-hub-main">
+        <section className="anime-hero">
+          <div className="anime-hero-copy">
+            <span className="hub-kicker"><Flame size={13} /> {t('watch.kicker')}</span>
+            <h1>
+              {t('watch.heroTitleA')}
+              <br />
+              <em>{t('watch.heroTitleB')}</em>
+            </h1>
+            <p>{t('watch.heroDesc')}</p>
+            <div className="anime-hero-actions">
+              <button
+                type="button"
+                className="btn btn-violet"
+                onClick={() => document.getElementById('anime-catalogue')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                <Play size={15} fill="currentColor" /> {t('watch.explore')}
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => { setProduct('community'); setTab('jams'); }}>
+                <UsersRound size={15} /> {t('watch.openParty')}
+              </button>
+            </div>
+          </div>
+          <div className="anime-hero-art">
+            <div className="anime-hero-orbit" />
+            <div className="anime-hero-poster">
+              {heroItem ? <Cover item={heroItem} wide /> : <div className="anime-card-art anime-card-art-wide" style={{ background: 'linear-gradient(135deg, hsl(352 86% 30%), hsl(44 95% 26%))' }} />}
+            </div>
+            <div className="anime-hero-float">
+              <UsersRound size={15} />
+              <span>
+                <b>{t('watch.partyLabel')}</b>
+                <small>{t('watch.syncedPlayback')}</small>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <nav className="anime-tabs">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <button type="button" key={id} className={tab === id ? 'active violet' : ''} onClick={() => setTabView(id)}>
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </nav>
+        <div className="anime-toolbar">
+          <div className="anime-search">
+            <Search size={14} />
+            <input placeholder={t('watch.search')} value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+          <div className="anime-genre-filter">
+            <Filter size={14} />
+            <select value={genre} onChange={(e) => setGenre(e.target.value)}>
+              <option value="">{t('watch.allGenres')}</option>
+              {ALL_GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+            {genre && (
+              <button type="button" className="btn-icon" title={t('watch.clearGenre')} onClick={() => setGenre('')}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="anime-loading"><span className="admin-loader" /> {t('watch.loading')}</div>
+        ) : tab === 'home' && !query && !genre ? (
+          <div className="anime-shelves">
+            {shelves.map(({ title, kicker, icon: Icon, items: shelfItems, tone }) => (
+              <section className="anime-shelf" key={title}>
+                <div className="anime-shelf-head">
+                  <div>
+                    <span className="hub-kicker"><Icon size={12} /> {kicker}</span>
+                    <h2>{title}</h2>
+                  </div>
+                  <button type="button" className="anime-see-all" onClick={() => setTabView('movies')}>
+                    {t('watch.seeAll')} <ChevronRight size={14} />
+                  </button>
+                </div>
+                <div className="anime-card-grid anime-card-grid-shelf">
+                  {shelfItems.slice(0, 6).map((item) => renderCard(item, true))}
+                </div>
+                <div className={`anime-shelf-rule ${tone}`} />
+              </section>
+            ))}
+          </div>
+        ) : (
+          <section className="anime-catalogue" id="anime-catalogue">
+            <div className="anime-catalogue-head">
+              <div>
+                <span className="hub-kicker">{catalogueKicker}</span>
+                <h2>{catalogueTitle}</h2>
+              </div>
+              <span className="anime-catalogue-count">{t('watch.count', { n: filtered.length })}</span>
+            </div>
+            {filtered.length === 0 ? (
+              <section className="anime-coming-soon">
+                <div className="anime-art-hero"><Film size={44} /></div>
+                <h2>{t('watch.emptyState')}</h2>
+                <p>{t('watch.emptyHint')}</p>
+                <span className="coming-soon-pill"><Globe size={14} /> {t('watch.curated')}</span>
+              </section>
+            ) : (
+              <div className="anime-card-grid">{filtered.map((item) => renderCard(item))}</div>
+            )}
+          </section>
+        )}
+      </main>
+
+      {selected && (
+        <div className="anime-player-backdrop" onMouseDown={closeDetail}>
+          <section className="anime-detail-modal" role="dialog" aria-modal="true" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="anime-detail-head">
+              <div>
+                <div className="hub-kicker">{t('watch.detailKicker', { type: kindLabel(selected) })}</div>
+                <h2>{selected.title}</h2>
+                {selected.subtitle && <small className="anime-original">{selected.subtitle}</small>}
+              </div>
+              <button type="button" className="btn-icon" onClick={closeDetail} aria-label={t('watch.close')}>
+                <X size={18} />
+              </button>
+            </div>
+            {playing && (
+              <div className="anime-inline-player">
+                <VinylPlayer
+                  key={playing.title}
+                  variant="feature"
+                  src={playing.url}
+                  poster={playing.poster}
+                  subtitlesUrl={playing.subtitles}
+                  title={playing.title}
+                  badge={t('watch.hubTitle')}
+                  rememberPosition
+                />
+              </div>
+            )}
+            <div className="anime-detail-body">
+              <div className="anime-detail-art">
+                <Cover item={selected} />
+              </div>
+              <div className="anime-detail-info">
+                <div className="anime-detail-meta">
+                  <span>{kindLabel(selected)}</span>
+                  <span>· {selected.year || t('watch.tba')}</span>
+                  {selected.kind === 'ANIME' ? (
+                    <>
+                      <span>· {selected.subtitle || t('watch.unknownStudio')}</span>
+                      <span>· {selected.episodes || episodes.length} {t('watch.eps')}</span>
+                    </>
+                  ) : (
+                    selected.durationSec ? <span>· {formatDuration(selected.durationSec)}</span> : null
+                  )}
+                </div>
+                <div className="anime-detail-genres">
+                  {selected.genres.length
+                    ? selected.genres.map((g) => <span key={g} className="anime-genre">{g}</span>)
+                    : <span className="anime-dim">{t('watch.noGenres')}</span>}
+                </div>
+                <p className="anime-detail-overview">{selected.description || t('watch.noSynopsis')}</p>
+                {selected.trailerUrl && (
+                  <div className="anime-trailer">
+                    <iframe
+                      src={selected.trailerUrl.replace('watch?v=', 'embed/')}
+                      title={`${selected.title} trailer`}
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {selected.kind === 'ANIME' && (
+              <div className="anime-detail-episodes">
+                <div className="anime-detail-section-title">
+                  <span>{t('watch.episodes')}</span>
+                  <small>{t('watch.published', { n: episodes.length })}</small>
+                </div>
+                {episodes.length === 0 ? (
+                  <p className="anime-dim">{t('watch.noEpisodes')}</p>
+                ) : (
+                  episodes.map((ep) => (
+                    <div key={ep.id} className={`anime-episode-row${activeEpisode?.id === ep.id ? ' active' : ''}`}>
+                      <strong>#{String(ep.number).padStart(2, '0')}</strong>
+                      <span className="anime-episode-title">{ep.title || t('watch.episode', { n: ep.number })}</span>
+                      <span className="anime-dim">{ep.durationSec ? formatDuration(ep.durationSec) : ''}</span>
+                      {ep.externalUrl ? (
+                        <button type="button" className="btn btn-violet pill-sm" onClick={() => playEpisode(selected, ep)}>
+                          <Play size={13} fill="currentColor" /> {t('watch.watch')}
+                        </button>
+                      ) : (
+                        <span className="anime-soon-chip">{t('watch.soon')}</span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+            <div className="anime-detail-actions">
+              {selected.kind === 'ANIME' ? (
+                <button
+                  type="button"
+                  className="btn btn-violet"
+                  disabled={!canStartParty}
+                  onClick={() => void startParty()}
+                >
+                  <UsersRound size={15} /> {t('watch.startParty')}
+                </button>
+              ) : (
+                <>
+                  <button type="button" className="btn btn-violet" disabled={!selected.mediaUrl} onClick={() => playMovie(selected)}>
+                    <Play size={15} fill="currentColor" /> {t('watch.watchAlone')}
+                  </button>
+                  <button type="button" className="btn btn-ghost" disabled={!canStartParty} onClick={() => void startParty()}>
+                    <UsersRound size={15} /> {t('watch.startParty')}
+                  </button>
+                </>
+              )}
+              <button type="button" className="btn btn-ghost" onClick={() => toggleSaved(selected)}>
+                <ListPlus size={15} /> {saved.has(selected.key) ? t('watch.removeFromList') : t('watch.saveLater')}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}

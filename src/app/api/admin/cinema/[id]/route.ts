@@ -19,6 +19,8 @@ function safeUrl(value: unknown, max = 1800) {
   }
 }
 
+const CINEMA_KIND_LABEL: Record<string, string> = { MOVIE: 'Movie', SERIES: 'Series', CARTOON: 'Cartoon' };
+
 export const PATCH = handle(async (req, { params }: Ctx) => {
   await requireHubAdmin(ADMIN_SCOPE);
   const id = Number(params.id);
@@ -29,7 +31,7 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
   const data: any = {};
   if (typeof body.title === 'string' && body.title.trim()) data.title = body.title.trim().slice(0, 180);
   if (typeof body.description === 'string') data.description = body.description.trim().slice(0, 3000);
-  if (body.kind === 'MOVIE' || body.kind === 'SERIES') data.kind = body.kind;
+  if (body.kind === 'MOVIE' || body.kind === 'SERIES' || body.kind === 'CARTOON') data.kind = body.kind;
   if (typeof body.externalUrl === 'string') data.externalUrl = safeUrl(body.externalUrl);
   if (typeof body.thumbnailUrl === 'string') data.thumbnailUrl = safeUrl(body.thumbnailUrl, 1200);
   if (typeof body.subtitlesUrl === 'string') data.subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
@@ -40,7 +42,7 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
     data.durationSec = durationSec;
   }
   const item = await prisma.cinemaVideo.update({ where: { id }, data });
-  pushAdminEvent('cinema', `${item.kind === 'MOVIE' ? 'Movie' : 'Series'} updated: ${item.title}`, { visible: item.visibility === 'PUBLIC' });
+  pushAdminEvent('cinema', `${CINEMA_KIND_LABEL[item.kind] ?? 'Movie'} updated: ${item.title}`, { visible: item.visibility === 'PUBLIC' });
   liveBroadcast('cinema:update', { action: 'update', id: item.id, visibility: item.visibility });
   return json({ item: cinemaPayload(item) });
 });
@@ -52,7 +54,7 @@ export const DELETE = handle(async (_req, { params }: Ctx) => {
   const existing = await prisma.cinemaVideo.findUnique({ where: { id } }).catch(() => null);
   await prisma.cinemaVideo.delete({ where: { id } }).catch(() => null);
   if (existing) {
-    pushAdminEvent('cinema', `${existing.kind === 'MOVIE' ? 'Movie' : 'Series'} removed: ${existing.title}`);
+    pushAdminEvent('cinema', `${CINEMA_KIND_LABEL[existing.kind] ?? 'Movie'} removed: ${existing.title}`);
     liveBroadcast('cinema:update', { action: 'remove', id });
   }
   return json({ ok: true });

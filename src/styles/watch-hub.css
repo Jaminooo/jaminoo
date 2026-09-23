@@ -1,0 +1,22 @@
+/* Watch Hub — unified cinema + anime hub.
+   Reuses the shared .anime-* building blocks; only the accent identity
+   differs (rose -> gold marquee). Extra chips for the ANIME/CARTOON kinds
+   that the older hubs never produced. */
+.watch-hub-root {
+  --anime-accent: hsl(352, 86%, 62%);
+  --anime-accent-2: hsl(44, 95%, 60%);
+  --anime-panel: color-mix(in srgb, var(--anime-accent), transparent 88%);
+  --anime-card-bg: color-mix(in srgb, var(--anime-accent), #11141c 92%);
+  --anime-glow: 0 0 0 3px var(--anime-panel);
+}
+
+/* Kind chips beyond the original movie/series variants. */
+.anime-type-badge.anime {
+  border-color: var(--anime-accent);
+  color: var(--anime-accent-2);
+}
+
+.anime-type-badge.cartoon {
+  border-color: hsl(38, 95%, 62%);
+  color: hsl(38, 95%, 62%);
+}

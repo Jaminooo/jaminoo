@@ -21,7 +21,7 @@ interface CinemaAdminItem {
   visibility: string;
 }
 
-type Filter = 'ALL' | 'MOVIE' | 'SERIES';
+type Filter = 'ALL' | 'MOVIE' | 'SERIES' | 'CARTOON';
 
 const EMPTY_FORM = { title: '', kind: 'MOVIE', url: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '', description: '', visibility: 'PUBLIC' };
 
@@ -58,8 +58,16 @@ export function AdminCinema() {
     total: items.length,
     movies: items.filter((i) => i.kind === 'MOVIE').length,
     series: items.filter((i) => i.kind === 'SERIES').length,
+    cartoons: items.filter((i) => i.kind === 'CARTOON').length,
     hidden: items.filter((i) => i.visibility === 'HIDDEN').length,
   }), [items]);
+
+  const kindIcon = (kind: string) => (kind === 'MOVIE' ? <Film size={16} /> : kind === 'CARTOON' ? <Sparkles size={16} /> : <Tv2 size={16} />);
+  const kindBadge = (kind: string) => (
+    <Badge tone={kind === 'MOVIE' ? 'violet' : kind === 'CARTOON' ? 'amber' : 'green'}>
+      {kind === 'MOVIE' ? t('admin.movie') : kind === 'CARTOON' ? t('admin.cartoon') : t('admin.series')}
+    </Badge>
+  );
 
   const startEdit = (item: CinemaAdminItem) => {
     setEditingId(item.id);
@@ -171,6 +179,7 @@ export function AdminCinema() {
       <div className="admin-stat-grid">
         <StatCard icon={<Film size={16} />} label={t('admin.movie')} value={stats.movies} tone="violet" />
         <StatCard icon={<Tv2 size={16} />} label={t('admin.series')} value={stats.series} tone="green" />
+        <StatCard icon={<Sparkles size={16} />} label={t('admin.cartoon')} value={stats.cartoons} tone="amber" />
         <StatCard icon={<EyeOff size={16} />} label={t('admin.cinemaHidden')} value={stats.hidden} tone="amber" />
         <StatCard icon={<Clapperboard size={16} />} label={t('admin.publishedTitles')} value={stats.total} tone="steel" />
       </div>
@@ -185,7 +194,7 @@ export function AdminCinema() {
         </div>
         <div className="admin-form-grid">
           <label>{t('admin.cinemaTitle')}<input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
-          <label>{t('admin.cinemaType')}<select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}><option value="MOVIE">{t('admin.movie')}</option><option value="SERIES">{t('admin.series')}</option></select></label>
+          <label>{t('admin.cinemaType')}<select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}><option value="MOVIE">{t('admin.movie')}</option><option value="SERIES">{t('admin.series')}</option><option value="CARTOON">{t('admin.cartoon')}</option></select></label>
           <label>{t('admin.cinemaVideoOptional')}<input type="url" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://…/movie.mp4" /></label>
           <label className="admin-file-field"><span><Upload size={13} /> Upload video</span><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)} />{videoFile && <small>{videoFile.name}</small>}</label>
           <label>{t('admin.thumbnailUrl')}<input type="url" value={form.thumbnailUrl} onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })} /></label>
@@ -207,9 +216,9 @@ export function AdminCinema() {
           <span className="admin-count">{filtered.length}</span>
         </div>
         <div className="admin-cinema-filters">
-          {(['ALL', 'MOVIE', 'SERIES'] as Filter[]).map((value) => (
+          {(['ALL', 'MOVIE', 'SERIES', 'CARTOON'] as Filter[]).map((value) => (
             <button key={value} type="button" className={`admin-chip ${filter === value ? 'active' : ''}`} onClick={() => setFilter(value)}>
-              {value === 'ALL' ? t('admin.cinemaAll') : value === 'MOVIE' ? t('admin.movie') : t('admin.series')}
+              {value === 'ALL' ? t('admin.cinemaAll') : value === 'MOVIE' ? t('admin.movie') : value === 'SERIES' ? t('admin.series') : t('admin.cartoon')}
             </button>
           ))}
           <input className="admin-cinema-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.cinemaSearch')} />
@@ -221,8 +230,8 @@ export function AdminCinema() {
               {!loading && filtered.length === 0 && <EmptyRow text={t('admin.noCinemaTitles')} />}
               {filtered.map((item) => (
                 <tr key={item.id} className={item.visibility === 'HIDDEN' ? 'admin-hidden-row' : ''}>
-                  <td><div className="admin-cinema-thumb">{item.thumbnailUrl ? <Image src={item.thumbnailUrl} alt="" fill unoptimized loading="lazy" /> : item.kind === 'MOVIE' ? <Film size={16} /> : <Tv2 size={16} />}</div></td>
-                  <td><b>{item.title}</b><div className="admin-dim"><Badge tone={item.kind === 'MOVIE' ? 'violet' : 'green'}>{item.kind === 'MOVIE' ? t('admin.movie') : t('admin.series')}</Badge>{item.visibility === 'HIDDEN' && <Badge tone="amber">{t('admin.cinemaHidden')}</Badge>}</div></td>
+                  <td><div className="admin-cinema-thumb">{item.thumbnailUrl ? <Image src={item.thumbnailUrl} alt="" fill unoptimized loading="lazy" /> : kindIcon(item.kind)}</div></td>
+                  <td><b>{item.title}</b><div className="admin-dim">{kindBadge(item.kind)}{item.visibility === 'HIDDEN' && <Badge tone="amber">{t('admin.cinemaHidden')}</Badge>}</div></td>
                   <td className="admin-ellipsis">{item.description || '—'}</td>
                   <td className="admin-nowrap">{item.externalUrl ? <span className="admin-ok-dot" /> : <span className="admin-pending-dot" />}{item.externalUrl ? 'Video' : 'Soon'}</td>
                   <td>

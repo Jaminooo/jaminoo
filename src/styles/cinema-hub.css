@@ -1,9 +1,0 @@
-/* Cinema Hub — warm marquee palette layered over the shared hub chrome.
-   Reuses .anime-* building blocks; only the accent identity differs. */
-.cinema-hub-root {
-  --anime-accent: hsl(340, 85%, 62%);
-  --anime-accent-2: hsl(38, 95%, 60%);
-  --anime-panel: color-mix(in srgb, var(--anime-accent), transparent 88%);
-  --anime-card-bg: color-mix(in srgb, var(--anime-accent), #11141c 92%);
-  --anime-glow: 0 0 0 3px var(--anime-panel);
-}

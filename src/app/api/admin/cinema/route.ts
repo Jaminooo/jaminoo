@@ -17,6 +17,8 @@ function safeUrl(value: unknown, max = 1800) {
   }
 }
 
+const CINEMA_KIND_LABEL: Record<string, string> = { MOVIE: 'Movie', SERIES: 'Series', CARTOON: 'Cartoon' };
+
 export const GET = handle(async () => {
   await requireHubAdmin(ADMIN_SCOPE);
   const rows = await prisma.cinemaVideo.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
@@ -27,7 +29,8 @@ export const POST = handle(async (req) => {
   await requireHubAdmin(ADMIN_SCOPE);
   const body = await req.json().catch(() => ({}));
   const title = typeof body.title === 'string' ? body.title.trim().slice(0, 180) : '';
-  const kind = typeof body.kind === 'string' && body.kind.toUpperCase() === 'SERIES' ? 'SERIES' : 'MOVIE';
+  const rawKind = typeof body.kind === 'string' ? body.kind.toUpperCase() : '';
+  const kind = rawKind === 'SERIES' || rawKind === 'CARTOON' ? rawKind : 'MOVIE';
   const externalUrl = safeUrl(body.externalUrl);
   const thumbnailUrl = safeUrl(body.thumbnailUrl, 1200);
   const subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
@@ -46,7 +49,7 @@ export const POST = handle(async (req) => {
       visibility: body.visibility === 'HIDDEN' ? 'HIDDEN' : 'PUBLIC',
     },
   });
-  pushAdminEvent('cinema', `${kind === 'MOVIE' ? 'Movie' : 'Series'} published: ${title}`);
+  pushAdminEvent('cinema', `${CINEMA_KIND_LABEL[kind] ?? 'Movie'} published: ${title}`);
   liveBroadcast('cinema:update', { action: 'create', id: item.id });
   return json({ item: cinemaPayload(item) }, 201);
 });
