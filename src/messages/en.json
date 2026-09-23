@@ -1950,6 +1950,9 @@
     "curated": "Curated by Jamino",
     "watch": "Watch",
     "watchAlone": "Watch for me",
+    "theater": "Open theater",
+    "preview": "Preview",
+    "watchEpisode": "Watch episode",
     "soon": "Soon",
     "detailKicker": "{type} · JAMINO",
     "episodes": "Episodes",
@@ -1965,6 +1968,19 @@
     "watchPartyDesc": "Watch together, react together",
     "close": "Close",
     "loadError": "Could not load the catalogue."
+  },
+  "watchPage": {
+    "back": "Back to catalogue",
+    "loading": "Opening the theater…",
+    "notFound": "This title could not be opened.",
+    "quality": "Quality",
+    "qualityHint": "Choose a playback profile",
+    "qualityAuto": "Auto",
+    "chooseSeason": "Pick a season and an episode",
+    "season": "Season {n}",
+    "episodeLabel": "S{season} · Ep {n}",
+    "relatedKicker": "MORE LIKE THIS",
+    "related": "Related anime"
   },
   "cinema": {
     "sync": "Cinema sync",

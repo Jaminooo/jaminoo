@@ -356,6 +356,9 @@
     "curated": "کاتالوگ گزیده‌شده",
     "watch": "پخش",
     "watchAlone": "پخش برای من",
+    "theater": "باز کردن سالن تماشا",
+    "preview": "پیش‌نمایش",
+    "watchEpisode": "پخش قسمت",
     "soon": "به‌زودی",
     "detailKicker": "{type} · جمینو",
     "episodes": "قسمت‌ها",
@@ -371,6 +374,19 @@
     "watchPartyDesc": "با هم تماشا کنید، با هم واکنش دهید",
     "close": "بستن",
     "loadError": "بارگیری کاتالوگ ممکن نشد."
+  },
+  "watchPage": {
+    "back": "بازگشت به کاتالوگ",
+    "loading": "در حال باز کردن سالن تماشا…",
+    "notFound": "باز کردن این عنوان ممکن نشد.",
+    "quality": "کیفیت",
+    "qualityHint": "پروفایل پخش را انتخاب کن",
+    "qualityAuto": "خودکار",
+    "chooseSeason": "فصل و قسمت را انتخاب کن",
+    "season": "فصل {n}",
+    "episodeLabel": "فصل {season} · قسمت {n}",
+    "relatedKicker": "بیشتر شبیه به این",
+    "related": "انیمه‌های مرتبط"
   },
   "cinema": {
     "sync": "همگام‌سازی سینما",

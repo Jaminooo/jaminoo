@@ -408,6 +408,51 @@
   border-top: 1px solid color-mix(in srgb, var(--color-ice), transparent 70%);
 }
 
+/* Quality chooser inside the hub detail modal (movies / cinema titles) */
+.anime-detail-quality {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 22px 14px;
+}
+
+.anime-detail-quality small {
+  color: var(--color-moon);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.anime-quality-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.anime-quality-chip {
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(8, 13, 25, .55);
+  color: var(--color-frost);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .16s ease;
+}
+
+.anime-quality-chip:hover {
+  border-color: var(--anime-accent);
+  transform: translateY(-1px);
+}
+
+.anime-quality-chip.active {
+  background: color-mix(in srgb, var(--anime-accent), black 30%);
+  border-color: var(--anime-accent);
+  color: #fff;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--anime-accent), transparent 70%);
+}
+
 /* Anime room player reuses cinema room shapes */
 .room-col-anime {
   min-width: 320px;

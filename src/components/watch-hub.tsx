@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronRight, Clapperboard, Clock3, Film, Filter, Flame, Globe, ListPlus, Play, Radio, Search, Sparkles, Star, Tv2, UsersRound, X } from 'lucide-react';
@@ -11,6 +12,7 @@ import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { connectLive, onLive } from '@/lib/live';
 import { VinylPlayer } from '@/components/vinyl-player';
+import { WATCH_QUALITIES, DEFAULT_QUALITY, type WatchQuality } from '@/lib/watch-select';
 import {
   animeItem as toWatchAnime,
   buildWatchShelves,
@@ -123,10 +125,12 @@ function formatDuration(durationSec: number) {
 
 export function WatchHub() {
   const t = useTranslations();
+  const router = useRouter();
   const setProduct = useAppStore((s) => s.setProduct);
   const setTab = useAppStore((s) => s.setTab);
   const setRoomId = useAppStore((s) => s.setRoomId);
   const [tab, setTabView] = useState<WatchTab>('home');
+  const [quality, setQuality] = useState<WatchQuality>(DEFAULT_QUALITY);
   const [cinemaItems, setCinemaItems] = useState<CinemaRow[]>([]);
   const [animeItems, setAnimeItems] = useState<AnimeRow[]>([]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -220,6 +224,17 @@ export function WatchHub() {
     setEpisodes([]);
     setPlaying(null);
     setActiveEpisode(null);
+  };
+
+  /** Open the dedicated theater page (big player + quality/season pickers). */
+  const openTheater = (item: WatchItem, episode?: EpisodeItem | null) => {
+    if (item.kind === 'ANIME' && item.slug) {
+      const target = episode ?? activeEpisode ?? episodes[0];
+      const query = target ? `?e=${target.id}` : '';
+      router.push(`/watch/anime/${item.slug}${query}`);
+    } else {
+      router.push(`/watch/cinema/${item.externalId}?q=${quality}`);
+    }
   };
 
   const DEMO_PLAYBACK = '/defaults/videos/demo.mp4';
@@ -513,7 +528,7 @@ export function WatchHub() {
                       <strong>#{String(ep.number).padStart(2, '0')}</strong>
                       <span className="anime-episode-title">{ep.title || t('watch.episode', { n: ep.number })}</span>
                       <span className="anime-dim">{ep.durationSec ? formatDuration(ep.durationSec) : ''}</span>
-                      <button type="button" className="btn btn-violet pill-sm" onClick={() => playEpisode(selected, ep)}>
+                      <button type="button" className="btn btn-violet pill-sm" onClick={() => { setActiveEpisode(ep); openTheater(selected, ep); }}>
                         <Play size={13} fill="currentColor" /> {t('watch.watch')}
                       </button>
                     </div>
@@ -524,8 +539,11 @@ export function WatchHub() {
             <div className="anime-detail-actions">
               {selected.kind === 'ANIME' ? (
                 <>
-                  <button type="button" className="btn btn-violet" onClick={() => playMovie(selected)}>
-                    <Play size={15} fill="currentColor" /> {t('watch.watchAlone')}
+                  <button type="button" className="btn btn-violet" onClick={() => openTheater(selected)}>
+                    <Play size={15} fill="currentColor" /> {t('watch.theater')}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => playEpisode(selected, episodes[0])}>
+                    <Clapperboard size={15} /> {t('watch.preview')}
                   </button>
                   <button
                     type="button"
@@ -538,8 +556,11 @@ export function WatchHub() {
                 </>
               ) : (
                 <>
-                  <button type="button" className="btn btn-violet" onClick={() => playMovie(selected)}>
-                    <Play size={15} fill="currentColor" /> {t('watch.watchAlone')}
+                  <button type="button" className="btn btn-violet" onClick={() => openTheater(selected)}>
+                    <Play size={15} fill="currentColor" /> {t('watch.theater')}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => playMovie(selected)}>
+                    <Film size={15} /> {t('watch.preview')}
                   </button>
                   <button type="button" className="btn btn-ghost" disabled={!canStartParty} onClick={() => void startParty()}>
                     <UsersRound size={15} /> {t('watch.startParty')}
@@ -550,6 +571,23 @@ export function WatchHub() {
                 <ListPlus size={15} /> {saved.has(selected.key) ? t('watch.removeFromList') : t('watch.saveLater')}
               </button>
             </div>
+            {selected.kind !== 'ANIME' && (
+              <div className="anime-detail-quality">
+                <small>{t('watchPage.quality')}</small>
+                <div className="anime-quality-row">
+                  {WATCH_QUALITIES.map((q) => (
+                    <button
+                      type="button"
+                      key={q}
+                      className={`anime-quality-chip${q === quality ? ' active' : ''}`}
+                      onClick={() => setQuality(q)}
+                    >
+                      {q === 'auto' ? t('watchPage.qualityAuto') : q === '2160p' ? '4K' : q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         </div>
       )}
