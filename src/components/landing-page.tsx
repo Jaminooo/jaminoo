@@ -4,7 +4,8 @@ import { ArrowDown, ArrowRight, Clapperboard, Globe, Headphones, MessageCircle, 
 import Image from 'next/image';
 import { useLocale, useTranslations } from '@/providers/use-translations';
 import { JamiMascot } from '@/components/jami-mascot';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
+import { resetSpotlight, trackSpotlight } from '@/lib/spotlight';
 
 const PRODUCTS: { icon: typeof MessageCircle; label: string; tone: string }[] = [
   { icon: MessageCircle, label: 'COMMUNITY HUB', tone: 'violet' },
@@ -148,7 +149,7 @@ export function LandingPage() {
         </div>
 
         <div className="landing-card-grid">
-          <motion.article whileHover={{ y: -9, rotateX: 2, rotateY: -1 }} className="landing-feature-card landing-feature-violet">
+          <motion.article whileHover={{ y: -9, rotateX: 2, rotateY: -1 }} onPointerMove={trackSpotlight} onPointerLeave={resetSpotlight} className="landing-feature-card landing-feature-violet jamino-spotlight">
             <span className="landing-card-number">01</span>
             <div className="landing-feature-icon"><MessageCircle size={20} /></div>
             <h3>{t('landing.rooms')}</h3>
@@ -158,7 +159,7 @@ export function LandingPage() {
             </div>
           </motion.article>
 
-          <motion.article whileHover={{ y: -9, rotateX: 2, rotateY: -1 }} className="landing-feature-card landing-feature-pink">
+          <motion.article whileHover={{ y: -9, rotateX: 2, rotateY: -1 }} onPointerMove={trackSpotlight} onPointerLeave={resetSpotlight} className="landing-feature-card landing-feature-pink jamino-spotlight">
             <span className="landing-card-number">02</span>
             <div className="landing-feature-icon"><Music2 size={20} /></div>
             <h3>{t('landing.musicSync')}</h3>
@@ -168,7 +169,7 @@ export function LandingPage() {
             </div>
           </motion.article>
 
-          <motion.article whileHover={{ y: -9, rotateX: 2, rotateY: -1 }} className="landing-feature-card landing-feature-blue">
+          <motion.article whileHover={{ y: -9, rotateX: 2, rotateY: -1 }} onPointerMove={trackSpotlight} onPointerLeave={resetSpotlight} className="landing-feature-card landing-feature-blue jamino-spotlight">
             <span className="landing-card-number">03</span>
             <div className="landing-feature-icon"><PlaySquare size={20} /></div>
             <h3>{t('landing.creatorHome')}</h3>

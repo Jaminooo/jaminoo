@@ -16,7 +16,7 @@ import { FriendProfilePanel } from '@/components/friend-profile';
 import { CommunityHome } from '@/components/community-home';
 import { GroupsPanel } from '@/components/groups-panel';
 import { GroupChat } from '@/components/group-chat';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { connectLive, onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
 import { House, MessagesSquare, Radio, Users, MessageCircle, User } from 'lucide-react';

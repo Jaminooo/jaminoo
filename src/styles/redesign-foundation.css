@@ -1,0 +1,363 @@
+/* Shared visual foundation for the Jamino interface refresh. */
+:root {
+  --bg: #090b14;
+  --panel: rgba(21, 23, 38, .82);
+  --panel-2: rgba(31, 34, 52, .86);
+  --line: rgba(210, 216, 255, .13);
+  --line-soft: rgba(210, 216, 255, .07);
+  --text: #f5f6ff;
+  --muted: #a4abc2;
+  --muted-2: #7d849b;
+  --accent: #9586ff;
+  --accent-active: #a99aff;
+  --color-violet: #8e7bff;
+  --color-violet-strong: #7662ed;
+  --color-violet-light: #c6bfff;
+  --jamino-violet: #9b8cff;
+  --jamino-indigo: #7185ff;
+  --jamino-cyan: #67dce0;
+  --jamino-rose: #eaa1d2;
+  --jamino-glass: rgba(20, 22, 38, .68);
+  --jamino-glass-strong: rgba(17, 19, 32, .84);
+  --jamino-glass-line: rgba(220, 225, 255, .12);
+  --jamino-glass-highlight: rgba(255, 255, 255, .085);
+  --jamino-glass-shadow: 0 24px 70px rgba(2, 4, 17, .24);
+  --jamino-gradient: linear-gradient(118deg, #9b8cff 0%, #7185ff 48%, #67dce0 100%);
+  --jamino-gradient-soft: linear-gradient(118deg, rgba(155, 140, 255, .16), rgba(113, 133, 255, .10) 52%, rgba(103, 220, 224, .10));
+}
+
+[data-theme='light'] {
+  --bg: #f5f6fc;
+  --panel: rgba(255, 255, 255, .82);
+  --panel-2: rgba(247, 248, 253, .94);
+  --line: rgba(67, 74, 116, .14);
+  --line-soft: rgba(67, 74, 116, .08);
+  --text: #17192b;
+  --muted: #5f657d;
+  --muted-2: #7f8497;
+  --accent: #7060dc;
+  --accent-active: #5e4dca;
+  --color-violet: #7969e5;
+  --color-violet-strong: #5e4dca;
+  --color-violet-light: #5545bc;
+  --jamino-glass: rgba(255, 255, 255, .68);
+  --jamino-glass-strong: rgba(249, 250, 255, .86);
+  --jamino-glass-line: rgba(64, 74, 125, .13);
+  --jamino-glass-highlight: rgba(255, 255, 255, .9);
+  --jamino-glass-shadow: 0 24px 70px rgba(48, 58, 95, .12);
+  --jamino-gradient-soft: linear-gradient(118deg, rgba(128, 105, 235, .10), rgba(90, 115, 230, .08) 52%, rgba(60, 174, 183, .08));
+}
+
+@keyframes jamino-aurora-drift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50% { transform: translate3d(1.5%, 1%, 0) scale(1.035); }
+  100% { transform: translate3d(2%, -1.5%, 0) scale(1.015); }
+}
+
+@keyframes jamino-gradient-pan {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.app-root {
+  position: relative;
+  isolation: isolate;
+  background: #080a13;
+}
+
+.app-root::before {
+  position: fixed;
+  inset: -24%;
+  z-index: 0;
+  content: '';
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 44% 38% at 18% 14%, rgba(134, 109, 255, .12), transparent 74%),
+    radial-gradient(ellipse 40% 34% at 84% 18%, rgba(89, 132, 255, .09), transparent 72%),
+    radial-gradient(ellipse 42% 36% at 70% 86%, rgba(73, 194, 200, .075), transparent 72%);
+  filter: blur(18px);
+  animation: jamino-aurora-drift 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.app-scroller { z-index: 1; background: transparent; }
+.app-root > .top-right-controls { z-index: 20; }
+
+.hub-shell,
+.screen-panel,
+.watch-theater,
+.admin-root {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--bg, #090b14);
+}
+
+.hub-shell::before,
+.screen-panel::before {
+  position: absolute;
+  inset: -18% -12% auto;
+  z-index: -1;
+  width: auto;
+  height: min(780px, 85vh);
+  border-radius: 0;
+  content: '';
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 42% 52% at 12% 12%, color-mix(in srgb, var(--accent, var(--jamino-violet)) 12%, transparent), transparent 76%),
+    radial-gradient(ellipse 38% 48% at 82% 20%, color-mix(in srgb, var(--jamino-cyan) 8%, transparent), transparent 76%),
+    radial-gradient(ellipse 35% 38% at 54% 78%, color-mix(in srgb, var(--jamino-rose) 5%, transparent), transparent 76%);
+  filter: blur(16px);
+  animation: jamino-aurora-drift 42s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.admin-root {
+  background-image:
+    radial-gradient(ellipse 62% 44% at 12% 0%, rgba(134, 109, 255, .09), transparent 76%),
+    radial-gradient(ellipse 48% 42% at 96% 8%, rgba(73, 194, 200, .055), transparent 78%);
+  background-size: 160% 160%;
+  animation: jamino-gradient-pan 48s ease-in-out infinite;
+}
+
+.hub-shell-community,
+.hub-shell-music,
+.hub-shell-video,
+.hub-shell-anime,
+.hub-shell-watch,
+.hub-shell-tweet,
+.hub-shell-cinema {
+  background-image:
+    radial-gradient(ellipse 70% 58% at 12% -10%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 78%),
+    radial-gradient(ellipse 58% 48% at 92% 4%, color-mix(in srgb, var(--jamino-cyan) 6%, transparent), transparent 78%),
+    linear-gradient(145deg, rgba(14, 16, 29, .28), transparent 52%);
+  background-size: 150% 150%;
+  animation: jamino-gradient-pan 46s ease-in-out infinite;
+}
+
+.screen-panel {
+  min-height: 100%;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 66% 48% at 8% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 76%),
+    radial-gradient(ellipse 48% 42% at 92% 12%, color-mix(in srgb, var(--jamino-cyan) 6%, transparent), transparent 78%);
+  background-size: 155% 155%;
+  animation: jamino-gradient-pan 48s ease-in-out infinite;
+}
+
+.screen-panel > * { z-index: 1; }
+.screen-panel .sidebar,
+.music-hub-sidebar,
+.video-hub-sidebar { background: color-mix(in srgb, var(--jamino-glass-strong) 82%, transparent); }
+
+[data-theme='light'] .hub-shell-community,
+[data-theme='light'] .hub-shell-music,
+[data-theme='light'] .hub-shell-video,
+[data-theme='light'] .hub-shell-anime,
+[data-theme='light'] .hub-shell-watch,
+[data-theme='light'] .hub-shell-tweet,
+[data-theme='light'] .hub-shell-cinema {
+  background-image:
+    radial-gradient(ellipse 70% 58% at 12% -10%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 78%),
+    radial-gradient(ellipse 58% 48% at 92% 4%, color-mix(in srgb, var(--jamino-cyan) 6%, transparent), transparent 78%),
+    linear-gradient(145deg, rgba(244, 246, 255, .62), transparent 62%);
+}
+
+[data-theme='light'] .hub-shell,
+[data-theme='light'] .screen-panel,
+[data-theme='light'] .watch-theater {
+  --color-frost: var(--text);
+  --color-moon: var(--muted);
+  --color-fog: var(--muted);
+  color: var(--text);
+}
+
+[data-theme='light'] .watch-theater {
+  background-image:
+    radial-gradient(ellipse 64% 48% at 12% -8%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 76%),
+    radial-gradient(ellipse 52% 40% at 90% 8%, color-mix(in srgb, var(--jamino-cyan) 7%, transparent), transparent 78%),
+    linear-gradient(145deg, #f6f7fc, #eef0f8);
+}
+
+.landing-page {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    radial-gradient(ellipse 70% 58% at 12% -10%, rgba(134, 109, 255, .13), transparent 76%),
+    radial-gradient(ellipse 58% 48% at 92% 4%, rgba(89, 132, 255, .09), transparent 76%),
+    radial-gradient(ellipse 54% 48% at 55% 105%, rgba(73, 194, 200, .08), transparent 76%),
+    linear-gradient(145deg, #080a13, #0b0c18 60%, #090d16);
+  background-size: 160% 160%;
+  animation: jamino-gradient-pan 52s ease-in-out infinite;
+}
+
+.auth-page {
+  background-size: 155% 155%;
+  animation: jamino-gradient-pan 48s ease-in-out infinite;
+}
+
+.jamino-glass,
+.topbar,
+.hub-topbar,
+.landing-nav,
+.admin-side,
+.admin-top,
+.watch-theater-top,
+.global-player,
+.auth-card,
+.admin-card,
+.admin-modal,
+.music-hub-sidebar,
+.video-hub-sidebar,
+.ch-group-card,
+.ch-jam-card,
+.ch-discover-card,
+.now-feed-card,
+.anime-card,
+.anime-mega,
+.cinema-card,
+.global-search-modal,
+.notification-panel,
+.global-music-player,
+.music-hub-player,
+.anime-detail-modal,
+.watch-theater-panel,
+.creator-insights,
+.creator-studio-card,
+.video-post-card,
+.tweet-composer,
+.tweet-card,
+.community-hub-card {
+  border-color: var(--jamino-glass-line);
+  background-color: var(--jamino-glass);
+  box-shadow: var(--jamino-glass-shadow), inset 0 1px 0 var(--jamino-glass-highlight);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  backdrop-filter: blur(20px) saturate(135%);
+}
+
+.global-player {
+  background-image: linear-gradient(120deg, color-mix(in srgb, var(--jamino-glass-strong) 92%, transparent), color-mix(in srgb, var(--jamino-glass) 88%, transparent));
+  border-color: color-mix(in srgb, var(--accent) 18%, var(--jamino-glass-line));
+}
+
+.hub-card,
+.admin-hero,
+.admin-stat,
+.admin-ops-card,
+.screen-panel .side-foot-card,
+.music-hub-radio-card,
+.creator-studio-hero,
+.creator-studio-metric,
+.creator-studio-profile,
+.creator-insights-card,
+.anime-hero,
+.anime-detail-modal,
+.cinema-feature-strip,
+.ch-presence-bar,
+.landing-feature-card,
+.music-hub-hero,
+.video-feature-card,
+.music-library-stat,
+.music-playlist-card,
+.video-playlist-card,
+.cinema-feature-strip,
+.watch-theater-panel,
+.admin-gate-card {
+  border-color: color-mix(in srgb, var(--accent, var(--jamino-violet)) 17%, var(--jamino-glass-line));
+  background-image: linear-gradient(145deg, var(--jamino-glass), color-mix(in srgb, var(--jamino-glass-strong) 74%, transparent));
+  box-shadow: var(--jamino-glass-shadow), inset 0 1px 0 var(--jamino-glass-highlight);
+  -webkit-backdrop-filter: blur(18px) saturate(132%);
+  backdrop-filter: blur(18px) saturate(132%);
+}
+
+.hub-card:hover,
+.landing-feature-card:hover,
+.music-playlist-card:hover,
+.video-playlist-card:hover {
+  border-color: color-mix(in srgb, var(--accent, var(--jamino-violet)) 36%, var(--jamino-glass-line));
+}
+
+.btn-violet,
+.landing-cta,
+.watch-quality-chip.active {
+  color: #fff;
+  background-image: var(--jamino-gradient);
+  background-size: 190% 190%;
+  animation: jamino-gradient-pan 18s ease-in-out infinite;
+  box-shadow: 0 10px 30px rgba(113, 133, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+
+.vp-player.vp-feature {
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(1, 3, 15, .32), 0 0 0 1px rgba(194, 185, 255, .12);
+}
+
+.vp-bigplay .vp-bigplay-circle {
+  background: var(--jamino-gradient);
+  background-size: 180% 180%;
+  box-shadow: 0 0 28px rgba(133, 118, 255, .26), inset 0 1px 0 rgba(255, 255, 255, .24);
+  animation: jamino-gradient-pan 14s ease-in-out infinite;
+}
+
+.vp-bigplay:hover .vp-bigplay-circle { background: var(--jamino-gradient); }
+.vp-bigplay svg { fill: #fff; }
+
+.jamino-spotlight {
+  --spotlight-x: 50%;
+  --spotlight-y: 50%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.jamino-spotlight::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: '';
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(260px circle at var(--spotlight-x) var(--spotlight-y), rgba(197, 190, 255, .14), transparent 74%);
+  transition: opacity .35s ease;
+}
+
+.jamino-spotlight:hover::after,
+.jamino-spotlight:focus-visible::after { opacity: 1; }
+.jamino-spotlight > * { z-index: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .app-root::before,
+  .hub-shell::before,
+  .screen-panel::before,
+  .hub-shell-community,
+  .hub-shell-music,
+  .hub-shell-video,
+  .hub-shell-anime,
+  .hub-shell-watch,
+  .hub-shell-tweet,
+  .hub-shell-cinema,
+  .screen-panel,
+  .admin-root,
+  .auth-page,
+  .landing-page,
+  .auth-page,
+  .btn-violet,
+  .landing-cta,
+  .watch-quality-chip.active,
+  .vp-bigplay .vp-bigplay-circle {
+    animation: none !important;
+    will-change: auto;
+  }
+
+  .jamino-spotlight::after { transition: none; }
+}
+
+@media (max-width: 680px) {
+  .hub-topbar,
+  .landing-nav,
+  .admin-top,
+  .watch-theater-top {
+    -webkit-backdrop-filter: blur(16px) saturate(125%);
+    backdrop-filter: blur(16px) saturate(125%);
+  }
+}

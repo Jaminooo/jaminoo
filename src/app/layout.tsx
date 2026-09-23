@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import '@/app/globals.css';
+import { MotionConfig } from 'motion/react';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { I18nProvider } from '@/providers/i18n-provider';
 import { PwaRegister } from '@/components/pwa-register';
@@ -29,14 +30,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <I18nProvider>
-            <PwaRegister />
-            <SiteGuard />
-            <ContextMenuHost />
-            {children}
-          </I18nProvider>
-        </ThemeProvider>
+        <MotionConfig reducedMotion="user">
+          <ThemeProvider>
+            <I18nProvider>
+              <PwaRegister />
+              <SiteGuard />
+              <ContextMenuHost />
+              {children}
+            </I18nProvider>
+          </ThemeProvider>
+        </MotionConfig>
       </body>
     </html>
   );

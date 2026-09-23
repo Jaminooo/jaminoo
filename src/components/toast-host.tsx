@@ -1,7 +1,7 @@
 'use client';
 
 import { useToastStore } from '@/components/toast';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 
 export function ToastHost() {
   const items = useToastStore((s) => s.items);

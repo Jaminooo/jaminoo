@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/app-store';
 import { PanelShell } from '@/components/panel-shell';
 import { TopRightControls } from '@/components/top-controls';
 import { ToastHost } from '@/components/toast-host';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { HubGateway } from '@/components/hub-gateway';
 import { MusicHub } from '@/components/music-hub';
 import { VideoHub } from '@/components/video-hub';
