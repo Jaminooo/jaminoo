@@ -50,6 +50,7 @@ export function CommunityHome() {
   const [groups, setGroups] = useState<GroupCard[]>([]);
   const [friends, setFriends] = useState<FriendCard[]>([]);
   const [jams, setJams] = useState<JamCard[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     connectLive();
@@ -57,7 +58,7 @@ export function CommunityHome() {
       api<{ mine: GroupCard[] }>('/api/groups').then((d) => setGroups(d.mine)).catch(() => {}),
       api<{ friends: FriendCard[] }>('/api/friends').then((d) => setFriends(d.friends)).catch(() => {}),
       api<{ jams: JamCard[] }>('/api/jams').then((d) => setJams(d.jams)).catch(() => {}),
-    ]);
+    ]).finally(() => setLoading(false));
   }, []);
 
   const onlineFriends = friends.filter((f) => online.includes(f.id));
@@ -69,7 +70,7 @@ export function CommunityHome() {
   ];
 
   return (
-    <div className="ch-home">
+    <div className="ch-home" aria-busy={loading}>
       <header className="ch-home-hero">
         <div>
           <div className="ch-kicker">{t('groups.kicker')}</div>
@@ -78,15 +79,15 @@ export function CommunityHome() {
         </div>
         <div className="ch-stats">
           <button type="button" className="ch-stat" onClick={() => setTab('friends')}>
-            <strong>{friends.length}</strong>
+            <strong>{loading ? '—' : friends.length}</strong>
             <span>{t('groups.statFriends')}</span>
           </button>
           <button type="button" className="ch-stat" onClick={() => setTab('groups')}>
-            <strong>{groups.length}</strong>
+            <strong>{loading ? '—' : groups.length}</strong>
             <span>{t('groups.myGroups')}</span>
           </button>
           <button type="button" className="ch-stat" onClick={() => setTab('jams')}>
-            <strong>{jams.filter((j) => !j.closed).length}</strong>
+            <strong>{loading ? '—' : jams.filter((j) => !j.closed).length}</strong>
             <span>{t('groups.statJams')}</span>
           </button>
         </div>
@@ -109,7 +110,9 @@ export function CommunityHome() {
             {t('groups.openGroups')} <ArrowRight size={14} />
           </button>
         </div>
-        {groups.length === 0 ? (
+        {loading ? (
+          <div className="ch-group-grid" aria-hidden="true">{Array.from({ length: 3 }, (_, index) => <div className="ch-loading-card ch-loading-group" key={index} />)}</div>
+        ) : groups.length === 0 ? (
           <div className="ch-empty">
             <MessagesSquare size={22} />
             <p>{t('groups.noGroupsYet')}</p>
@@ -143,7 +146,9 @@ export function CommunityHome() {
             </button>
           )}
         </div>
-        {onlineFriends.length === 0 ? (
+        {loading ? (
+          <div className="ch-online-grid" aria-hidden="true">{Array.from({ length: 4 }, (_, index) => <div className="ch-loading-card ch-loading-friend" key={index} />)}</div>
+        ) : onlineFriends.length === 0 ? (
           <div className="ch-empty ch-empty-sm">
             <p>{friends.length === 0 ? t('friends.noFriendsYet') : t('groups.friendsOnline')}</p>
           </div>
@@ -169,7 +174,9 @@ export function CommunityHome() {
             {t('jams.allJams')} <ArrowRight size={14} />
           </button>
         </div>
-        {jams.length === 0 ? (
+        {loading ? (
+          <div className="ch-jam-strip" aria-hidden="true">{Array.from({ length: 2 }, (_, index) => <div className="ch-loading-card ch-loading-jam" key={index} />)}</div>
+        ) : jams.length === 0 ? (
           <div className="ch-empty ch-empty-sm">
             <p>{t('jams.noJamsYet')}</p>
           </div>
