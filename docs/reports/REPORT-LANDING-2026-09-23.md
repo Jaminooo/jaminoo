@@ -33,3 +33,22 @@
 | بنتو (bento) | چیدمان کارتی با ابعاد متفاوت در یک گرید |
 | aurora / blob | ناحیههای رنگی محوِ پسزمینه |
 | reduced-motion | تنظیم سیستم کاربر برای حذف انیمیشنها |
+
+## Landing refresh follow-up — 2026-09-23
+
+### What changed
+- Reworked the guest landing hero into a responsive product preview for Jamino's shared watch room, synced audio, and connected hubs.
+- Added Watch Hub / anime discovery to the product rail and translated the new preview copy in Persian and English.
+- Refined the landing page navigation, visual hierarchy, mobile layout, and reduced-motion handling.
+
+### Validation
+- `npx tsc --noEmit` passed.
+- `npm run build` passed; existing lint warnings remain in unrelated files.
+- Automated tests were not run in this change.
+
+### Remaining / next step
+- Review the deployed landing page at desktop and mobile widths.
+
+### Glossary
+- **Product preview:** the illustrative in-page mockup of Jamino's watch room.
+- **Watch Hub:** the connected home for anime, films, and series.

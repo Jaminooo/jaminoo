@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowDown, ArrowRight, Globe, Headphones, MessageCircle, Music2, Play, PlaySquare, Shield, Sparkles, UsersRound, Video, Zap } from 'lucide-react';
+import { ArrowDown, ArrowRight, Clapperboard, Globe, Headphones, MessageCircle, Music2, Play, PlaySquare, Shield, Sparkles, UsersRound, Video, Zap } from 'lucide-react';
+import Image from 'next/image';
 import { useLocale, useTranslations } from '@/providers/use-translations';
 import { JamiMascot } from '@/components/jami-mascot';
 import { motion } from 'framer-motion';
@@ -10,6 +11,7 @@ const PRODUCTS: { icon: typeof MessageCircle; label: string; tone: string }[] = 
   { icon: Music2, label: 'MUSIC HUB', tone: 'pink' },
   { icon: PlaySquare, label: 'VIDEO HUB', tone: 'blue' },
   { icon: Video, label: 'CINEMA HUB', tone: 'teal' },
+  { icon: Clapperboard, label: 'WATCH HUB', tone: 'violet' },
 ];
 
 export function LandingPage() {
@@ -88,8 +90,26 @@ export function LandingPage() {
           </div>
           <div className="landing-orbit" />
           <div className="landing-orbit landing-orbit-two" />
-          <div className="landing-mascot-glow">
-            <JamiMascot state="wave" size={270} />
+          <div className="landing-product-window" role="img" aria-label={t('landing.preview')}>
+            <div className="landing-window-topbar">
+              <div className="landing-window-brand"><span className="wordmark-mark"><Sparkles size={12} /></span><b>Jamino</b></div>
+              <div className="landing-window-room"><span className="landing-pulse" />{t('landing.mockRoom')}</div>
+              <span className="landing-window-avatar"><UsersRound size={13} /></span>
+            </div>
+            <div className="landing-window-body">
+              <div className="landing-window-rail" aria-hidden="true"><span className="active"><Clapperboard size={15} /></span><span><Music2 size={15} /></span><span><MessageCircle size={15} /></span><span><PlaySquare size={15} /></span></div>
+              <div className="landing-window-content">
+                <div className="landing-window-heading"><div><small>{t('landing.mockWatchParty')}</small><b>{t('landing.mockHeading')}</b></div><span><UsersRound size={12} /> 4</span></div>
+                <div className="landing-screen-poster">
+                  <Image src="/defaults/images/movie.png" alt="" fill sizes="(max-width: 700px) 80vw, 440px" priority />
+                  <div className="landing-poster-shade" />
+                  <span className="landing-screen-badge"><span className="landing-pulse" /> {t('landing.live')}</span>
+                  <button type="button" tabIndex={-1} aria-hidden="true" className="landing-screen-play"><Play size={22} fill="currentColor" /></button>
+                  <div className="landing-screen-copy"><small>{t('landing.mockSubheading')}</small><b>{t('landing.mockNowPlaying')}</b><span><i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /> <i /></span></div>
+                </div>
+                <div className="landing-window-bottom"><span className="landing-mini-cover"><Image src="/defaults/images/album.png" alt="" fill sizes="40px" /></span><span><b>{t('landing.synced')}</b><small>{t('landing.mockListening')}</small></span><span className="landing-window-eq"><i /><i /><i /><i /><i /></span><span className="landing-window-members"><i /><i /><i /><b>+1</b></span></div>
+              </div>
+            </div>
           </div>
           <div className="landing-float-card landing-float-card-top">
             <span className="landing-float-icon violet"><UsersRound size={15} /></span>
@@ -110,7 +130,7 @@ export function LandingPage() {
           const Icon = p.icon;
           return (
             <span key={p.label} className={`landing-product-chip tone-${p.tone}`}>
-              <Icon size={13} /> {t(`landing.${p.label === 'COMMUNITY HUB' ? 'community' : p.label === 'MUSIC HUB' ? 'music' : p.label === 'VIDEO HUB' ? 'video' : 'cinema'}`)}
+              <Icon size={13} /> {t(`landing.${p.label === 'COMMUNITY HUB' ? 'community' : p.label === 'MUSIC HUB' ? 'music' : p.label === 'VIDEO HUB' ? 'video' : p.label === 'WATCH HUB' ? 'watch' : 'cinema'}`)}
             </span>
           );
         })}
