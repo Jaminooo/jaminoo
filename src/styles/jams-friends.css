@@ -273,6 +273,76 @@
   flex-wrap: wrap;
 }
 
+/* hosted worlds section */
+.fp-worlds {
+  max-width: 640px;
+  margin: 14px auto 0;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+.fp-worlds.is-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fp-worlds-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-fog);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 10px;
+}
+
+.fp-worlds.is-empty .fp-worlds-title {
+  margin-bottom: 0;
+}
+
+.fp-worlds-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fp-world-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--color-moon);
+  font-size: 12px;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.fp-world-chip:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.fp-world-kind {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--color-violet-light);
+}
+
+.fp-world-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* dm badges & unread */
 .dm-badge {
   flex-shrink: 0;

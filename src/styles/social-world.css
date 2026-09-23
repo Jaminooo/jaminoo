@@ -113,6 +113,12 @@
 .public-identity-stats span { display: inline-flex; align-items: center; gap: 5px; }
 .public-identity-stats svg { color: #a99bff; }
 .public-identity-stats b { color: var(--text); }
+.public-identity-date { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: #8b9ab4; font-size: 10px; }
+.public-identity-worlds { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; width: min(680px, 100%); padding: 18px; border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 24px; background: rgba(0, 0, 0, .55); }
+.public-identity-worlds-title { display: inline-flex; align-items: center; gap: 7px; color: #a99bff; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.public-identity-worlds-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.public-identity-world-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 7px 12px; border-radius: 999px; background: rgba(0, 0, 0, .5); border: 1px solid color-mix(in srgb, var(--text) 16%, transparent); color: var(--text); font-size: 12px; }
+.public-identity-world-chip b { color: #a99bff; font-size: 9px; letter-spacing: .1em; }
 .music-battle-card { display: flex; align-items: center; gap: 9px; margin: 10px 0; padding: 10px 12px; border: 1px solid rgba(255, 184, 91, .25); border-radius: 13px; background: linear-gradient(100deg, rgba(255, 160, 74, .12), color-mix(in srgb, var(--accent) 9%, transparent)); color: #ffd58d; }
 .music-battle-card > span:nth-child(2) { display: grid; gap: 3px; min-width: 0; flex: 1; }
 .music-battle-card b { color: #fff1d0; font-size: 11px; }

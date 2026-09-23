@@ -9,7 +9,15 @@ import { useCallback, useEffect, useState } from 'react';
   import { toast } from '@/components/toast';
   import { loadUnread } from '@/lib/unread';
   import { onLive } from '@/lib/live';
-  import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck, Loader2 } from 'lucide-react';
+  import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck, Loader2, Video, ListVideo, Compass } from 'lucide-react';
+
+interface JamChip {
+  id: string;
+  name: string;
+  kind: string;
+  type: string;
+  createdAt: string;
+}
 
 interface ProfileData {
   user: {
@@ -30,6 +38,11 @@ interface ProfileData {
   friendsCount: number;
   jamMsgCount: number;
   mutual: number;
+  videoPostCount: number;
+  tweetCount: number;
+  playlistCount: number;
+  jamMemberships: number;
+  jamList: JamChip[];
 }
 
 export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack: () => void }) {
@@ -110,7 +123,31 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
         <div className="fp-stat"><UserCheck size={15} /><b>{data.mutual}</b><span>{t('fp.statMutual')}</span></div>
         <div className="fp-stat"><Radio size={15} /><b>{data.ownedJams}</b><span>{t('fp.statJams')}</span></div>
         <div className="fp-stat"><MessageSquare size={15} /><b>{data.jamMsgCount}</b><span>{t('fp.statMessages')}</span></div>
+        <div className="fp-stat"><Video size={15} /><b>{data.videoPostCount}</b><span>{t('fp.statVideos')}</span></div>
+        <div className="fp-stat"><MessageCircle size={15} /><b>{data.tweetCount}</b><span>{t('fp.statTweets')}</span></div>
+        <div className="fp-stat"><ListVideo size={15} /><b>{data.playlistCount}</b><span>{t('fp.statPlaylists')}</span></div>
+        <div className="fp-stat"><Compass size={15} /><b>{data.jamMemberships}</b><span>{t('fp.statMember')}</span></div>
       </div>
+
+      {data.jamList.length > 0 && (
+        <div className="fp-worlds">
+          <div className="fp-worlds-title"><Compass size={13} /> {t('fp.worldsHosted')}</div>
+          <div className="fp-worlds-grid">
+            {data.jamList.map((j) => (
+              <span key={j.id} className="fp-world-chip">
+                <b className={`fp-world-kind kind-${(j.kind || 'room').toLowerCase()}`}>{j.kind || 'ROOM'}</b>
+                <span className="fp-world-name">{j.name}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {data.jamList.length === 0 && (
+        <div className="fp-worlds is-empty">
+          <div className="fp-worlds-title"><Compass size={13} /> {t('fp.worldsHosted')}</div>
+          <span className="fp-nobio">{t('fp.noWorlds')}</span>
+        </div>
+      )}
 
       <div className="fp-actions">
         {data.relationship === 'friends' && (

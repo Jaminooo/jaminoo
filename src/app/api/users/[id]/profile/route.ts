@@ -40,12 +40,22 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   else if (friend?.status === 'FRIENDS') relationship = 'friends';
   else if (friend) relationship = friend.fromId === me.id ? 'sent' : 'received';
 
-  const [ownedJams, friendsCount, jamMsgCount, myFriends, theirFriends] = await Promise.all([
+  const [ownedJams, friendsCount, jamMsgCount, myFriends, theirFriends, videoPostCount, tweetCount, playlistCount, jamList, jamMemberships] = await Promise.all([
     prisma.jam.count({ where: { ownerId: id } }),
     prisma.friendRequest.count({ where: { status: 'FRIENDS', OR: [{ fromId: id }, { toId: id }] } }),
     prisma.jamMessage.count({ where: { userId: id } }),
     prisma.friendRequest.findMany({ where: { status: 'FRIENDS', OR: [{ fromId: me.id }, { toId: me.id }] }, select: { fromId: true, toId: true } }),
     prisma.friendRequest.findMany({ where: { status: 'FRIENDS', OR: [{ fromId: id }, { toId: id }] }, select: { fromId: true, toId: true } }),
+    prisma.videoPost.count({ where: { authorId: id, visibility: 'PUBLIC', workflowStatus: 'PUBLISHED' } }),
+    prisma.tweet.count({ where: { authorId: id, visibility: 'PUBLIC' } }),
+    prisma.videoPlaylist.count({ where: { userId: id } }),
+    prisma.jam.findMany({
+      where: { ownerId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+      select: { id: true, name: true, kind: true, type: true, createdAt: true },
+    }),
+    prisma.jamMember.count({ where: { userId: id } }),
   ]);
 
   const mySet = new Set<number>();
@@ -57,6 +67,14 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   let mutual = 0;
   for (const uid of mySet) if (theirSet.has(uid)) mutual++;
 
+  const jamListPayload = jamList.map((j) => ({
+    id: j.id,
+    name: j.name,
+    kind: j.kind,
+    type: j.type,
+    createdAt: j.createdAt.toISOString(),
+  }));
+
   return json({
     user: pubUser(user),
     relationship,
@@ -65,5 +83,10 @@ export const GET = handle(async (_req, { params }: Ctx) => {
     friendsCount,
     jamMsgCount,
     mutual,
+    videoPostCount,
+    tweetCount,
+    playlistCount,
+    jamMemberships,
+    jamList: jamListPayload,
   });
 });

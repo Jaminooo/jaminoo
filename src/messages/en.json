@@ -282,6 +282,12 @@
     "statMutual": "Mutual",
     "statJams": "Jams",
     "statMessages": "Messages",
+    "statVideos": "Videos",
+    "statTweets": "Posts",
+    "statPlaylists": "Playlists",
+    "statMember": "Worlds joined",
+    "worldsHosted": "Hosted worlds",
+    "noWorlds": "No worlds hosted yet.",
     "chat": "Chat",
     "removeFriend": "Remove friend",
     "addFriend": "Add friend",
@@ -916,7 +922,9 @@
     "authIntro": "Sign in with your account or create a new space in less than a minute.",
     "authNote": "Your hubs, rooms and creator identity stay connected.",
     "footer": "Hang out, without the noise.",
-    "back": "Back to top"
+    "back": "Back to top",
+    "fast": "Fast & lightweight",
+    "privacy": "Privacy by default"
   },
   "hubs": {
     "choose": "Choose a workspace",
