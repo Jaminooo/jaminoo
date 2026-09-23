@@ -716,6 +716,7 @@ model CinemaVideo {
   description  String   @default("")
   kind         String   @default("MOVIE")
   externalUrl  String   @default("")
+  qualitySources String @default("{}")
   thumbnailUrl String   @default("")
   subtitlesUrl String   @default("")
   durationSec  Int      @default(0)
@@ -724,8 +725,28 @@ model CinemaVideo {
   updatedAt    DateTime @updatedAt
 
   jams Jam[] @relation("JamCinemaVideo")
+  episodes CinemaEpisode[]
 
   @@index([kind, visibility, id])
+}
+
+
+model CinemaEpisode {
+  id             Int      @id @default(autoincrement())
+  cinemaVideoId  Int
+  season         Int      @default(1)
+  number         Int      @default(1)
+  title          String   @default("")
+  externalUrl    String   @default("")
+  qualitySources String   @default("{}")
+  thumbnailUrl   String   @default("")
+  subtitlesUrl   String   @default("")
+  durationSec    Int      @default(0)
+  createdAt      DateTime @default(now())
+  cinemaVideo    CinemaVideo @relation(fields: [cinemaVideoId], references: [id], onDelete: Cascade)
+
+  @@unique([cinemaVideoId, season, number])
+  @@index([cinemaVideoId, season, number])
 }
 
 enum AnimeType {
@@ -775,8 +796,10 @@ model AnimeEpisode {
   animeId     Int
   slug        String   @default("") // e.g. "e01" / "s01e01"
   title       String
+  season      Int      @default(1)
   number      Int      @default(0)
   externalUrl String   @default("")
+  qualitySources String @default("{}")
   thumbnailUrl String   @default("")
   subtitlesUrl String   @default("")
   durationSec Int      @default(0)

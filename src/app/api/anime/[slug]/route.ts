@@ -12,7 +12,7 @@ export const GET = handle(async (_req, { params }: Ctx) => {
 
   const episodes = await prisma.animeEpisode.findMany({
     where: { animeId: anime.id },
-    orderBy: [{ number: 'asc' }, { id: 'asc' }],
+    orderBy: [{ season: 'asc' }, { number: 'asc' }, { id: 'asc' }],
   });
 
   return json({

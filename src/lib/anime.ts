@@ -1,3 +1,4 @@
+import { parseQualitySources, type QualitySources } from '@/lib/watch-select';
 export const ANIME_TYPES = ['TV', 'MOVIE', 'OVA', 'SPECIAL'] as const;
 export const ANIME_STATUSES = ['FINISHED', 'AIRING', 'UPCOMING'] as const;
 export const HUB_SCOPE = ['MUSIC', 'VIDEO', 'ANIME', 'CINEMA', 'TWEET', 'COMMUNITY'] as const;
@@ -64,10 +65,12 @@ export function animePayload(anime: any): AnimePayload {
 export interface AnimeEpisodePayload {
   id: number;
   animeId: number;
+  season: number;
   title: string;
   number: number;
   slug: string;
   externalUrl: string | null;
+  qualitySources: QualitySources;
   thumbnailUrl: string | null;
   subtitlesUrl: string | null;
   durationSec: number;
@@ -77,10 +80,12 @@ export function animeEpisodePayload(episode: any): AnimeEpisodePayload {
   return {
     id: episode.id,
     animeId: episode.animeId,
+    season: episode.season || 1,
     title: episode.title,
     number: episode.number,
     slug: episode.slug,
     externalUrl: episode.externalUrl || null,
+    qualitySources: parseQualitySources(episode.qualitySources),
     thumbnailUrl: episode.thumbnailUrl || null,
     subtitlesUrl: episode.subtitlesUrl || null,
     durationSec: episode.durationSec,

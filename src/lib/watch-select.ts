@@ -5,8 +5,45 @@ export const DEMO_VIDEO_URL = '/defaults/videos/demo.mp4';
 
 export const WATCH_QUALITIES = ['auto', '720p', '1080p', '2160p'] as const;
 export type WatchQuality = (typeof WATCH_QUALITIES)[number];
+export const WATCH_QUALITY_VARIANTS = ['720p', '1080p', '2160p'] as const;
+export type QualitySources = Partial<Record<(typeof WATCH_QUALITY_VARIANTS)[number], string>>;
+
+const SAFE_LOCAL_MEDIA = /^\/(?:api\/media\/[A-Za-z0-9_-]+|defaults\/videos\/demo\.mp4)$/;
 
 export const DEFAULT_QUALITY: WatchQuality = 'auto';
+
+export function parseQualitySources(value: unknown): QualitySources {
+  let candidate = value;
+  if (typeof candidate === 'string') {
+    try { candidate = JSON.parse(candidate); } catch { return {}; }
+  }
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return {};
+  const result: QualitySources = {};
+  for (const quality of WATCH_QUALITY_VARIANTS) {
+    const source = (candidate as Record<string, unknown>)[quality];
+    if (typeof source !== 'string' || !source.trim()) continue;
+    const url = source.trim().slice(0, 1800);
+    if (SAFE_LOCAL_MEDIA.test(url)) result[quality] = url;
+    else {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') result[quality] = url;
+      } catch { /* Ignore invalid quality URLs. */ }
+    }
+  }
+  return result;
+}
+
+export function availableWatchQualities(sources: unknown): WatchQuality[] {
+  const parsed = parseQualitySources(sources);
+  return ['auto', ...WATCH_QUALITY_VARIANTS.filter((quality) => Boolean(parsed[quality]))];
+}
+
+export function resolveWatchSource(fallback: string | null | undefined, sources: unknown, quality: WatchQuality): string {
+  const parsed = parseQualitySources(sources);
+  if (quality !== 'auto' && parsed[quality]) return parsed[quality]!;
+  return fallback && fallback.trim() ? fallback : DEMO_VIDEO_URL;
+}
 
 export interface WatchSelectEpisode {
   id: number;
@@ -14,8 +51,9 @@ export interface WatchSelectEpisode {
   season: number;
   title: string;
   externalUrl: string | null;
-  thumbnailUrl: string | null;
-}
+  qualitySources?: QualitySources;
+  subtitlesUrl?: string | null;
+  thumbnailUrl: string | null;}
 
 export interface RelatedCandidate {
   key: string;

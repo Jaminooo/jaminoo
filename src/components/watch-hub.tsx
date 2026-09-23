@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { LucideIcon } from 'lucide-react';
-import { ChevronRight, Clapperboard, Clock3, Film, Filter, Flame, Globe, ListPlus, Play, Radio, Search, Sparkles, Star, Tv2, UsersRound, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clapperboard, Clock3, Film, Filter, Flame, Globe, LayoutGrid, ListPlus, Play, Radio, Search, Sparkles, Star, Tv2, UsersRound, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { useTranslations } from '@/providers/use-translations';
@@ -15,14 +15,20 @@ import { VinylPlayer } from '@/components/vinyl-player';
 import { WATCH_QUALITIES, DEFAULT_QUALITY, type WatchQuality } from '@/lib/watch-select';
 import {
   animeItem as toWatchAnime,
+  buildCategoryRails,
+  buildGenreRails,
+  buildHeroPicks,
+  buildNewRails,
   buildWatchShelves,
   cinematicItem as toWatchCinema,
   filterByWatchTab,
+  genreCounts,
   matchWatchQuery,
   mergeWatchCatalog,
   watchPartyPlan,
   watchTitleHue,
   type WatchItem,
+  type WatchRail,
   type WatchTab,
 } from '@/lib/watch-catalog';
 
@@ -180,6 +186,22 @@ export function WatchHub() {
 
   const unified = useMemo<WatchItem[]>(() => mergeWatchCatalog(cinemaItems, animeItems), [cinemaItems, animeItems]);
 
+  // Netflix-style rows for the home surface.
+  const newRails = useMemo(() => buildNewRails(unified), [unified]);
+  const genreRails = useMemo(() => buildGenreRails(unified, { min: 2, maxRails: 6, limit: 10 }), [unified]);
+  const categoryRails = useMemo(() => buildCategoryRails(unified, 10), [unified]);
+  const heroPicks = useMemo(() => buildHeroPicks(unified, 6), [unified]);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const genreTallies = useMemo(() => genreCounts(unified), [unified]);
+
+  // Rotate the hero spotlight on the home tab (only when more than one pick).
+  useEffect(() => {
+    if (heroPicks.length < 2) return;
+    const timer = window.setInterval(() => setHeroIndex((i) => (i + 1) % heroPicks.length), 7000);
+    return () => window.clearInterval(timer);
+  }, [heroPicks.length]);
+
   const filtered = useMemo(() => {
     let list = tab === 'my-list' ? unified.filter((i) => saved.has(i.key)) : filterByWatchTab(unified, tab);
     if (query.trim()) list = list.filter((i) => matchWatchQuery(i, query));
@@ -315,7 +337,52 @@ export function WatchHub() {
     </article>
   );
 
-  const heroItem: WatchItem | null = unified[0] ?? null;
+  const heroItem: WatchItem | null = heroPicks[heroIndex] ?? unified[0] ?? null;
+
+  // --- Netflix-style rails for the home surface -----------------------------
+
+  const renderRailCard = (item: WatchItem) => (
+    <button type="button" className="anime-rail-card" key={item.key} onClick={() => void openDetail(item)} aria-label={t('watch.open', { title: item.title })}>
+      <div className="anime-rail-card-media">
+        <Cover item={item} />
+        {kindChip(item)}
+        <span className="anime-card-play"><Play size={15} fill="currentColor" /></span>
+      </div>
+      <span className="anime-rail-card-title">{item.title}</span>
+    </button>
+  );
+
+  const railTab = (rail: WatchRail): WatchTab | undefined =>
+    rail.kind === 'ANIME' ? 'anime' : rail.kind === 'CARTOON' ? 'cartoons' : rail.kind === 'MOVIE' ? 'movies' : undefined;
+
+  const renderRail = (rail: WatchRail, kicker: string, title: string) => {
+    if (rail.items.length === 0) return null;
+    const Icon = rail.kind !== 'MIXED' ? KIND_ICON[rail.kind] : Film;
+    const to = railTab(rail);
+    return (
+      <section className="anime-rail" key={rail.id}>
+        <div className="anime-shelf-head">
+          <div>
+            <span className="hub-kicker"><Icon size={12} /> {kicker}</span>
+            <h2>{title}</h2>
+          </div>
+          {to && (
+            <button type="button" className="anime-see-all" onClick={() => setTabView(to)}>
+              {t('watch.seeAll')} <ChevronRight size={14} />
+            </button>
+          )}
+        </div>
+        <div className="anime-rail-track">{rail.items.map(renderRailCard)}</div>
+      </section>
+    );
+  };
+
+  const closeBrowse = () => setBrowseOpen(false);
+  const pickGenre = (g: string) => {
+    setGenre(g);
+    setBrowseOpen(false);
+    setQuery('');
+  };
 
   const tabs: { id: WatchTab; label: string; icon: LucideIcon }[] = [
     { id: 'home', label: t('watch.home'), icon: Clapperboard },
@@ -361,6 +428,9 @@ export function WatchHub() {
               >
                 <Play size={15} fill="currentColor" /> {t('watch.explore')}
               </button>
+              <button type="button" className={`btn btn-ghost${browseOpen ? ' is-active' : ''}`} onClick={() => setBrowseOpen((v) => !v)} aria-expanded={browseOpen}>
+                <LayoutGrid size={15} /> {t('watch.browseGenres')} <ChevronDown size={14} className="anime-mega-chevron" />
+              </button>
               <button type="button" className="btn btn-ghost" onClick={() => { setProduct('community'); setTab('jams'); }}>
                 <UsersRound size={15} /> {t('watch.openParty')}
               </button>
@@ -380,6 +450,37 @@ export function WatchHub() {
             </div>
           </div>
         </section>
+
+        {browseOpen && (
+          <div className="anime-mega" role="menu" aria-label={t('watch.browseGenres')} onMouseLeave={closeBrowse}>
+            <div className="anime-mega-col">
+              <span className="hub-kicker">{t('watch.megaCategories')}</span>
+              {tabs
+                .filter((x) => x.id !== 'home' && x.id !== 'my-list')
+                .map(({ id, label, icon: Icon }) => (
+                  <button type="button" key={id} className="anime-mega-link" onClick={() => { setTabView(id); closeBrowse(); }}>
+                    <Icon size={15} />
+                    <span>{label}</span>
+                  </button>
+                ))}
+            </div>
+            <div className="anime-mega-col anime-mega-col-wide">
+              <span className="hub-kicker">{t('watch.megaGenres')}</span>
+              {genreTallies.length === 0 ? (
+                <p className="anime-mega-empty">{t('watch.megaEmpty')}</p>
+              ) : (
+                <div className="anime-mega-grid">
+                  {genreTallies.map(({ genre: g, count }) => (
+                    <button type="button" className="anime-mega-chip" key={g} onClick={() => pickGenre(g)}>
+                      <span>{g}</span>
+                      <b>{count}</b>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <nav className="anime-tabs">
           {tabs.map(({ id, label, icon: Icon }) => (
@@ -410,24 +511,36 @@ export function WatchHub() {
         {loading ? (
           <div className="anime-loading"><span className="admin-loader" /> {t('watch.loading')}</div>
         ) : tab === 'home' && !query && !genre ? (
-          <div className="anime-shelves">
-            {shelves.map(({ title, kicker, icon: Icon, items: shelfItems, tone }) => (
-              <section className="anime-shelf" key={title}>
-                <div className="anime-shelf-head">
-                  <div>
-                    <span className="hub-kicker"><Icon size={12} /> {kicker}</span>
-                    <h2>{title}</h2>
+          <div className="anime-home">
+            {renderRail(newRails.anime, t('watch.newAnimeKicker'), t('watch.newAnime'))}
+            {renderRail(newRails.films, t('watch.newFilmsKicker'), t('watch.newFilms'))}
+            {categoryRails.map((rail) =>
+              renderRail(
+                rail,
+                t('watch.categoryKicker'),
+                rail.kind === 'ANIME' ? t('watch.categoryAnime') : rail.kind === 'CARTOON' ? t('watch.categoryCartoons') : t('watch.categoryFilms')
+              )
+            )}
+            {genreRails.map((rail) => renderRail(rail, t('watch.genreKicker'), rail.id.replace('genre:', '')))}
+            <div className="anime-shelves">
+              {shelves.map(({ title, kicker, icon: Icon, items: shelfItems, tone }) => (
+                <section className="anime-shelf" key={title}>
+                  <div className="anime-shelf-head">
+                    <div>
+                      <span className="hub-kicker"><Icon size={12} /> {kicker}</span>
+                      <h2>{title}</h2>
+                    </div>
+                    <button type="button" className="anime-see-all" onClick={() => setTabView('movies')}>
+                      {t('watch.seeAll')} <ChevronRight size={14} />
+                    </button>
                   </div>
-                  <button type="button" className="anime-see-all" onClick={() => setTabView('movies')}>
-                    {t('watch.seeAll')} <ChevronRight size={14} />
-                  </button>
-                </div>
-                <div className="anime-card-grid anime-card-grid-shelf">
-                  {shelfItems.slice(0, 6).map((item) => renderCard(item, true))}
-                </div>
-                <div className={`anime-shelf-rule ${tone}`} />
-              </section>
-            ))}
+                  <div className="anime-card-grid anime-card-grid-shelf">
+                    {shelfItems.slice(0, 6).map((item) => renderCard(item, true))}
+                  </div>
+                  <div className={`anime-shelf-rule ${tone}`} />
+                </section>
+              ))}
+            </div>
           </div>
         ) : (
           <section className="anime-catalogue" id="anime-catalogue">

@@ -2,13 +2,14 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Eye, EyeOff, Film, Grid2X2, ListPlus, Palette, Pencil, Plus, Star, Trash2, Tv2, X } from 'lucide-react';
+import { Eye, EyeOff, Film, Grid2X2, ListPlus, Palette, Pencil, Plus, Star, Trash2, Tv2, Upload, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { useTranslations } from '@/providers/use-translations';
 import { connectLive, onLive } from '@/lib/live';
 import { Badge, ConfirmModal, EmptyRow, LoadingRow, StatCard, useConfirm } from './admin-ui';
 import { animePayload, ANIME_TYPES, ANIME_STATUSES } from '@/lib/anime';
+import type { QualitySources } from '@/lib/watch-select';
 
 interface AnimeAdminItem {
   id: number;
@@ -33,10 +34,12 @@ interface AnimeAdminItem {
 
 interface EpisodeAdminItem {
   id: number;
+  season: number;
   number: number;
   title: string;
   slug: string;
   externalUrl: string | null;
+  qualitySources: QualitySources;
   thumbnailUrl: string | null;
   subtitlesUrl: string | null;
   durationSec: number;
@@ -76,7 +79,9 @@ export function AdminAnime() {
   const [episodesOpenId, setEpisodesOpenId] = useState<number | null>(null);
   const [episodes, setEpisodes] = useState<EpisodeAdminItem[]>([]);
   const [epLoading, setEpLoading] = useState(false);
-  const [epForm, setEpForm] = useState({ number: '', title: '', slug: '', url: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' });
+  const [epForm, setEpForm] = useState({ season: '1', number: '', title: '', slug: '', url: '', q720: '', q1080: '', q2160: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' });
+  const [epFile, setEpFile] = useState<File | null>(null);
+  const [editingEpisodeId, setEditingEpisodeId] = useState<number | null>(null);
   const { confirm, ask, close } = useConfirm();
 
   const load = useCallback(() => {
@@ -219,23 +224,51 @@ export function AdminAnime() {
   };
   const closeEpisodes = () => setEpisodesOpenId(null);
 
-  const resetEpForm = () => setEpForm({ number: '', title: '', slug: '', url: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' });
+  const resetEpForm = () => {
+    setEpForm({ season: '1', number: '', title: '', slug: '', url: '', q720: '', q1080: '', q2160: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' });
+    setEpFile(null);
+    setEditingEpisodeId(null);
+  };
+
+  const startEditEpisode = (episode: EpisodeAdminItem) => {
+    setEditingEpisodeId(episode.id);
+    setEpForm({
+      season: String(episode.season || 1), number: String(episode.number), title: episode.title,
+      slug: episode.slug, url: episode.externalUrl || '', q720: episode.qualitySources?.['720p'] || '',
+      q1080: episode.qualitySources?.['1080p'] || '', q2160: episode.qualitySources?.['2160p'] || '',
+      thumbnailUrl: episode.thumbnailUrl || '', subtitlesUrl: episode.subtitlesUrl || '',
+      durationSec: episode.durationSec ? String(episode.durationSec) : '',
+    });
+    setEpFile(null);
+  };
+
+  const uploadEpisodeVideo = async (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('context', 'anime');
+    const uploaded = await api<{ asset: { url: string } }>('/api/video/assets', { method: 'POST', body: fd });
+    return uploaded.asset.url;
+  };
 
   const submitEpisode = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
     try {
+      const externalUrl = epFile ? await uploadEpisodeVideo(epFile) : epForm.url;
       const body = JSON.stringify({
+        season: Number(epForm.season || 1),
         number: Number(epForm.number || 0),
         title: epForm.title,
         slug: epForm.slug,
-        externalUrl: epForm.url,
+        externalUrl,
+        qualitySources: { '720p': epForm.q720, '1080p': epForm.q1080, '2160p': epForm.q2160 },
         thumbnailUrl: epForm.thumbnailUrl,
         subtitlesUrl: epForm.subtitlesUrl,
         durationSec: Number(epForm.durationSec || 0),
       });
-      await api(`/api/admin/anime/${episodesOpenId}/episodes`, { method: 'POST', body });
-      toast(t('admin.animeEpisodeAdded'), 'ok');
+      const url = `/api/admin/anime/${episodesOpenId}/episodes`;
+      await api(editingEpisodeId ? `${url}/${editingEpisodeId}` : url, { method: editingEpisodeId ? 'PATCH' : 'POST', body });
+      toast(editingEpisodeId ? t('admin.animeEpisodeSaved') : t('admin.animeEpisodeAdded'), 'ok');
       resetEpForm();
       openEpisodes(items.find((i) => i.id === episodesOpenId)!);
     } catch (error) {
@@ -357,20 +390,32 @@ export function AdminAnime() {
               <button className="btn-icon" onClick={closeEpisodes}><X size={14} /></button>
             </div>
 
-            <form className="admin-form-grid" onSubmit={submitEpisode} style={{ gridTemplateColumns: '80px 1fr 120px auto' }}>
-              <label>{t('admin.animeEpisodeNumber')}<input type="number" min="0" required value={epForm.number} onChange={(e) => setEpForm({ ...epForm, number: e.target.value })} /></label>
+            <form className="admin-form-grid admin-anime-episode-form" onSubmit={submitEpisode}>
+              <label>{t('admin.animeSeason')}<input type="number" min="1" max="999" required value={epForm.season} onChange={(e) => setEpForm({ ...epForm, season: e.target.value })} /></label>
+              <label>{t('admin.animeEpisodeNumber')}<input type="number" min="1" max="9999" required value={epForm.number} onChange={(e) => setEpForm({ ...epForm, number: e.target.value })} /></label>
               <label>{t('admin.animeEpisodeTitle')}<input value={epForm.title} onChange={(e) => setEpForm({ ...epForm, title: e.target.value })} /></label>
               <label>{t('admin.animeEpisodeSlug')}<input value={epForm.slug} onChange={(e) => setEpForm({ ...epForm, slug: e.target.value })} /></label>
-              <label>{t('admin.animeVideoOptional')}<input type="url" value={epForm.url} onChange={(e) => setEpForm({ ...epForm, url: e.target.value })} placeholder="https://…/ep01.mp4" /></label>
+              <label>{t('admin.animeVideoOptional')}<input type="url" value={epForm.url} onChange={(e) => setEpForm({ ...epForm, url: e.target.value })} placeholder="https://?/ep01.mp4" /></label>
+              <label className="admin-file-field"><span><Upload size={13} /> {t('admin.animeUploadEpisode')}</span><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setEpFile(e.target.files?.[0] ?? null)} />{epFile && <small>{epFile.name}</small>}</label>
+              <label>{t('admin.quality720')}<input type="url" value={epForm.q720} onChange={(e) => setEpForm({ ...epForm, q720: e.target.value })} /></label>
+              <label>{t('admin.quality1080')}<input type="url" value={epForm.q1080} onChange={(e) => setEpForm({ ...epForm, q1080: e.target.value })} /></label>
+              <label>{t('admin.quality2160')}<input type="url" value={epForm.q2160} onChange={(e) => setEpForm({ ...epForm, q2160: e.target.value })} /></label>
+              <label>{t('admin.thumbnailUrl')}<input type="url" value={epForm.thumbnailUrl} onChange={(e) => setEpForm({ ...epForm, thumbnailUrl: e.target.value })} /></label>
+              <label>{t('admin.cinemaSubtitlesUrl')}<input type="url" value={epForm.subtitlesUrl} onChange={(e) => setEpForm({ ...epForm, subtitlesUrl: e.target.value })} /></label>
+              <label>{t('admin.durationSeconds')}<input type="number" min="0" value={epForm.durationSec} onChange={(e) => setEpForm({ ...epForm, durationSec: e.target.value })} /></label>
+              <div className="admin-form-actions admin-form-wide">
+                {editingEpisodeId && <button type="button" className="btn btn-ghost" onClick={resetEpForm}>{t('admin.cancel')}</button>}
+                <button className="btn btn-violet pill-sm" disabled={saving}>
+                  {saving ? t('admin.publishing') : editingEpisodeId ? <><Pencil size={14} /> {t('admin.animeEpisodeSave')}</> : <><Plus size={14} /> {t('admin.animeEpisodeAdd')}</>}
+                </button>
+              </div>
             </form>
-            <button className="btn btn-violet pill-sm" style={{ marginTop: 8 }} disabled={saving} onClick={(e) => { e.preventDefault(); void submitEpisode(e); }}>
-              {saving ? t('admin.publishing') : <><Plus size={14} /> {t('admin.animeEpisodeAdd')}</>}
-            </button>
 
             <div className="admin-table-wrap" style={{ marginTop: 12 }}>
               <table className="admin-table">
                 <thead>
                   <tr>
+                    <th>{t('admin.animeSeason')}</th>
                     <th>#</th>
                     <th>{t('admin.animeEpisodeTitle')}</th>
                     <th>{t('admin.animeEpisodeSlug')}</th>
@@ -384,6 +429,7 @@ export function AdminAnime() {
                   {!epLoading && episodes.length === 0 && <EmptyRow text={t('admin.noAnimeTitles')} />}
                   {episodes.map((ep) => (
                     <tr key={ep.id}>
+                      <td>{ep.season || 1}</td>
                       <td>{ep.number}</td>
                       <td className="admin-ellipsis">{ep.title || `Episode ${ep.number}`}</td>
                       <td className="admin-dim">{ep.slug || '—'}</td>
@@ -391,7 +437,7 @@ export function AdminAnime() {
                       <td className="admin-ellipsis">{ep.externalUrl ? <span className="admin-ok-dot" /> : <span className="admin-pending-dot" />}</td>
                       <td>
                         <div className="admin-row-actions">
-                          <button className="btn-icon" onClick={() => {}} title="Edit"><Pencil size={14} /></button>
+                          <button className="btn-icon" onClick={() => startEditEpisode(ep)} title="Edit"><Pencil size={14} /></button>
                           <button className="btn-icon danger" onClick={() => removeEpisode(ep.id)} title={t('admin.remove')}><Trash2 size={14} /></button>
                         </div>
                       </td>

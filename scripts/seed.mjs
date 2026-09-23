@@ -287,10 +287,11 @@ async function seedCinema() {
     { title: 'Neon District', kind: 'SERIES', desc: 'Seasonal crime-noir set in the glow of a megacity. Every neon sign is a lead.', dur: 2880, thumb: '/defaults/images/video.png' },
     { title: 'Tales of the Caspian', kind: 'SERIES', desc: 'Anthology stories from the Caspian coastline — fishermen, storm chasers and one very opinionated lighthouse.', dur: 2200, thumb: '/defaults/images/video.png' },
     { title: 'Station Zero', kind: 'SERIES', desc: 'A sci-fi drama where passengers aboard a deep-space station discover it is already home to something else.', dur: 2550, thumb: '/defaults/images/video.png' },
+    { title: 'Brand New Day', kind: 'MOVIE', desc: 'Demo movie that uses the shared Video Hub sample clip.', dur: 0, thumb: '/defaults/images/movie.png', demo: true },
   ];
   for (const r of rows) {
     const existing = await prisma.cinemaVideo.findFirst({ where: { title: r.title } });
-    const data = { description: r.desc, kind: r.kind, externalUrl: '', thumbnailUrl: r.thumb, subtitlesUrl: '', durationSec: r.dur, visibility: 'PUBLIC' };
+    const data = { description: r.desc, kind: r.kind, externalUrl: r.demo ? '/defaults/videos/demo.mp4' : '', thumbnailUrl: r.thumb, subtitlesUrl: '', durationSec: r.dur, visibility: 'PUBLIC' };
     if (existing) await prisma.cinemaVideo.update({ where: { id: existing.id }, data });
     else await prisma.cinemaVideo.create({ data: { title: r.title, ...data } });
   }
@@ -357,6 +358,26 @@ async function seedAnime() {
       ],
     },
     {
+      slug: 'watch-demo-series',
+      title: 'Sample Series',
+      original: '',
+      type: 'TV',
+      status: 'FINISHED',
+      year: 2026,
+      episodes: 3,
+      rating: 0,
+      studio: 'Jamino Demo',
+      genres: ['Drama'],
+      colors: [200, 260],
+      overview: 'Sample episodes for season selection and the theater player.',
+      coverFile: '/defaults/images/video.png',
+      eps: [
+        { season: 1, number: 1, title: 'Spanish', dur: 0 },
+        { season: 1, number: 2, title: 'German', dur: 0 },
+        { season: 2, number: 1, title: 'Brand New Day', dur: 0 },
+      ],
+    },
+    {
       slug: 'your-name',
       title: 'Your Name',
       original: '君の名は。',
@@ -414,10 +435,11 @@ async function seedAnime() {
       },
     });
     for (const e of r.eps) {
-      const exists = await prisma.animeEpisode.findFirst({ where: { animeId: existing.id, number: e.number } });
+      const exists = await prisma.animeEpisode.findFirst({ where: { animeId: existing.id, season: e.season || 1, number: e.number } });
       const epData = {
         animeId: existing.id,
         number: e.number,
+        season: e.season || 1,
         slug: e.number === 1 ? 'e01' : `e${String(e.number).padStart(2, '0')}`,
         title: e.title,
         externalUrl: DEMO,

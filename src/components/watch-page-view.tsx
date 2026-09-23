@@ -10,11 +10,12 @@ import { VinylPlayer } from '@/components/vinyl-player';
 import { TopRightControls } from '@/components/top-controls';
 import {
   relatedTitles,
-  episodePlayUrl,
-  titlePlayUrl,
+  availableWatchQualities,
+  resolveWatchSource,
+  type QualitySources,
   groupEpisodesBySeason,
-  WATCH_QUALITIES,
   DEFAULT_QUALITY,
+  WATCH_QUALITIES,
   type WatchQuality,
   type WatchSelectEpisode,
   type SeasonGroup,
@@ -36,9 +37,11 @@ interface CinemaDetail {
   description: string;
   kind: string;
   externalUrl: string | null;
+  qualitySources: QualitySources;
   thumbnailUrl: string | null;
   subtitlesUrl: string | null;
   durationSec: number;
+  episodes: { id: number; season: number; number: number; title: string; externalUrl: string | null; qualitySources: QualitySources; thumbnailUrl: string | null; subtitlesUrl: string | null; durationSec: number }[];
 }
 
 interface AnimeDetail {
@@ -86,6 +89,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
   const [year, setYear] = useState<number | null>(null);
   const [genres, setGenres] = useState<string[]>([]);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [qualitySources, setQualitySources] = useState<QualitySources>({});
   const [subtitlesUrl, setSubtitlesUrl] = useState<string | null>(null);
   const [episodes, setEpisodes] = useState<WatchSelectEpisode[]>([]);
   const [activeEpisode, setActiveEpisode] = useState<WatchSelectEpisode | null>(null);
@@ -104,7 +108,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
     setError('');
     try {
       const [detail, cinemaAll, animeAll] = await Promise.all([
-        isAnime ? api<{ anime: AnimeDetail; episodes: { id: number; number: number; season?: number; title: string; externalUrl: string | null; thumbnailUrl: string | null }[] }>(`/api/anime/${id}`) : api<{ item: CinemaDetail }>(`/api/cinema/${id}`),
+        isAnime ? api<{ anime: AnimeDetail; episodes: { id: number; number: number; season: number; title: string; externalUrl: string | null; qualitySources: QualitySources; subtitlesUrl: string | null; thumbnailUrl: string | null }[] }>(`/api/anime/${id}`) : api<{ item: CinemaDetail; episodes: CinemaDetail['episodes'] }>(`/api/cinema/${id}`),
         api<{ items: CinemaDetail[] }>('/api/cinema?kind=ALL').catch(() => ({ items: [] })),
         api<{ items: AnimeDetail[] }>('/api/anime?sort=latest').catch(() => ({ items: [] })),
       ]);
@@ -125,6 +129,8 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
           id: ep.id,
           number: ep.number,
           season: ep.season || 1,
+          qualitySources: ep.qualitySources || {},
+          subtitlesUrl: ep.subtitlesUrl || null,
           title: ep.title || t('watch.episode', { n: ep.number }),
           externalUrl: ep.externalUrl,
           thumbnailUrl: ep.thumbnailUrl,
@@ -154,12 +160,17 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
       } else if (!isAnime && 'item' in detail) {
         const c = detail.item;
         setTitle(c.title);
-        setBadge(t('watch.typeMovie'));
+        setBadge((c.kind || 'MOVIE').toUpperCase() === 'SERIES' ? t('watch.typeSeries') : (c.kind || 'MOVIE').toUpperCase() === 'CARTOON' ? t('watch.typeCartoon') : t('watch.typeMovie'));
         setDescription(c.description);
         setArtwork(c.thumbnailUrl);
         setKind((c.kind || 'MOVIE').toUpperCase() === 'SERIES' ? 'SERIES' : (c.kind || 'MOVIE').toUpperCase() === 'CARTOON' ? 'CARTOON' : 'MOVIE');
         setMediaUrl(c.externalUrl);
+        setQualitySources(c.qualitySources || {});
         setSubtitlesUrl(c.subtitlesUrl);
+        eps = (detail.episodes || []).map((ep) => ({
+          id: ep.id, number: ep.number, season: ep.season || 1, title: ep.title || t('watch.episode', { n: ep.number }),
+          externalUrl: ep.externalUrl, qualitySources: ep.qualitySources || {}, subtitlesUrl: ep.subtitlesUrl, thumbnailUrl: ep.thumbnailUrl,
+        }));
         item = {
           key: `cinema:${c.id}`,
           source: 'cinema',
@@ -186,8 +197,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
 
       setEpisodes(eps);
       if (eps.length > 0) {
-        setKind('ANIME');
-        setBadge(t('watch.typeAnime'));
+        if (isAnime) { setKind('ANIME'); setBadge(t('watch.typeAnime')); }
         const groups = groupEpisodesBySeason(eps);
         const firstSeason = groups[0]?.season ?? 1;
         setActiveSeason(firstSeason);
@@ -218,7 +228,12 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
 
   useEffect(() => { void load(); }, [load]);
 
-  const playSrc = activeEpisode ? episodePlayUrl(activeEpisode) : titlePlayUrl(mediaUrl);
+  const activeSources = activeEpisode?.qualitySources ?? qualitySources;
+  const qualityOptions = availableWatchQualities(activeSources);
+  const selectedQuality = qualityOptions.includes(quality) ? quality : DEFAULT_QUALITY;
+  const playSrc = activeEpisode
+    ? resolveWatchSource(activeEpisode.externalUrl, activeSources, selectedQuality)
+    : resolveWatchSource(mediaUrl, activeSources, selectedQuality);
   const playPoster = activeEpisode?.thumbnailUrl || artwork;
   const playTitle = activeEpisode
     ? `${title} · ${t('watchPage.episodeLabel', { season: activeEpisode.season, n: activeEpisode.number })}`
@@ -264,7 +279,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
               variant="feature"
               src={playSrc}
               poster={playPoster}
-              subtitlesUrl={subtitlesUrl}
+              subtitlesUrl={activeEpisode?.subtitlesUrl || subtitlesUrl}
               title={playTitle}
               badge={badge}
               rememberPosition
@@ -294,26 +309,25 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
               {description && <p className="watch-theater-desc">{description}</p>}
             </div>
 
-            {!hasEpisodes ? (
-              <section className="watch-theater-panel">
-                <div className="watch-theater-panel-title">
-                  <span>{t('watchPage.quality')}</span>
-                  <small>{t('watchPage.qualityHint')}</small>
-                </div>
-                <div className="watch-quality-row">
-                  {WATCH_QUALITIES.map((q) => (
-                    <button
-                      type="button"
-                      key={q}
-                      className={`watch-quality-chip${q === quality ? ' active' : ''}`}
-                      onClick={() => setQuality(q)}
-                    >
-                      {q === 'auto' ? t('watchPage.qualityAuto') : q === '2160p' ? '4K' : q}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : (
+            <section className="watch-theater-panel">
+              <div className="watch-theater-panel-title">
+                <span>{t('watchPage.quality')}</span>
+                <small>{t('watchPage.qualityHint')}</small>
+              </div>
+              <div className="watch-quality-row">
+                {qualityOptions.map((q) => (
+                  <button
+                    type="button"
+                    key={q}
+                    className={`watch-quality-chip${q === selectedQuality ? ' active' : ''}`}
+                    onClick={() => setQuality(q)}
+                  >
+                    {q === 'auto' ? t('watchPage.qualityAuto') : q === '2160p' ? '4K' : q}
+                  </button>
+                ))}
+              </div>
+            </section>
+            {hasEpisodes ? (
               <section className="watch-theater-panel">
                 <div className="watch-theater-panel-title">
                   <span>{t('watch.episodes')}</span>
@@ -357,7 +371,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
                   </>
                 )}
               </section>
-            )}
+            ) : null}
           </div>
         </div>
       )}

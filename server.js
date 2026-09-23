@@ -322,6 +322,21 @@ async function ensureDemoEntertainment() {
     console.log('[boot] Demo cinema titles seeded.');
   }
 
+  const sampleSeriesEpisodes = [
+    { title: 'Skyline Stories', season: 1, number: 1, name: 'Spanish', durationSec: 596 },
+    { title: 'Skyline Stories', season: 1, number: 2, name: 'German', durationSec: 888 },
+    { title: 'Skyline Stories', season: 2, number: 1, name: 'Brand New Day', durationSec: 734 },
+  ];
+  for (const sample of sampleSeriesEpisodes) {
+    const series = await prisma.cinemaVideo.findFirst({ where: { title: sample.title, kind: 'SERIES' } });
+    if (!series) continue;
+    const exists = await prisma.cinemaEpisode.findUnique({ where: { cinemaVideoId_season_number: { cinemaVideoId: series.id, season: sample.season, number: sample.number } } });
+    if (!exists) await prisma.cinemaEpisode.create({ data: {
+      cinemaVideoId: series.id, season: sample.season, number: sample.number, title: sample.name,
+      externalUrl: '/defaults/videos/demo.mp4', durationSec: sample.durationSec,
+    } });
+  }
+
   // Cartoons are a distinct cinema kind. Topped up even when the base cinema
   // table already has content so the Watch Hub's Cartoons tab is never empty.
   const cartoonDemos = [
@@ -381,6 +396,40 @@ async function ensureDemoEntertainment() {
       }
     }
     console.log('[boot] Demo anime titles seeded.');
+  }
+}
+
+
+async function ensureRequestedWatchSamples() {
+  const demoVideo = '/defaults/videos/demo.mp4';
+  const movie = await prisma.cinemaVideo.findFirst({ where: { title: 'Brand New Day' } });
+  if (!movie) {
+    await prisma.cinemaVideo.create({
+      data: { title: 'Brand New Day', kind: 'MOVIE', description: 'Demo movie using the same sample video as Video Hub.', externalUrl: demoVideo, durationSec: 0, visibility: 'PUBLIC' },
+    });
+  }
+
+  let series = await prisma.anime.findUnique({ where: { slug: 'watch-demo-series' } });
+  if (!series) {
+    series = await prisma.anime.create({
+      data: {
+        slug: 'watch-demo-series', title: 'Sample Series', original: '',
+        overview: 'Sample episodes for season selection and the theater player.',
+        type: 'TV', status: 'FINISHED', year: 2026, episodes: 3, rating: 0,
+        genres: JSON.stringify(['Drama']), studio: 'Jamino Demo', visibility: 'PUBLIC',
+      },
+    });
+  }
+  const sampleEpisodes = [
+    { season: 1, number: 1, title: 'Spanish' },
+    { season: 1, number: 2, title: 'German' },
+    { season: 2, number: 1, title: 'Brand New Day' },
+  ];
+  for (const episode of sampleEpisodes) {
+    const exists = await prisma.animeEpisode.findFirst({ where: { animeId: series.id, season: episode.season, number: episode.number } });
+    if (!exists) await prisma.animeEpisode.create({
+      data: { ...episode, animeId: series.id, slug: `s${episode.season}e${String(episode.number).padStart(2, '0')}`, externalUrl: demoVideo },
+    });
   }
 }
 
@@ -470,6 +519,7 @@ applyPendingMigrations();
 ensureDemoCatalog().catch((e) => console.error('[boot] demo catalog seed error:', e && e.message));
 backfillDemoLyrics().catch((e) => console.error('[boot] demo lyrics backfill error:', e && e.message));
 ensureDemoEntertainment().catch((e) => console.error('[boot] demo entertainment seed error:', e && e.message));
+ensureRequestedWatchSamples().catch((e) => console.error('[boot] requested watch samples seed error:', e && e.message));
 ensureDemoVideo().catch((e) => console.error('[boot] demo video seed error:', e && e.message));
 repairDemoMediaUrls().catch((e) => console.error('[boot] demo media repair error:', e && e.message));
 

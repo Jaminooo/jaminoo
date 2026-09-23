@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { parseQualitySources } from '@/lib/watch-select';
 
 export function liveCinemaPositionMs(jam: { currentCinemaPlaying: boolean; currentCinemaPosition: number; currentCinemaStartedAt: Date | null }) {
   if (jam.currentCinemaPlaying && jam.currentCinemaStartedAt) {
@@ -15,6 +16,7 @@ export function cinemaPayload(video: any) {
     description: video.description,
     kind: video.kind,
     externalUrl: video.externalUrl || null,
+    qualitySources: parseQualitySources(video.qualitySources),
     thumbnailUrl: video.thumbnailUrl || null,
     subtitlesUrl: video.subtitlesUrl || null,
     durationSec: video.durationSec,

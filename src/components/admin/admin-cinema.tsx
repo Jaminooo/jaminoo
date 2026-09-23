@@ -6,6 +6,7 @@ import { Clapperboard, Eye, EyeOff, Film, Pencil, Plus, Sparkles, Trash2, Tv2, U
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { useTranslations } from '@/providers/use-translations';
+import type { QualitySources } from '@/lib/watch-select';
 import { connectLive, onLive } from '@/lib/live';
 import { Badge, ConfirmModal, EmptyRow, LoadingRow, StatCard, useConfirm } from './admin-ui';
 
@@ -15,6 +16,8 @@ interface CinemaAdminItem {
   description: string;
   kind: string;
   externalUrl: string | null;
+  qualitySources: QualitySources;
+  episodeCount?: number;
   thumbnailUrl: string | null;
   subtitlesUrl: string | null;
   durationSec: number;
@@ -23,7 +26,12 @@ interface CinemaAdminItem {
 
 type Filter = 'ALL' | 'MOVIE' | 'SERIES' | 'CARTOON';
 
-const EMPTY_FORM = { title: '', kind: 'MOVIE', url: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '', description: '', visibility: 'PUBLIC' };
+interface SeriesEpisode {
+  id: number; season: number; number: number; title: string; externalUrl: string | null;
+  qualitySources: QualitySources; thumbnailUrl: string | null; subtitlesUrl: string | null; durationSec: number;
+}
+
+const EMPTY_FORM = { title: '', kind: 'MOVIE', url: '', q720: '', q1080: '', q2160: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '', description: '', visibility: 'PUBLIC' };
 
 export function AdminCinema() {
   const t = useTranslations();
@@ -36,6 +44,11 @@ export function AdminCinema() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [episodesForId, setEpisodesForId] = useState<number | null>(null);
+  const [seriesEpisodes, setSeriesEpisodes] = useState<SeriesEpisode[]>([]);
+  const [seriesEpisodeForm, setSeriesEpisodeForm] = useState({ season: '1', number: '', title: '', url: '', q720: '', q1080: '', q2160: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' });
+  const [seriesEpisodeFile, setSeriesEpisodeFile] = useState<File | null>(null);
+  const [editingSeriesEpisode, setEditingSeriesEpisode] = useState<number | null>(null);
   const { confirm, ask, close } = useConfirm();
 
   const load = useCallback(() => {
@@ -71,7 +84,7 @@ export function AdminCinema() {
 
   const startEdit = (item: CinemaAdminItem) => {
     setEditingId(item.id);
-    setForm({ title: item.title, kind: item.kind, url: item.externalUrl || '', thumbnailUrl: item.thumbnailUrl || '', subtitlesUrl: item.subtitlesUrl || '', durationSec: item.durationSec ? String(item.durationSec) : '', description: item.description || '', visibility: item.visibility });
+    setForm({ title: item.title, kind: item.kind, url: item.externalUrl || '', q720: item.qualitySources?.['720p'] || '', q1080: item.qualitySources?.['1080p'] || '', q2160: item.qualitySources?.['2160p'] || '', thumbnailUrl: item.thumbnailUrl || '', subtitlesUrl: item.subtitlesUrl || '', durationSec: item.durationSec ? String(item.durationSec) : '', description: item.description || '', visibility: item.visibility });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -103,6 +116,7 @@ export function AdminCinema() {
         title: form.title,
         kind: form.kind,
         externalUrl,
+        qualitySources: { '720p': form.q720, '1080p': form.q1080, '2160p': form.q2160 },
         thumbnailUrl,
         subtitlesUrl,
         durationSec: Number(form.durationSec || 0),
@@ -124,6 +138,41 @@ export function AdminCinema() {
       setSaving(false);
     }
   };
+
+  const openSeriesEpisodes = async (item: CinemaAdminItem) => {
+    setEpisodesForId(item.id);
+    const result = await api<{ episodes: SeriesEpisode[] }>(`/api/admin/cinema/${item.id}/episodes`);
+    setSeriesEpisodes(result.episodes || []);
+  };
+
+  const editSeriesEpisode = (episode: SeriesEpisode) => {
+    setEditingSeriesEpisode(episode.id);
+    setSeriesEpisodeForm({ season: String(episode.season), number: String(episode.number), title: episode.title, url: episode.externalUrl || '', q720: episode.qualitySources?.['720p'] || '', q1080: episode.qualitySources?.['1080p'] || '', q2160: episode.qualitySources?.['2160p'] || '', thumbnailUrl: episode.thumbnailUrl || '', subtitlesUrl: episode.subtitlesUrl || '', durationSec: episode.durationSec ? String(episode.durationSec) : '' });
+  };
+
+  const saveSeriesEpisode = async (event: FormEvent) => {
+    event.preventDefault();
+    if (episodesForId === null) return;
+    setSaving(true);
+    try {
+      let externalUrl = seriesEpisodeForm.url;
+      if (seriesEpisodeFile) externalUrl = await uploadFile(seriesEpisodeFile);
+      const body = JSON.stringify({ season: Number(seriesEpisodeForm.season), number: Number(seriesEpisodeForm.number), title: seriesEpisodeForm.title, externalUrl, qualitySources: { '720p': seriesEpisodeForm.q720, '1080p': seriesEpisodeForm.q1080, '2160p': seriesEpisodeForm.q2160 }, thumbnailUrl: seriesEpisodeForm.thumbnailUrl, subtitlesUrl: seriesEpisodeForm.subtitlesUrl, durationSec: Number(seriesEpisodeForm.durationSec || 0) });
+      const url = `/api/admin/cinema/${episodesForId}/episodes`;
+      await api(editingSeriesEpisode ? `${url}/${editingSeriesEpisode}` : url, { method: editingSeriesEpisode ? 'PATCH' : 'POST', body });
+      setSeriesEpisodeForm({ season: '1', number: '', title: '', url: '', q720: '', q1080: '', q2160: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' });
+      setSeriesEpisodeFile(null);
+      setEditingSeriesEpisode(null);
+      await openSeriesEpisodes(items.find((i) => i.id === episodesForId)!);
+      load();
+    } catch (error) { toast(error instanceof Error ? error.message : t('admin.publishError'), 'error'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteSeriesEpisode = (episode: SeriesEpisode) => ask(t('admin.remove'), t('admin.animeEpisodeDelConfirm'), () => {
+    if (episodesForId === null) return;
+    void api(`/api/admin/cinema/${episodesForId}/episodes/${episode.id}`, { method: 'DELETE' }).then(() => openSeriesEpisodes(items.find((i) => i.id === episodesForId)!)).catch((error) => toast(error instanceof Error ? error.message : t('admin.removeError'), 'error'));
+  });
 
   const setVisibility = async (item: CinemaAdminItem, visibility: 'PUBLIC' | 'HIDDEN') => {
     try {
@@ -237,6 +286,7 @@ export function AdminCinema() {
                   <td>
                     <div className="admin-row-actions">
                       <button className="btn-icon" onClick={() => startEdit(item)} title="Edit"><Pencil size={14} /></button>
+                      {item.kind === 'SERIES' && <button className="btn-icon" onClick={() => void openSeriesEpisodes(item)} title={t('admin.manageEpisodes')}><Tv2 size={14} /></button>}
                       <button className="btn-icon" onClick={() => void setVisibility(item, item.visibility === 'HIDDEN' ? 'PUBLIC' : 'HIDDEN')} title={item.visibility === 'HIDDEN' ? t('admin.cinemaShow') : t('admin.cinemaHide')}>
                         {item.visibility === 'HIDDEN' ? <Eye size={14} /> : <EyeOff size={14} />}
                       </button>
@@ -249,6 +299,37 @@ export function AdminCinema() {
           </table>
         </div>
       </div>
+      {episodesForId !== null && (
+        <div className="anime-backdrop" onMouseDown={() => setEpisodesForId(null)}>
+          <section className="anime-episode-modal" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="admin-card-head">
+              <h3><Tv2 size={15} /> {t('admin.manageEpisodes')}</h3>
+              <button className="btn-icon" onClick={() => setEpisodesForId(null)}><X size={14} /></button>
+            </div>
+            <form className="admin-form-grid admin-anime-episode-form" onSubmit={saveSeriesEpisode}>
+              <label>{t('admin.animeSeason')}<input type="number" min="1" max="999" required value={seriesEpisodeForm.season} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, season: e.target.value })} /></label>
+              <label>{t('admin.animeEpisodeNumber')}<input type="number" min="1" max="9999" required value={seriesEpisodeForm.number} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, number: e.target.value })} /></label>
+              <label>{t('admin.animeEpisodeTitle')}<input value={seriesEpisodeForm.title} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, title: e.target.value })} /></label>
+              <label>{t('admin.cinemaVideoOptional')}<input type="url" value={seriesEpisodeForm.url} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, url: e.target.value })} /></label>
+              <label className="admin-file-field"><span><Upload size={13} /> {t('admin.animeUploadEpisode')}</span><input type="file" accept="video/mp4,video/webm,video/quicktime" onChange={(e) => setSeriesEpisodeFile(e.target.files?.[0] ?? null)} />{seriesEpisodeFile && <small>{seriesEpisodeFile.name}</small>}</label>
+              <label>{t('admin.quality720')}<input type="url" value={seriesEpisodeForm.q720} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, q720: e.target.value })} /></label>
+              <label>{t('admin.quality1080')}<input type="url" value={seriesEpisodeForm.q1080} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, q1080: e.target.value })} /></label>
+              <label>{t('admin.quality2160')}<input type="url" value={seriesEpisodeForm.q2160} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, q2160: e.target.value })} /></label>
+              <label>{t('admin.cinemaSubtitlesUrl')}<input type="url" value={seriesEpisodeForm.subtitlesUrl} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, subtitlesUrl: e.target.value })} /></label>
+              <label>{t('admin.durationSeconds')}<input type="number" min="0" value={seriesEpisodeForm.durationSec} onChange={(e) => setSeriesEpisodeForm({ ...seriesEpisodeForm, durationSec: e.target.value })} /></label>
+              <div className="admin-form-actions admin-form-wide">
+                {editingSeriesEpisode && <button type="button" className="btn btn-ghost" onClick={() => { setEditingSeriesEpisode(null); setSeriesEpisodeForm({ season: '1', number: '', title: '', url: '', q720: '', q1080: '', q2160: '', thumbnailUrl: '', subtitlesUrl: '', durationSec: '' }); }}>{t('admin.cancel')}</button>}
+                <button className="btn btn-violet" disabled={saving}>{saving ? t('admin.publishing') : editingSeriesEpisode ? t('admin.animeEpisodeSave') : <><Plus size={14} /> {t('admin.animeEpisodeAdd')}</>}</button>
+              </div>
+            </form>
+            <div className="admin-table-wrap" style={{ marginTop: 14 }}>
+              <table className="admin-table"><thead><tr><th>{t('admin.animeSeason')}</th><th>#</th><th>{t('admin.animeEpisodeTitle')}</th><th>Video</th><th /></tr></thead>
+                <tbody>{seriesEpisodes.map((episode) => <tr key={episode.id}><td>{episode.season}</td><td>{episode.number}</td><td>{episode.title}</td><td>{episode.externalUrl ? <span className="admin-ok-dot" /> : <span className="admin-pending-dot" />}</td><td><div className="admin-row-actions"><button className="btn-icon" onClick={() => editSeriesEpisode(episode)}><Pencil size={14} /></button><button className="btn-icon danger" onClick={() => deleteSeriesEpisode(episode)}><Trash2 size={14} /></button></div></td></tr>)}</tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
       {confirm && <ConfirmModal confirm={confirm} close={close} />}
     </div>
   );

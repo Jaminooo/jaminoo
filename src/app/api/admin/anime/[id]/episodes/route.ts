@@ -2,6 +2,7 @@ import { handle, json, err } from '@/lib/api';
 import { requireHubAdmin } from '@/lib/roles';
 import { prisma } from '@/lib/prisma';
 import { animeEpisodePayload } from '@/lib/anime';
+import { parseQualitySources } from '@/lib/watch-select';
 import { pushAdminEvent } from '@/lib/admin';
 import { liveBroadcast } from '@/lib/live-publish';
 
@@ -14,7 +15,7 @@ export const GET = handle(async (_req, { params }: Ctx) => {
   if (!Number.isInteger(animeId) || animeId <= 0) return err('Invalid anime', 400);
   const anime = await prisma.anime.findUnique({ where: { id: animeId }, select: { id: true } });
   if (!anime) return err('Anime not found', 404);
-  const episodes = await prisma.animeEpisode.findMany({ where: { animeId }, orderBy: [{ number: 'asc' }, { id: 'asc' }] });
+  const episodes = await prisma.animeEpisode.findMany({ where: { animeId }, orderBy: [{ season: 'asc' }, { number: 'asc' }, { id: 'asc' }] });
   return json({ episodes: episodes.map(animeEpisodePayload) });
 });
 
@@ -39,9 +40,11 @@ export const POST = handle(async (req, { params }: Ctx) => {
     data: {
       animeId,
       number,
+      season: clampInt(body.season ?? 1, 1, 999),
       slug,
       title,
       externalUrl: typeof body.externalUrl === 'string' ? body.externalUrl.trim().slice(0, 1800) : '',
+      qualitySources: JSON.stringify(parseQualitySources(body.qualitySources)),
       thumbnailUrl: typeof body.thumbnailUrl === 'string' ? body.thumbnailUrl.trim().slice(0, 1200) : '',
       subtitlesUrl: typeof body.subtitlesUrl === 'string' ? body.subtitlesUrl.trim().slice(0, 1200) : '',
       durationSec: clampInt(body.durationSec, 0, 86400),

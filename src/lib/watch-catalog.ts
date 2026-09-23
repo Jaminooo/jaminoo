@@ -225,3 +225,76 @@ export function watchPartyPlan(item: WatchItem, opts: { jamId: string; episodeId
     mediaBody: { action: 'load', videoId: item.externalId },
   };
 }
+
+/** A horizontal Netflix-style rail: one row of titles behind a label. */
+export interface WatchRail {
+  id: string;
+  kind: WatchKind | 'MIXED';
+  items: WatchItem[];
+}
+
+/**
+ * "New anime" and "new film series" rails for the top of the hub. Anime-only
+ * items form the anime rail; every cinema item (movies, series, cartoons)
+ * forms the film-series rail. Keeps each rail to `limit` entries.
+ */
+export function buildNewRails(items: WatchItem[], limit = 12): { anime: WatchRail; films: WatchRail } {
+  const anime = items.filter((i) => i.source === 'anime').slice(0, limit);
+  const films = items.filter((i) => i.source === 'cinema').slice(0, limit);
+  return {
+    anime: { id: 'new-anime', kind: 'ANIME', items: anime },
+    films: { id: 'new-films', kind: 'MIXED', items: films },
+  };
+}
+
+/**
+ * Top genre rails — one rail per genre that actually appears in the catalog,
+ * ranked by how many titles it contains. Genres with fewer than `min` titles
+ * are dropped; at most `maxRails` rails are returned.
+ */
+export function buildGenreRails(items: WatchItem[], { min = 2, maxRails = 8, limit = 10 }: { min?: number; maxRails?: number; limit?: number } = {}): WatchRail[] {
+  const byGenre = new Map<string, WatchItem[]>();
+  for (const item of items) {
+    for (const genre of item.genres || []) {
+      const list = byGenre.get(genre) ?? [];
+      list.push(item);
+      byGenre.set(genre, list);
+    }
+  }
+  return [...byGenre.entries()]
+    .filter(([, list]) => list.length >= min)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, maxRails)
+    .map(([genre, list]) => ({ id: `genre:${genre}`, kind: 'MIXED', items: list.slice(0, limit) }));
+}
+
+/** The category rails (film / anime / cartoon) shown below the hero. */
+export function buildCategoryRails(items: WatchItem[], limit = 10): WatchRail[] {
+  const kinds: WatchKind[] = ['MOVIE', 'ANIME', 'CARTOON'];
+  return kinds
+    .map((kind) => ({ id: `category:${kind}`, kind, items: items.filter((i) => i.kind === kind).slice(0, limit) }))
+    .filter((rail) => rail.items.length > 0);
+}
+
+/**
+ * Featured items for the hero + mega-menu: the newest titles first, capped at
+ * `limit`. Drama-free: when the catalog is empty we return an empty array and
+ * the UI falls back to its own placeholder.
+ */
+export function buildHeroPicks(items: WatchItem[], limit = 6): WatchItem[] {
+  return items.slice(0, limit);
+}
+
+/**
+ * Genre -> title count, ranked by popularity, for the mega-menu genre list.
+ * Genres with zero titles (cinema items usually carry no genres) are ignored.
+ */
+export function genreCounts(items: WatchItem[]): { genre: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    for (const genre of item.genres || []) counts.set(genre, (counts.get(genre) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([genre, count]) => ({ genre, count }))
+    .sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre));
+}

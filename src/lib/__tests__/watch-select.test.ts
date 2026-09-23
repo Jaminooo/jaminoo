@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_QUALITY,
   DEMO_VIDEO_URL,
+  availableWatchQualities,
+  parseQualitySources,
+  resolveWatchSource,
   episodePlayUrl,
   groupEpisodesBySeason,
   relatedTitles,
@@ -134,8 +137,22 @@ describe('relatedTitles', () => {
   });
 });
 
-describe('quality defaults', () => {
-  it('exports a sane default', () => {
+describe('quality selection', () => {
+  it('exports a sane default and lists only configured variants', () => {
     expect(DEFAULT_QUALITY).toBe('auto');
+    expect(availableWatchQualities({ '1080p': 'https://cdn.example.com/1080.mp4' })).toEqual(['auto', '1080p']);
+    expect(availableWatchQualities({})).toEqual(['auto']);
+  });
+
+  it('parses only supported qualities and safe media URLs', () => {
+    expect(parseQualitySources({ '720p': '/api/media/asset-1', '1080p': 'javascript:alert(1)', other: 'https://cdn/other.mp4' })).toEqual({ '720p': '/api/media/asset-1' });
+    expect(parseQualitySources('{bad json')).toEqual({});
+  });
+
+  it('resolves the chosen variant and falls back to the default source', () => {
+    const sources = { '1080p': 'https://cdn.example.com/1080.mp4' };
+    expect(resolveWatchSource('https://cdn.example.com/auto.mp4', sources, '1080p')).toBe(sources['1080p']);
+    expect(resolveWatchSource('https://cdn.example.com/auto.mp4', sources, '720p')).toBe('https://cdn.example.com/auto.mp4');
+    expect(resolveWatchSource(null, {}, 'auto')).toBe(DEMO_VIDEO_URL);
   });
 });

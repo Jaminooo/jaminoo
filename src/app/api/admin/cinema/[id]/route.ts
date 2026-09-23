@@ -5,12 +5,15 @@ import { prisma } from '@/lib/prisma';
 import { cinemaPayload } from '@/lib/jam-cinema';
 import { pushAdminEvent } from '@/lib/admin';
 import { liveBroadcast } from '@/lib/live-publish';
+import { parseQualitySources } from '@/lib/watch-select';
 
 type Ctx = { params: { id: string } };
 
 function safeUrl(value: unknown, max = 1800) {
   if (typeof value !== 'string' || !value.trim()) return '';
   const candidate = value.trim().slice(0, max);
+  if (/^\/api\/media\/[A-Za-z0-9_-]+$/.test(candidate) || candidate === '/defaults/videos/demo.mp4') return candidate;
+  if (/^\/api\/media\/[A-Za-z0-9_-]+$/.test(candidate) || candidate === '/defaults/videos/demo.mp4') return candidate;
   try {
     const parsed = new URL(candidate);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? candidate : '';
@@ -33,6 +36,7 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
   if (typeof body.description === 'string') data.description = body.description.trim().slice(0, 3000);
   if (body.kind === 'MOVIE' || body.kind === 'SERIES' || body.kind === 'CARTOON') data.kind = body.kind;
   if (typeof body.externalUrl === 'string') data.externalUrl = safeUrl(body.externalUrl);
+  if (body.qualitySources !== undefined) data.qualitySources = JSON.stringify(parseQualitySources(body.qualitySources));
   if (typeof body.thumbnailUrl === 'string') data.thumbnailUrl = safeUrl(body.thumbnailUrl, 1200);
   if (typeof body.subtitlesUrl === 'string') data.subtitlesUrl = safeUrl(body.subtitlesUrl, 1200);
   if (body.visibility === 'PUBLIC' || body.visibility === 'HIDDEN') data.visibility = body.visibility;

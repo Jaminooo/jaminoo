@@ -5,10 +5,12 @@ import { prisma } from '@/lib/prisma';
 import { cinemaPayload } from '@/lib/jam-cinema';
 import { pushAdminEvent } from '@/lib/admin';
 import { liveBroadcast } from '@/lib/live-publish';
+import { parseQualitySources } from '@/lib/watch-select';
 
 function safeUrl(value: unknown, max = 1800) {
   if (typeof value !== 'string' || !value.trim()) return '';
   const candidate = value.trim().slice(0, max);
+  if (/^\/api\/media\/[A-Za-z0-9_-]+$/.test(candidate) || candidate === '/defaults/videos/demo.mp4') return candidate;
   try {
     const parsed = new URL(candidate);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? candidate : '';
@@ -21,8 +23,8 @@ const CINEMA_KIND_LABEL: Record<string, string> = { MOVIE: 'Movie', SERIES: 'Ser
 
 export const GET = handle(async () => {
   await requireHubAdmin(ADMIN_SCOPE);
-  const rows = await prisma.cinemaVideo.findMany({ orderBy: { createdAt: 'desc' }, take: 200 });
-  return json({ items: rows.map(cinemaPayload) });
+  const rows = await prisma.cinemaVideo.findMany({ orderBy: { createdAt: 'desc' }, take: 200, include: { _count: { select: { episodes: true } } } });
+  return json({ items: rows.map((row) => ({ ...cinemaPayload(row), episodeCount: row._count.episodes })) });
 });
 
 export const POST = handle(async (req) => {
@@ -43,6 +45,7 @@ export const POST = handle(async (req) => {
       kind,
       description: typeof body.description === 'string' ? body.description.trim().slice(0, 3000) : '',
       externalUrl,
+      qualitySources: JSON.stringify(parseQualitySources(body.qualitySources)),
       thumbnailUrl,
       subtitlesUrl,
       durationSec,

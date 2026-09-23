@@ -2,6 +2,7 @@ import { handle, json, err } from '@/lib/api';
 import { requireHubAdmin } from '@/lib/roles';
 import { prisma } from '@/lib/prisma';
 import { animeEpisodePayload } from '@/lib/anime';
+import { parseQualitySources } from '@/lib/watch-select';
 import { pushAdminEvent } from '@/lib/admin';
 import { liveBroadcast } from '@/lib/live-publish';
 
@@ -40,8 +41,10 @@ export const PATCH = handle(async (req, { params }: Ctx) => {
     if (n) data.number = n;
   }
   if (typeof body.title === 'string') data.title = body.title.trim().slice(0, 180);
+  if (body.season !== undefined) data.season = clampInt(body.season, 1, 999);
   if (typeof body.slug === 'string') data.slug = body.slug.trim().slice(0, 80);
   if (typeof body.externalUrl === 'string') data.externalUrl = body.externalUrl.trim().slice(0, 1800);
+  if (body.qualitySources !== undefined) data.qualitySources = JSON.stringify(parseQualitySources(body.qualitySources));
   if (typeof body.thumbnailUrl === 'string') data.thumbnailUrl = body.thumbnailUrl.trim().slice(0, 1200);
   if (typeof body.subtitlesUrl === 'string') data.subtitlesUrl = body.subtitlesUrl.trim().slice(0, 1200);
   if (body.durationSec !== undefined) data.durationSec = clampInt(body.durationSec, 0, 86400);
