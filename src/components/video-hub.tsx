@@ -168,7 +168,7 @@ function VideoMedia({ post, feature = false, compact = false, startAt, onTimeUpd
           startUnmuted={post.kind === 'SHORT'}
           loop={post.kind !== 'LONG'}
           soundToggle={post.kind === 'SHORT'}
-          dynamicAspect={shortsFeed}
+          dynamicAspect={false}
           defaultAspect={shortsFeed ? '9 / 16' : '16 / 9'}
           startAt={feature ? startAt : undefined}
           rememberPosition={post.kind === 'LONG'}

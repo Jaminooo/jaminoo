@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/components/toast';
 import { useTranslations } from '@/providers/use-translations';
+import { playerSolo } from '@/lib/player-solo';
 import './vinyl-player.css';
 
 /**
@@ -193,6 +194,8 @@ export function VinylPlayer({
   const [heart, setHeart] = useState<{ x: number; y: number; key: number } | null>(null);
   const tapTimer = useRef<number | null>(null);
   const resumeApplied = useRef(false);
+  const soloIdRef = useRef<symbol | null>(null);
+  if (soloIdRef.current === null) soloIdRef.current = Symbol('vinyl-player');
 
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
@@ -244,19 +247,34 @@ export function VinylPlayer({
     return () => window.clearTimeout(timer);
   }, [heart]);
 
+  /* ---------- exclusive playback registration (every player) ---------- */
+  useEffect(() => {
+    const video = videoRef.current;
+    const id = soloIdRef.current;
+    if (!video || !id) return;
+    const pauseSelf = () => {
+      try {
+        video.pause();
+      } catch {}
+    };
+    return playerSolo.register(id, pauseSelf);
+  }, []);
+
   /* ---------- visibility-driven autoplay (feed cards) ---------- */
   useEffect(() => {
     if (!autoplayInView || !videoRef.current) return;
     const video = videoRef.current;
     const observer = new IntersectionObserver(
       ([entry]) => {
+        const id = soloIdRef.current;
         if (!entry.isIntersecting) {
           video.pause();
+          if (id) playerSolo.release(id);
           return;
         }
+        if (!id || !playerSolo.tryClaim(id)) return;
         video.muted = mutedRef.current;
         video.play()
-          .then(() => setAudioBlocked(false))
           .catch(() => {
             if (!mutedRef.current) {
               video.muted = true;
@@ -267,6 +285,7 @@ export function VinylPlayer({
             } else {
               setAudioBlocked(true);
             }
+            if (id) playerSolo.release(id);
           });
       },
       { threshold: 0.55 },
@@ -325,6 +344,8 @@ export function VinylPlayer({
       else if (video.currentTime >= video.duration - 10) clearResumePoint(src);
     }
     video?.pause();
+    const id = soloIdRef.current;
+    if (id) playerSolo.release(id);
   }, [rememberPosition, src]);
 
   /* ---------- helpers ---------- */
@@ -337,6 +358,8 @@ export function VinylPlayer({
   const attemptPlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    const id = soloIdRef.current;
+    if (id) playerSolo.claim(id);
     video.play()
       .then(() => {
         setAudioBlocked(false);
@@ -682,12 +705,18 @@ export function VinylPlayer({
           onTimeUpdate={handleTimeUpdate}
           onProgress={handleProgress}
           onPlay={() => {
+            const id = soloIdRef.current;
+            if (id) playerSolo.claim(id);
             setPlaying(true);
             setEnded(false);
             setShowPoster(false);
             armHide();
           }}
-          onPause={() => setPlaying(false)}
+          onPause={() => {
+            const id = soloIdRef.current;
+            if (id) playerSolo.release(id);
+            setPlaying(false);
+          }}
           onEnded={handleEnded}
           onWaiting={() => setWaiting(true)}
           onPlaying={() => setWaiting(false)}
