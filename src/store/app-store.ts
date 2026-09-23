@@ -9,6 +9,7 @@ export interface PubUser {
   avatarId: number;
   bio: string;
   github: boolean;
+  google?: boolean;
   status: string;
   statusText: string;
   createdAt: string;
@@ -22,6 +23,7 @@ export interface Me {
   avatarId: number;
   bio: string;
   github: boolean;
+  google?: boolean;
   status: string;
   statusText: string;
   createdAt: string;

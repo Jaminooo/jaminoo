@@ -28,6 +28,7 @@ export const GET = handle(async () => {
       avatarId: user.avatarId,
       bio: user.bio,
       github: user.github,
+      google: user.google,
       status: user.status,
       statusText: user.statusText,
       avatarPhoto: user.profilePhotoId ? `/api/media/${user.profilePhotoId}` : null,
@@ -50,7 +51,7 @@ export const POST = handle(async (req) => {
     if (username) rateLimit(`login:${username.toLowerCase()}`, LOGIN_USER_LIMIT.count, LOGIN_USER_LIMIT.window);
     if (!username || !password) return err('Missing username or password');
     const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || user.github) return err('Invalid username or password', 401);
+    if (!user || user.github || user.google) return err('Invalid username or password', 401);
     if (isBanned(user)) return err('This account is banned', 403);
     const match = user.passwordHash ? await bcrypt.compare(password, user.passwordHash) : false;
     if (!match) return err('Invalid username or password', 401);
@@ -63,7 +64,7 @@ export const POST = handle(async (req) => {
     rateLimitByIp(req, 5, 15 * 60 * 1000);
     if (!username) return err('Missing username');
     const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || user.github) return err('No such account', 404);
+    if (!user || user.github || user.google) return err('No such account', 404);
     if (user.questionId == null) return err('No security question set', 400);
     return json({
       username: user.username,
@@ -78,7 +79,7 @@ export const POST = handle(async (req) => {
     if (!username || !answer || !newPassword) return err('Missing fields');
     if (newPassword.length < MIN_PASSWORD) return err(`Password must be at least ${MIN_PASSWORD} characters`);
     const user = await prisma.user.findUnique({ where: { username } });
-    if (!user || user.github) return err('No such account', 404);
+    if (!user || user.github || user.google) return err('No such account', 404);
     if (isBanned(user)) return err('This account is banned', 403);
     if (!user.answerHash) return err('No security question set', 400);
     const match = await bcrypt.compare(answer.toLowerCase(), user.answerHash);

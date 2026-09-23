@@ -18,6 +18,8 @@ model User {
   bio          String    @default("")
   github       Boolean   @default(false)
   githubLogin  String?   @unique
+  google       Boolean   @default(false)
+  googleLogin  String?   @unique
   status       String    @default("ONLINE") // ONLINE | IDLE | BUSY | OFFLINE
   statusText   String    @default("")
    createdAt    DateTime  @default(now())

@@ -6,6 +6,7 @@ type PubUserRow = {
   avatarId: number;
   bio?: string;
   github: boolean;
+  google?: boolean;
   createdAt?: Date;
   profilePhotoId?: string | null;
   status?: string;
@@ -22,6 +23,7 @@ export function pubUser(u: PubUserRow) {
     avatarId: u.avatarId,
     bio: u.bio ?? '',
     github: u.github,
+    google: u.google ?? false,
     status: u.status ?? 'ONLINE',
     statusText: u.statusText ?? '',
     name: u.name ?? '',
