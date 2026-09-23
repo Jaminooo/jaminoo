@@ -82,17 +82,29 @@ const ALL_GENRES = [
 
 const KIND_ICON: Record<string, LucideIcon> = { MOVIE: Film, SERIES: Tv2, ANIME: Clapperboard, CARTOON: Sparkles };
 
+const WATCH_DEFAULT_ART: Record<string, string> = {
+  MOVIE: '/defaults/images/movie.png',
+  SERIES: '/defaults/images/video.png',
+  CARTOON: '/defaults/images/media.png',
+  ANIME: '/defaults/images/video.png',
+};
+
 function Cover({ item, wide = false }: { item: WatchItem; wide?: boolean }) {
-  const style: React.CSSProperties = item.artworkUrl
+  const fallbackArt = WATCH_DEFAULT_ART[item.kind] ?? WATCH_DEFAULT_ART.MOVIE;
+  const hasArt = Boolean(item.artworkUrl);
+  const style: React.CSSProperties = hasArt
     ? {}
     : { background: `linear-gradient(135deg, hsl(${item.colorFrom || 260}, 70%, 24%), hsl(${item.colorTo || 340}, 70%, 22%))` };
   const Icon = KIND_ICON[item.kind] ?? Film;
   return (
-    <div className={`anime-card-art${wide ? ' anime-card-art-wide' : ''}`} style={style}>
-      {item.artworkUrl ? (
-        <Image src={item.artworkUrl} alt={item.title} fill unoptimized loading="lazy" />
+    <div className={`anime-card-art${wide ? ' anime-card-art-wide' : ''} ${hasArt ? '' : 'anime-card-art-default'}`} style={style}>
+      {hasArt ? (
+        <Image src={item.artworkUrl!} alt={item.title} fill unoptimized loading="lazy" />
       ) : (
-        <span className="anime-card-placeholder"><Icon size={24} /></span>
+        <>
+          <Image src={fallbackArt} alt={item.title} fill unoptimized loading="lazy" />
+          <span className="anime-card-placeholder"><Icon size={24} /></span>
+        </>
       )}
     </div>
   );
@@ -210,15 +222,14 @@ export function WatchHub() {
     setActiveEpisode(null);
   };
 
+  const DEMO_PLAYBACK = '/defaults/videos/demo.mp4';
   const playMovie = (item: WatchItem) => {
-    if (!item.mediaUrl) return;
-    setPlaying({ url: item.mediaUrl, poster: item.artworkUrl, subtitles: item.subtitlesUrl, title: item.title });
+    setPlaying({ url: item.mediaUrl || DEMO_PLAYBACK, poster: item.artworkUrl, subtitles: item.subtitlesUrl, title: item.title });
   };
 
   const playEpisode = (item: WatchItem, ep: EpisodeItem) => {
-    if (!ep.externalUrl) return;
     setActiveEpisode(ep);
-    setPlaying({ url: ep.externalUrl, poster: ep.thumbnailUrl ?? null, subtitles: ep.subtitlesUrl ?? null, title: `${item.title} · ${t('watch.episode', { n: ep.number })}` });
+    setPlaying({ url: ep.externalUrl || DEMO_PLAYBACK, poster: ep.thumbnailUrl ?? null, subtitles: ep.subtitlesUrl ?? null, title: `${item.title} · ${t('watch.episode', { n: ep.number })}` });
   };
 
   const startParty = async () => {
@@ -502,13 +513,9 @@ export function WatchHub() {
                       <strong>#{String(ep.number).padStart(2, '0')}</strong>
                       <span className="anime-episode-title">{ep.title || t('watch.episode', { n: ep.number })}</span>
                       <span className="anime-dim">{ep.durationSec ? formatDuration(ep.durationSec) : ''}</span>
-                      {ep.externalUrl ? (
-                        <button type="button" className="btn btn-violet pill-sm" onClick={() => playEpisode(selected, ep)}>
-                          <Play size={13} fill="currentColor" /> {t('watch.watch')}
-                        </button>
-                      ) : (
-                        <span className="anime-soon-chip">{t('watch.soon')}</span>
-                      )}
+                      <button type="button" className="btn btn-violet pill-sm" onClick={() => playEpisode(selected, ep)}>
+                        <Play size={13} fill="currentColor" /> {t('watch.watch')}
+                      </button>
                     </div>
                   ))
                 )}
@@ -516,17 +523,22 @@ export function WatchHub() {
             )}
             <div className="anime-detail-actions">
               {selected.kind === 'ANIME' ? (
-                <button
-                  type="button"
-                  className="btn btn-violet"
-                  disabled={!canStartParty}
-                  onClick={() => void startParty()}
-                >
-                  <UsersRound size={15} /> {t('watch.startParty')}
-                </button>
+                <>
+                  <button type="button" className="btn btn-violet" onClick={() => playMovie(selected)}>
+                    <Play size={15} fill="currentColor" /> {t('watch.watchAlone')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={!canStartParty}
+                    onClick={() => void startParty()}
+                  >
+                    <UsersRound size={15} /> {t('watch.startParty')}
+                  </button>
+                </>
               ) : (
                 <>
-                  <button type="button" className="btn btn-violet" disabled={!selected.mediaUrl} onClick={() => playMovie(selected)}>
+                  <button type="button" className="btn btn-violet" onClick={() => playMovie(selected)}>
                     <Play size={15} fill="currentColor" /> {t('watch.watchAlone')}
                   </button>
                   <button type="button" className="btn btn-ghost" disabled={!canStartParty} onClick={() => void startParty()}>

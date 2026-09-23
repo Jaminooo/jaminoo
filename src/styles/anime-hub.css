@@ -156,6 +156,33 @@
 }
 .anime-card-art img {
   object-fit: cover;
+  transition: transform 0.35s ease;
+}
+.anime-card:hover .anime-card-art img {
+  transform: scale(1.06);
+}
+.anime-card-art-default::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(10, 11, 16, 0) 32%, rgba(10, 11, 16, 0.78) 100%);
+  pointer-events: none;
+}
+.anime-card-art-default .anime-card-placeholder {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--anime-accent-2);
+  background: color-mix(in srgb, var(--anime-accent), transparent 80%);
+  border: 1px solid color-mix(in srgb, var(--anime-accent), transparent 55%);
+  backdrop-filter: blur(5px);
 }
 .anime-card-placeholder {
   display: grid;
