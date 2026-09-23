@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
@@ -10,6 +10,8 @@ import { MessageComposer } from '@/components/message-composer';
 import { MessageReactions, aggReactions, type ReactionAgg } from '@/components/message-reactions';
 import { useContextMenu, type CmItem } from '@/components/context-menu';
 import { ReportMessageModal } from '@/components/report-message-modal';
+import { SyncedLyrics, type LyricActive } from '@/components/music/synced-lyrics';
+import { activeLineIndex, activeWordIndex, parseLyrics, type LyricLine } from '@/lib/audio/lyrics';
 import { api } from '@/lib/client-api';
 import { connectLive, emitLive, emitWhenConnected, onLive, onLiveConnect, liveConnected, liveSocketId } from '@/lib/live';
 import { toast } from '@/components/toast';
@@ -25,6 +27,7 @@ import {
   Lock,
   LogOut,
   MessageCircle,
+  Mic2,
   Music2,
   Pause,
   Play,
@@ -72,6 +75,8 @@ interface SongPreview {
   artist: { id: number; name: string; coverFile?: string } | null;
   coverUrl: string | null;
   durationSec: number;
+  lyrics?: string;
+  lrc?: string;
 }
 
 interface QueueRow {
@@ -146,6 +151,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const [audioDurMs, setAudioDurMs] = useState(0);
   const [audioLive, setAudioLive] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [volume, setVolume] = useState(0.8);
@@ -160,6 +166,9 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const pendingSeekRef = useRef<number | null>(null);
   const { onContextMenu } = useContextMenu();
 
+  const lrcDoc = useMemo(() => parseLyrics(jam?.now?.lrc ?? ''), [jam?.now?.lrc]);
+  const hasLyrics = !!jam?.now && ((jam.now.lrc ?? '').length > 0 || !!jam.now.lyrics);
+
   const isOwner = jam?.ownerId === me?.id;
   const isCo = jam?.members.some((m) => m.id === me?.id && m.role === 'MINI_HOST');
   const canControl = isOwner || isCo;
@@ -173,6 +182,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
         setSkipMine(d.jam.skipMine);
         setSkipVotes(d.jam.skipCount);
         setVotedSongId(d.jam.now?.id ?? null);
+        if (d.jam.now && !d.jam.now.lrc && !d.jam.now.lyrics) setShowLyrics(false);
         setNowMs(d.jam.now ? d.jam.positionMs : 0);
         playingRef.current = d.jam.playing;
       })
@@ -195,6 +205,7 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
       if (d.now && d.now.id !== votedSongId) {
         setVotedSongId(d.now.id);
         setSkipMine(false);
+        if (!d.now.lrc && !d.now.lyrics) setShowLyrics(false);
       }
       setSkipVotes(d.skipVotes);
       setSkipRequired(d.skipRequired);
@@ -599,6 +610,19 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   const pct = maxMs > 0 ? Math.min(100, Math.max(0, (shownMs / maxMs) * 100)) : 0;
   const coverUrl = jam.now?.coverUrl || fallbackCover(isNaN(jam.ownerId) ? 1 : jam.ownerId + 5);
 
+  const lrcLines: LyricLine[] = lrcDoc.lines;
+  const hasWordTiming = lrcDoc.hasWordTiming;
+  const plainLyrics = jam.now?.lyrics && !jam.now?.lrc ? jam.now.lyrics : null;
+  const lyricActive: LyricActive | null = (() => {
+    if (lrcLines.length === 0) return null;
+    const idx = activeLineIndex(lrcLines, shownMs);
+    if (idx < 0) return null;
+    let word = 0;
+    const words = lrcLines[idx].words;
+    if (words.some((w) => w.time !== null)) word = Math.max(0, activeWordIndex(lrcLines[idx], shownMs));
+    return { line: idx, word };
+  })();
+
   const chatPane = (
     <div className="dj-chat">
       <div className="dj-chat-body" ref={bodyRef}>
@@ -810,6 +834,17 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
             <button type="button" className="btn-icon dj-btn-big" title={t('room.skipSong')} onClick={() => (canControl ? control('skip') : voteSkip())}>
               <SkipForward size={18} />
             </button>
+            {hasLyrics && (
+              <button
+                type="button"
+                className={`btn-icon dj-btn-big${showLyrics ? ' active' : ''}`}
+                title={t('music.lyrics')}
+                aria-pressed={showLyrics}
+                onClick={() => setShowLyrics((v) => !v)}
+              >
+                <Mic2 size={18} />
+              </button>
+            )}
             {!canControl && (
               <button type="button" className={`dj-skip-vote ${skipMine && votedSongId === jam.now.id ? 'voted' : ''}`} onClick={voteSkip} disabled={skipMine && votedSongId === jam.now.id}>
                 <ThumbsUp size={14} /> {t('room.skipSong')}
@@ -857,6 +892,12 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
         )}
         {!jam.now && <div className="dj-waiting">{t('jams.waitingForDJ')}</div>}
       </div>
+
+      {showLyrics && hasLyrics && (
+        <div className="dj-lyrics-panel">
+          <SyncedLyrics lines={lrcLines} hasWordTiming={hasWordTiming} plainLyrics={plainLyrics} active={lyricActive} />
+        </div>
+      )}
 
       <div className="dj-content">
         <div className={`dj-main ${pane !== 'chat' ? 'hidden' : ''}`}>{chatPane}</div>

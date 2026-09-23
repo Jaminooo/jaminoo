@@ -24,17 +24,21 @@ const SONG_PREVIEW = {
   title: true,
   durationSec: true,
   coverFile: true,
+  lyrics: true,
+  lrc: true,
   artist: { select: { id: true, name: true } },
   album: { select: { id: true, title: true, coverFile: true } },
 } as const;
 
-function songPreview(s: { id: number; title: string; durationSec: number; coverFile: string | null; artist: { name: string } | null; album: { id: number; coverFile: string | null } | null }) {
+function songPreview(s: { id: number; title: string; durationSec: number; coverFile: string | null; lyrics: string; lrc: string; artist: { name: string } | null; album: { id: number; coverFile: string | null } | null }) {
   return {
     id: s.id,
     title: s.title,
     artist: s.artist?.name ?? '',
     coverUrl: s.coverFile ? `/api/music/cover/song/${s.id}` : s.album?.coverFile ? `/api/music/cover/album/${s.album.id}` : null,
     durationSec: s.durationSec,
+    lyrics: s.lyrics ?? '',
+    lrc: s.lrc ?? '',
   };
 }
 

@@ -123,6 +123,23 @@
   color: var(--accent, #a78bfa);
 }
 
+.dj-btn-big.active {
+  border-color: var(--accent, #a78bfa);
+  color: var(--accent, #a78bfa);
+  background: color-mix(in srgb, var(--accent, #a78bfa) 14%, transparent);
+}
+
+.dj-lyrics-panel {
+  margin-top: 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dj-lyrics-panel .music-lyrics {
+  max-height: 240px;
+}
+
 .dj-skip-vote {
   display: inline-flex;
   align-items: center;

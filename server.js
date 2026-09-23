@@ -143,24 +143,131 @@ async function ensureDemoCatalog() {
   const keepGoing = await gcl('Keep Going', north.id, { year: 2024, type: 'ALBUM', label: 'Independent', desc: 'Open-road indie with a little electricity.' });
 
   const rows = [
-    { title: 'City Lights', artistId: neon.id, albumId: afterglow.id, durationSec: 214, featured: true, plays: 12840 },
+    {
+      title: 'City Lights', artistId: neon.id, albumId: afterglow.id, durationSec: 214, featured: true, plays: 12840,
+      lyrics: 'City lights are calling out my name…',
+      lrc: `[00:00.00]City lights are calling out my name
+[00:08.00]Down the boulevard, every window glows
+[00:15.00]Neon river running through the rain
+[00:22.00]I keep chasing where the current goes
+[00:30.00]Silver signals flicker on the wall
+[00:38.00]Every street is humming like a song
+[00:46.00]I don't hear the silence at all
+[00:53.00]Midnight keeps me moving on and on
+[01:02.00]City lights, city lights / burning gold
+[01:10.00]Underneath the skyline I feel bold
+[01:18.00]City lights, city lights / take me home
+[01:26.00]Every alley echoes, every chrome
+[01:35.00]Past the station, past the parking lots
+[01:43.00]Past the faces I was meant to meet
+[01:51.00]I keep writing little afterthoughts
+[01:59.00]In the haze above the empty street
+[02:07.00]City lights are calling out my name
+[02:12.00]Neon river running through the rain`,
+    },
     { title: 'Gold Static', artistId: neon.id, albumId: afterglow.id, durationSec: 188, featured: false, plays: 9820 },
-    { title: 'Sunroom', artistId: mira.id, albumId: softSignal.id, durationSec: 201, featured: true, plays: 11020 },
+    {
+      title: 'Sunroom', artistId: mira.id, albumId: softSignal.id, durationSec: 201, featured: true, plays: 11020,
+      lyrics: 'Golden hour shining through the sunroom…',
+      lrc: `[00:00.00]Golden hour shining through the sunroom glass
+[00:07.00]Warm light spilling on the floor and past
+[00:14.00]Every shadow leaning slow and low
+[00:21.00]I've got nowhere else I need to go
+[00:29.00]Coffee cooling, pages half unread
+[00:36.00]Soft piano drifting overhead
+[00:44.00]All the noise out there can wait a while
+[00:52.00]Let the sunlight warm this quiet pile
+[01:00.00]Sunroom, sunroom / keep me in this glow
+[01:08.00]Sunroom, sunroom / hang the world below
+[01:16.00]Let the afternoon turn amber sweet
+[01:24.00]Let the hours settle at my feet
+[01:33.00]Mira petals turning in the light
+[01:41.00]Dust is dancing, slow and out of sight
+[01:49.00]I could stay here till the colors fade
+[01:56.00]Wrapped in afternoon that never made`,
+    },
     { title: 'Motion Lines', artistId: north.id, albumId: keepGoing.id, durationSec: 232, featured: false, plays: 7640 },
   ];
 
   for (const r of rows) {
     const existing = await prisma.song.findFirst({ where: { title: r.title, artistId: r.artistId } });
-    if (existing) continue;
+    if (existing) {
+      // Backfill lyrics for songs seeded pre-lyrics (only when missing).
+      if (existing.lyrics !== r.lyrics || existing.lrc !== r.lrc) {
+        await prisma.song.update({ where: { id: existing.id }, data: { lyrics: r.lyrics ?? '', lrc: r.lrc ?? '' } });
+      }
+      continue;
+    }
     await prisma.song.create({ data: { ...r, audioFile: 'demo.mp3' } });
   }
   console.log('[boot] Demo music catalog seeded.');
+}
+
+// Always-on backfill: older databases have the demo tracks but no lyrics.
+// Only fills rows whose lyrics AND lrc are both empty, so user data is never overwritten.
+const DEMO_LYRICS = {
+  'City Lights': {
+    lyrics: 'City lights are calling out my name…',
+    lrc: `[00:00.00]City lights are calling out my name
+[00:08.00]Down the boulevard, every window glows
+[00:15.00]Neon river running through the rain
+[00:22.00]I keep chasing where the current goes
+[00:30.00]Silver signals flicker on the wall
+[00:38.00]Every street is humming like a song
+[00:46.00]I don't hear the silence at all
+[00:53.00]Midnight keeps me moving on and on
+[01:02.00]City lights, city lights / burning gold
+[01:10.00]Underneath the skyline I feel bold
+[01:18.00]City lights, city lights / take me home
+[01:26.00]Every alley echoes, every chrome
+[01:35.00]Past the station, past the parking lots
+[01:43.00]Past the faces I was meant to meet
+[01:51.00]I keep writing little afterthoughts
+[01:59.00]In the haze above the empty street
+[02:07.00]City lights are calling out my name
+[02:12.00]Neon river running through the rain`,
+  },
+  Sunroom: {
+    lyrics: 'Golden hour shining through the sunroom…',
+    lrc: `[00:00.00]Golden hour shining through the sunroom glass
+[00:07.00]Warm light spilling on the floor and past
+[00:14.00]Every shadow leaning slow and low
+[00:21.00]I've got nowhere else I need to go
+[00:29.00]Coffee cooling, pages half unread
+[00:36.00]Soft piano drifting overhead
+[00:44.00]All the noise out there can wait a while
+[00:52.00]Let the sunlight warm this quiet pile
+[01:00.00]Sunroom, sunroom / keep me in this glow
+[01:08.00]Sunroom, sunroom / hang the world below
+[01:16.00]Let the afternoon turn amber sweet
+[01:24.00]Let the hours settle at my feet
+[01:33.00]Mira petals turning in the light
+[01:41.00]Dust is dancing, slow and out of sight
+[01:49.00]I could stay here till the colors fade
+[01:56.00]Wrapped in afternoon that never made`,
+  },
+};
+
+async function backfillDemoLyrics() {
+  for (const [title, lyr] of Object.entries(DEMO_LYRICS)) {
+    const songs = await prisma.song.findMany({
+      where: { title, AND: [{ lyrics: '' }, { lrc: '' }] },
+      select: { id: true },
+    });
+    if (!songs.length) continue;
+    await prisma.song.updateMany({
+      where: { id: { in: songs.map((s) => s.id) } },
+      data: { lyrics: lyr.lyrics, lrc: lyr.lrc },
+    });
+    console.log(`[boot] Backfilled demo lyrics for ${songs.length}× "${title}".`);
+  }
 }
 
 let io;
 
 applyPendingMigrations();
 ensureDemoCatalog().catch((e) => console.error('[boot] demo catalog seed error:', e && e.message));
+backfillDemoLyrics().catch((e) => console.error('[boot] demo lyrics backfill error:', e && e.message));
 
 app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));

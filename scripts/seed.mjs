@@ -168,18 +168,86 @@ async function seedMusic() {
 
   const S = [];
   const push = (row) => S.push(row);
-  push(await ensureSong('City Lights', neon.id, alb.afterglow.id, 1, { durationSec: 214, genres: '["Synthwave"]', producer: 'Neon Atlas', featured: true, plays: 52180, lyrics: 'City lights are calling out my name…' }));
+  push(await ensureSong('City Lights', neon.id, alb.afterglow.id, 1, { durationSec: 214, genres: '["Synthwave"]', producer: 'Neon Atlas', featured: true, plays: 52180, lyrics: 'City lights are calling out my name…', lrc: `[00:00.00] <00:00.20>City<00:01.10>lights<00:02.00>are<00:02.70>calling<00:03.40>out<00:04.20>my<00:04.90>name
+[00:08.00]Down the boulevard, every window glows
+[00:15.00]Neon river running through the rain
+[00:22.00]I keep chasing where the current goes
+[00:30.00]Silver signals flicker on the wall
+[00:38.00]Every street is humming like a song
+[00:46.00]I don't hear the silence at all
+[00:53.00]Midnight keeps me moving on and on
+[01:02.00]City lights, city lights / burning gold
+[01:10.00]Underneath the skyline I feel bold
+[01:18.00]City lights, city lights / take me home
+[01:26.00]Every alley echoes, every chrome
+[01:35.00]Past the station, past the parking lots
+[01:43.00]Past the faces I was meant to meet
+[01:51.00]I keep writing little afterthoughts
+[01:59.00]In the haze above the empty street
+[02:07.00]City lights are calling out my name
+[02:12.00]Neon river running through the rain` }));
   push(await ensureSong('Gold Static', neon.id, alb.afterglow.id, 2, { durationSec: 188, plays: 42200 }));
   push(await ensureSong('Neon Rain', neon.id, alb.afterglow.id, 3, { durationSec: 231, featArtistIds: JSON.stringify([mira.id]), plays: 30900 }));
-  push(await ensureSong('Sunroom', mira.id, alb.soft.id, 1, { durationSec: 201, genres: '["Pop","Soul"]', producer: 'Mira Sol', featured: true, plays: 47800, lyrics: 'Golden hour shining through the sunroom…' }));
+  push(await ensureSong('Sunroom', mira.id, alb.soft.id, 1, { durationSec: 201, genres: '["Pop","Soul"]', producer: 'Mira Sol', featured: true, plays: 47800, lyrics: 'Golden hour shining through the sunroom…', lrc: `[00:00.00]Golden hour shining through the sunroom glass
+[00:07.00]Warm light spilling on the floor and past
+[00:14.00]Every shadow leaning slow and low
+[00:21.00]I've got nowhere else I need to go
+[00:29.00]Coffee cooling, pages half unread
+[00:36.00]Soft piano drifting overhead
+[00:44.00]All the noise out there can wait a while
+[00:52.00]Let the sunlight warm this quiet pile
+[01:00.00]Sunroom, sunroom / keep me in this glow
+[01:08.00]Sunroom, sunroom / hang the world below
+[01:16.00]Let the afternoon turn amber sweet
+[01:24.00]Let the hours settle at my feet
+[01:33.00]Mira petals turning in the light
+[01:41.00]Dust is dancing, slow and out of sight
+[01:49.00]I could stay here till the colors fade
+[01:56.00]Wrapped in afternoon that never made` }));
   push(await ensureSong('Golden Hour', mira.id, alb.soft.id, 2, { durationSec: 176, plays: 33500 }));
   push(await ensureSong('Motion Lines', north.id, alb.keep.id, 1, { durationSec: 232, featured: true, plays: 28100 }));
   push(await ensureSong('Open Road', north.id, alb.keep.id, 2, { durationSec: 199, plays: 24200 }));
   push(await ensureSong('Homebound', north.id, alb.keep.id, 3, { durationSec: 225, plays: 21700 }));
-  push(await ensureSong('Tehran Nights', shahr.id, alb.tehran.id, 1, { durationSec: 243, genres: '["Persian Electronic"]', producer: 'Shahr Radio', featured: true, plays: 39600, lyrics: 'خونهها چراغون، شب تهران بیداره…' }));
+  push(await ensureSong('Tehran Nights', shahr.id, alb.tehran.id, 1, { durationSec: 243, genres: '["Persian Electronic"]', producer: 'Shahr Radio', featured: true, plays: 39600, lyrics: 'خونهها چراغون، شب تهران بیداره…', lrc: `[00:00.00]خونهها چراغون، شب تهران بیداره
+[00:07.00]ماشینها بیصدا تو ترافیک شهره
+[00:14.00]نور نئون رو پیادهرو میباره
+[00:21.00]صدای ساز از یه کافه میخونه
+[00:29.00]متروی آخر شب خواب و بیداره
+[00:36.00]چشمای شهر از پشت شیشه خیره
+[00:44.00]من تو این شب با تموم آدمها
+[00:52.00]یه قصه تازه از ته دل دارم
+[01:00.00]شب تهران، شب تهران / پر از ستارهست
+[01:08.00]تو بامهای شهر یه ماه غریبهست
+[01:16.00]دلم با نور خیابونا میخونه
+[01:24.00]و این شهر تا سحر بیدار میمونه
+[01:33.00]سیگار سرد و لیوان چای تو دستم
+[01:41.00]فکرای خونه، عطر بارون و مستم
+[01:49.00]دارم از این کوچهی پرنور رد میشم
+[01:57.00]به پرندهی خواب تو فکر میکشم
+[02:05.00]خونهها چراغون، شب تهران بیداره
+[02:13.00]ماشینها بیصدا تو ترافیک شهره
+[02:21.00]نور نئون رو پیادهرو میباره
+[02:29.00]صدای ساز از یه کافه میخونه` }));
   push(await ensureSong('Rooftop Signal', shahr.id, alb.tehran.id, 2, { durationSec: 207, plays: 26400 }));
   push(await ensureSong('Midnight Metro', shahr.id, alb.tehran.id, 3, { durationSec: 185, plays: 18800 }));
-  push(await ensureSong('Salt Air', darya.id, alb.salt.id, 1, { durationSec: 218, genres: '["Folk"]', featured: true, plays: 29500 }));
+  push(await ensureSong('Salt Air', darya.id, alb.salt.id, 1, { durationSec: 218, genres: '["Folk"]', featured: true, plays: 29500, lrc: `[00:00.00]Salt air coming off the morning tide
+[00:07.00]Boats are swinging slow on the riverside
+[00:14.00]I breathe the ocean in and hold it long
+[00:21.00]The gulls are stitching circles in the song
+[00:29.00]Wooden planks below and wind ahead
+[00:36.00]Every wave a sentence left unsaid
+[00:44.00]Anchors rusting, ropes are getting tight
+[00:52.00]I trade the inland worries for the light
+[01:00.00]Salt air, salt air / fill my lungs again
+[01:08.00]Down where the horizon meets the evening plain
+[01:16.00]Salt air, salt air / wash the city gray
+[01:24.00]Leave me where the water finds its way
+[01:33.00]Fishermen are hauling in the blue
+[01:41.00]Every net a question, and it is true
+[01:49.00]I could spend my whole life at this pier
+[01:57.00]With the salt air ringing in my ear
+[02:05.00]Salt air coming off the morning tide
+[02:13.00]And I am grateful for the ride` }));
   push(await ensureSong('Lighthouse', darya.id, alb.salt.id, 2, { durationSec: 194, plays: 15300 }));
   push(await ensureSong('Wave After Wave', darya.id, alb.salt.id, 3, { durationSec: 221, plays: 12700 }));
 
