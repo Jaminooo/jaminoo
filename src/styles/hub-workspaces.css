@@ -513,6 +513,13 @@
 }
 
 .hub-card-cinema { --hub-color: var(--accent); --hub-glow: color-mix(in srgb, var(--accent) 35%, transparent); }
+.hub-card-watch {
+  --hub-color: var(--hub-watch);
+  --hub-glow: color-mix(in srgb, var(--hub-watch) 38%, transparent);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--hub-watch) 26%, #24101b), color-mix(in srgb, var(--hub-watch) 8%, #151a26));
+}
+.hub-card-watch .hub-card-icon { background: color-mix(in srgb, var(--hub-watch) 16%, transparent); }
+.hub-card-watch:hover { box-shadow: 0 20px 54px color-mix(in srgb, var(--hub-watch) 25%, transparent); }
 .hub-shell-cinema { background: radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 34%), radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 30%), var(--bg); }
 .cinema-hub-main { width: min(1180px, calc(100% - 64px)); margin: 0 auto; padding: 54px 0 80px; }
 .cinema-hub-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
