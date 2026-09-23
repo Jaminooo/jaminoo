@@ -358,7 +358,7 @@ export function WatchHub() {
 
   const renderCard = (item: WatchItem, compact = false) => (
     <article className={`anime-card${compact ? ' anime-card-compact' : ''}`} key={item.key}>
-      <button type="button" className="anime-card-hit" onClick={() => void openDetail(item)} aria-label={t('watch.open', { title: item.title })}>
+      <button type="button" className="anime-card-hit" onClick={() => openTheater(item)} aria-label={t('watch.open', { title: item.title })}>
         <div className="anime-card-media">
           <Cover item={item} />
           <RatingBadge rating={item.rating} />
@@ -391,7 +391,7 @@ export function WatchHub() {
   // --- Netflix-style rails for the home surface -----------------------------
 
   const renderRailCard = (item: WatchItem) => (
-    <button type="button" className="anime-rail-card" key={item.key} onClick={() => void openDetail(item)} aria-label={t('watch.open', { title: item.title })}>
+    <button type="button" className="anime-rail-card" key={item.key} onClick={() => openTheater(item)} aria-label={t('watch.open', { title: item.title })}>
       <div className="anime-rail-card-media">
         <Cover item={item} />
         {kindChip(item)}

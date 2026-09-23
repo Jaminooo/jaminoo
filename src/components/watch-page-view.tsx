@@ -277,6 +277,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
             <VinylPlayer
               key={playSrc}
               variant="feature"
+              fill
               autoplayInView
               src={playSrc}
               poster={playPoster}

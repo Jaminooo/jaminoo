@@ -76,24 +76,34 @@
 .watch-theater-state p { max-width: 420px; font-size: 13px; }
 .watch-theater-state-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: var(--anime-accent-2); }
 
-/* Stage: player + side panel */
+/* Keep playback at the top of the page and give it the full content width. */
 .watch-theater-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
-  gap: 26px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
   align-items: start;
-  padding: 26px 22px;
-  max-width: 1280px;
+  padding: 24px 22px;
+  max-width: 1180px;
   margin-inline: auto;
 }
 
 .watch-theater-player-wrap {
+  position: relative;
+  width: 100%;
   aspect-ratio: 16 / 9;
+  min-height: 0;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--anime-accent), transparent 40%);
   background: #000;
   box-shadow: 0 26px 60px rgba(0, 0, 0, .5);
+}
+
+.watch-theater-player-wrap > .vp-player.vp-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .watch-theater-player-wrap video,
@@ -112,6 +122,7 @@
   flex-direction: column;
   gap: 20px;
   min-width: 0;
+  width: 100%;
 }
 
 .watch-theater-head { display: flex; flex-direction: column; gap: 10px; }
@@ -357,12 +368,7 @@
 
 /* Responsive */
 @media (max-width: 960px) {
-  .watch-theater-stage {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding-inline: 16px;
-  }
-
+  .watch-theater-stage { padding-inline: 16px; }
   .watch-theater-player-wrap { order: 0; }
   .watch-theater-side { order: 1; }
 }
