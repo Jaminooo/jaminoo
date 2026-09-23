@@ -9,6 +9,7 @@ import { GlobalSearch } from '@/components/global-search';
 import { NowFeed } from '@/components/now-feed';
 import { LiveStatus } from '@/components/live-status';
 import { resetSpotlight, trackSpotlight } from '@/lib/spotlight';
+import { motion } from 'motion/react';
 const HUBS: { id: Exclude<HubProduct, 'home'>; icon: typeof Music2; tone: string; titleKey: string; descriptionKey: string }[] = [
   { id: 'community', icon: UsersRound, titleKey: 'community', descriptionKey: 'communityDesc', tone: 'community' },
   { id: 'music', icon: Music2, titleKey: 'music', descriptionKey: 'musicDesc', tone: 'music' },
@@ -30,11 +31,14 @@ export function HubGateway() {
         <h1>{t('hubs.where')}</h1>
         <p className="hub-lead">{t('hubs.lead')}</p>
         <div className="hub-card-grid">
-          {HUBS.map(({ id, icon: Icon, titleKey, descriptionKey, tone }) => (
-            <button
+          {HUBS.map(({ id, icon: Icon, titleKey, descriptionKey, tone }, index) => (
+            <motion.button
               type="button"
               className={`hub-card hub-card-${tone} jamino-spotlight`}
               key={id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: .38, delay: index * .055, ease: 'easeOut' }}
               onClick={() => setProduct(id)}
               onPointerMove={trackSpotlight}
               onPointerLeave={resetSpotlight}
@@ -45,7 +49,7 @@ export function HubGateway() {
                 <span>{t(`hubs.${descriptionKey}`)}</span>
               </span>
               <ArrowRight className="hub-card-arrow" size={18} />
-            </button>
+            </motion.button>
           ))}
         </div>
         {me && <div className="hub-account-note">{t('hubs.signed')} <b>@{me.username}</b>. {t('hubs.accountNote')}</div>}
