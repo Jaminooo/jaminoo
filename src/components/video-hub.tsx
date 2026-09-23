@@ -50,6 +50,7 @@ import { CreatorCollabStudio } from '@/components/creator-collab-studio';
 import { CreatorInsights } from '@/components/creator-insights';
 import { VinylPlayer } from '@/components/vinyl-player';
 import { connectLive, onLive } from '@/lib/live';
+import { coverGradient, durationLabel } from '@/lib/video-format';
 
 type VideoView = 'feed' | 'following' | 'shorts' | 'long' | 'watch' | 'watchlist' | 'creators' | 'studio' | 'playlists' | 'edit' | 'editor';
 type FeedKind = 'ALL' | 'SHORT' | 'LONG';
@@ -124,15 +125,6 @@ const NAV: { id: VideoView; key: string; icon: typeof Film }[] = [
   { id: 'feed', key: 'feed', icon: Film }, { id: 'following', key: 'following', icon: UsersRound }, { id: 'shorts', key: 'shorts', icon: Play }, { id: 'long', key: 'long', icon: Tv2 }, { id: 'watch', key: 'watch', icon: Link2 }, { id: 'watchlist', key: 'watchlist', icon: Bookmark }, { id: 'creators', key: 'creators', icon: Camera }, { id: 'studio', key: 'studio', icon: LayoutDashboard }, { id: 'playlists', key: 'playlists', icon: ListVideo }, { id: 'edit', key: 'edit', icon: Pencil }, { id: 'editor', key: 'editor', icon: Scissors },
 ];
 
-function durationLabel(seconds: number) {
-  if (!seconds) return '';
-  const safeSeconds = Math.max(0, seconds);
-  const hours = Math.floor(safeSeconds / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const remaining = Math.floor(safeSeconds % 60);
-  return hours > 0 ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remaining).padStart(2, '0')}` : `${minutes}:${String(remaining).padStart(2, '0')}`;
-}
-
 function timeAgo(value: string, t: (key: string, vars?: Record<string, string | number>) => string) {
   const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
   if (seconds < 60) return t('video.common.justNow');
@@ -152,7 +144,7 @@ function VideoMedia({ post, feature = false, compact = false, startAt, onTimeUpd
     const src = post.assetUrl || post.externalUrl;
     if (!src) {
       return (
-        <div className="video-card-media video-card-video-wrap video-card-missing">
+        <div className="video-card-media video-card-video-wrap video-card-missing" style={post.thumbnailUrl ? undefined : { background: coverGradient(post.title) }}>
           {post.thumbnailUrl ? <img className="video-missing-poster" src={post.thumbnailUrl} alt="" /> : <span className="video-missing-icon"><Film size={28} /></span>}
           <span className="video-missing-copy"><b>{t('video.missing.title')}</b><small>{t('video.missing.desc')}</small></span>
         </div>
@@ -209,12 +201,12 @@ function VideoCard({ post, compact = false, feature = false, startAt, onOpen, on
       </button>
       <VideoMedia post={post} feature={feature} compact={compact} startAt={startAt} onTimeUpdate={feature ? (seconds) => { timeRef.current = seconds; } : undefined} onDoubleTap={post.kind === 'SHORT' || feature ? onLike : undefined} />
       <div className="video-post-actions">
-        <button type="button" className={post.liked ? 'active' : ''} onClick={onLike} title="Like"><Heart size={17} fill={post.liked ? 'currentColor' : 'none'} /><span>{post.likes}</span></button>
-        <button type="button" onClick={onComment} title="Comments"><MessageCircle size={17} /><span>{post.comments}</span></button>
-        <button type="button" className={post.saved ? 'active' : ''} onClick={onSave} title="Save"><Bookmark size={17} fill={post.saved ? 'currentColor' : 'none'} /><span>{post.saves}</span></button>
-        <button type="button" onClick={() => onShare(feature ? Math.floor(timeRef.current) : undefined)} title="Share"><Share2 size={17} /></button>
-        {onSaveToPlaylist && <button type="button" onClick={onSaveToPlaylist} title="Save to playlist"><ListVideo size={17} /></button>}
-        {onReport && <button type="button" onClick={onReport} title="Report"><Flag size={16} /></button>}
+        <button type="button" className={post.liked ? 'active' : ''} onClick={onLike} title={t('video.common.like')}><Heart size={17} fill={post.liked ? 'currentColor' : 'none'} /><span>{post.likes}</span></button>
+        <button type="button" onClick={onComment} title={t('video.common.comments')}><MessageCircle size={17} /><span>{post.comments}</span></button>
+        <button type="button" className={post.saved ? 'active' : ''} onClick={onSave} title={t('video.common.save')}><Bookmark size={17} fill={post.saved ? 'currentColor' : 'none'} /><span>{post.saves}</span></button>
+        <button type="button" onClick={() => onShare(feature ? Math.floor(timeRef.current) : undefined)} title={t('video.common.share')}><Share2 size={17} /></button>
+        {onSaveToPlaylist && <button type="button" onClick={onSaveToPlaylist} title={t('video.common.saveToPlaylist')}><ListVideo size={17} /></button>}
+        {onReport && <button type="button" onClick={onReport} title={t('video.common.report')}><Flag size={16} /></button>}
       </div>
     </article>
   );
@@ -604,7 +596,7 @@ function PlaylistDetailModal({ playlistId, open, onClose, onChanged, onDeleted, 
           {!loading && detail && detail.items.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>{t('video.playlist.emptyDetail')}</span></div>}
           {!loading && detail && detail.items.map((item) => item.post && (
             <div className="video-playlist-item" key={item.id}>
-              <div className="video-playlist-item-media">
+              <div className="video-playlist-item-media" style={item.post.thumbnailUrl ? undefined : { background: coverGradient(item.post.title) }}>
                 {item.post.thumbnailUrl ? <Image src={item.post.thumbnailUrl} alt="" fill unoptimized /> : item.post.mediaType === 'TEXT' ? <Sparkles size={16} /> : <Play size={16} />}
               </div>
               <button type="button" className="video-playlist-item-body" onClick={() => onPlayPost(item.post!)}>
@@ -1127,7 +1119,7 @@ export function VideoHub() {
   const sharePost = async (post: VideoPost, atSeconds?: number) => {
     const at = atSeconds && atSeconds > 1 ? `&t=${Math.floor(atSeconds)}` : '';
     const url = `${window.location.origin}/?hub=video&post=${post.id}${at}`;
-    try { await navigator.clipboard.writeText(url); toast(at ? 'Link copied — starts at this moment.' : 'Post link copied.', 'ok'); } catch { toast(url); }
+    try { await navigator.clipboard.writeText(url); toast(at ? t('video.toast.linkCopiedAt') : t('video.toast.linkCopied'), 'ok'); } catch { toast(url); }
   };
 
   const openPost = (post: VideoPost) => {
@@ -1249,9 +1241,34 @@ export function VideoHub() {
               </div>
             </div>
             {loading && posts.length === 0 && <div className="video-loading-grid">{[1, 2, 3].map((item) => <div className="video-skeleton" key={item} />)}</div>}
-            {!loading && posts.length === 0 && <div className="video-hub-empty large"><Film size={26} /><b>{activeSearch ? `Nothing matched “${activeSearch}”.` : view === 'watchlist' ? 'Your watchlist is empty.' : view === 'following' ? 'Follow a creator to shape this feed.' : 'The feed is waiting for its first post.'}</b><span>{activeSearch ? 'Try a different title, description or @username.' : view === 'watchlist' ? 'Tap the bookmark on anything you want to keep.' : creatorStatus === 'APPROVED' ? 'Publish the first photo, post or video from Create.' : 'Become a creator to start the first channel.'}</span><button type="button" className="btn btn-violet pill-sm" onClick={activeSearch ? () => { setSearchQuery(''); setActiveSearch(''); } : openCreate}><Plus size={14} /> {activeSearch ? 'Clear search' : creatorStatus === 'APPROVED' ? 'Create a post' : 'Become a creator'}</button></div>}
+            {!loading && posts.length === 0 && (
+              <div className="video-hub-empty large">
+                <Film size={26} />
+                <b>
+                  {activeSearch
+                    ? t('video.feed.nothingMatched', { q: activeSearch })
+                    : view === 'watchlist'
+                      ? t('video.feed.watchlistEmpty')
+                      : view === 'following'
+                        ? t('video.feed.followingEmpty')
+                        : t('video.feed.feedEmpty')}
+                </b>
+                <span>
+                  {activeSearch
+                    ? t('video.feed.tryDifferent')
+                    : view === 'watchlist'
+                      ? t('video.feed.watchlistHint')
+                      : creatorStatus === 'APPROVED'
+                        ? t('video.feed.publishHint')
+                        : t('video.feed.feedEmptyHint')}
+                </span>
+                <button type="button" className="btn btn-violet pill-sm" onClick={activeSearch ? () => { setSearchQuery(''); setActiveSearch(''); } : openCreate}>
+                  <Plus size={14} /> {activeSearch ? t('video.feed.clearSearch') : creatorStatus === 'APPROVED' ? t('video.feed.createPost') : t('video.feed.becomeCreator')}
+                </button>
+              </div>
+            )}
             {posts.length > 0 && <div ref={view === 'shorts' ? shortsFeedRef : undefined} className={view === 'shorts' ? 'video-shorts-feed' : view === 'long' ? 'video-long-grid' : 'video-feed-grid'}>{posts.map((post) => <VideoCard key={post.id} post={post} compact={view === 'shorts'} onOpenPost={() => openPost(post)} onOpenCreator={() => setCreatorProfileId(post.author.id)} onLike={() => toggleLike(post)} onSave={() => toggleSave(post)} onComment={() => setCommentsPost(post)} onShare={(at) => sharePost(post, at)} onSaveToPlaylist={() => setPlaylistPost(post)} onReport={() => void reportPost(post)} />)}</div>}
-            <div ref={sentinelRef} className="video-feed-sentinel">{loading && posts.length > 0 && <span className="admin-loader" />}{!hasMore && posts.length > 0 && <span>You are all caught up.</span>}</div>
+            <div ref={sentinelRef} className="video-feed-sentinel">{loading && posts.length > 0 && <span className="admin-loader" />}{!hasMore && posts.length > 0 && <span>{t('video.feed.caughtUp')}</span>}</div>
           </section>}
         </main>
       </div>
@@ -1264,7 +1281,7 @@ export function VideoHub() {
       <PlaylistDetailModal playlistId={openPlaylistId} open={openPlaylistId !== null} onClose={() => setOpenPlaylistId(null)} onChanged={loadPlaylists} onDeleted={loadPlaylists} onPlayPost={(post) => { setOpenPlaylistId(null); openPost(post); }} />
       <EditPostModal post={editPost} open={!!editPost} onClose={() => setEditPost(null)} onSaved={(post) => updatePost(post.id, post)} />
       <CreatorProfileModal creatorId={creatorProfileId} open={creatorProfileId !== null} onClose={() => setCreatorProfileId(null)} />
-      {activePost && <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => { setActivePost(null); setDeepLinkAt(0); window.history.replaceState({}, '', '/?hub=video'); }}><section className="video-post-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{activePost.kind} · VIDEO HUB</div><h2>{activePost.title || 'Post'}</h2></div><button type="button" className="btn-icon" onClick={() => { setActivePost(null); setDeepLinkAt(0); window.history.replaceState({}, '', '/?hub=video'); }} aria-label="Close"><X size={18} /></button></header><div className="video-post-modal-body"><VideoCard post={activePost} feature startAt={deepLinkAt || undefined} onOpen={() => {}} onLike={() => toggleLike(activePost)} onSave={() => toggleSave(activePost)} onComment={() => setCommentsPost(activePost)} onShare={(at) => sharePost(activePost, at)} /></div></section></div>}
+      {activePost && <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={() => { setActivePost(null); setDeepLinkAt(0); window.history.replaceState({}, '', '/?hub=video'); }}><section className="video-post-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header className="video-modal-head"><div><div className="hub-kicker">{t('video.common.postKicker', { kind: activePost.kind })}</div><h2>{activePost.title || t('video.common.postFallback')}</h2></div><button type="button" className="btn-icon" onClick={() => { setActivePost(null); setDeepLinkAt(0); window.history.replaceState({}, '', '/?hub=video'); }} aria-label={t('video.common.close')}><X size={18} /></button></header><div className="video-post-modal-body"><VideoCard post={activePost} feature startAt={deepLinkAt || undefined} onOpen={() => {}} onLike={() => toggleLike(activePost)} onSave={() => toggleSave(activePost)} onComment={() => setCommentsPost(activePost)} onShare={(at) => sharePost(activePost, at)} /></div></section></div>}
     </div>
   );
 }

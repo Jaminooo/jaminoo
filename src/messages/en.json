@@ -1330,6 +1330,7 @@
       "likeError": "Could not update like.",
       "saveError": "Could not update watchlist.",
       "linkCopied": "Post link copied.",
+      "linkCopiedAt": "Link copied — starts at this moment.",
       "postReported": "Post reported for review.",
       "reportError": "Could not report this post.",
       "reportReason": "Reported from Video Hub",

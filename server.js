@@ -352,10 +352,67 @@ async function ensureDemoEntertainment() {
   }
 }
 
+// When the video catalog is empty (fresh database), seed a small demo channel
+// (posts + approved creator application) so the Video Hub feeds and the
+// Creators shelf have playable content. Only runs on an empty table — user or
+// admin data is never touched or overwritten.
+const DEMO_VIDEO_CREATOR = 'jamino_studio';
+async function ensureDemoVideo() {
+  let postCount;
+  try {
+    postCount = await prisma.videoPost.count();
+  } catch (e) {
+    console.warn('[boot] demo video check failed:', e && e.message);
+    return;
+  }
+  if (postCount > 0) return;
+
+  console.log('[boot] Empty video catalog — seeding demo channel...');
+  const bio = 'The official Jamino demo channel — sample clips to explore the Video Hub.';
+  let creator = await prisma.user.findUnique({ where: { username: DEMO_VIDEO_CREATOR } });
+  if (!creator) {
+    creator = await prisma.user.create({ data: { username: DEMO_VIDEO_CREATOR, bio, status: 'OFFLINE' } });
+  }
+  await prisma.creatorApplication.upsert({
+    where: { userId_hub: { userId: creator.id, hub: 'VIDEO' } },
+    update: { status: 'APPROVED' },
+    create: { userId: creator.id, hub: 'VIDEO', channelName: 'Jamino Studio', handle: DEMO_VIDEO_CREATOR, bio, category: 'Creator Network', status: 'APPROVED' },
+  });
+
+  const posts = [
+    { title: 'Midnight Circuit', kind: 'LONG', mediaType: 'VIDEO', file: 'Sintel.mp4', durationSec: 888, desc: 'A synth-drenched chase across a city that never switches off.' },
+    { title: 'The Last Cartographer', kind: 'LONG', mediaType: 'VIDEO', file: 'TearsOfSteel.mp4', durationSec: 734, desc: 'Every map is a story — this one ends where the city meets the sky.' },
+    { title: 'Big Fun', kind: 'SHORT', mediaType: 'VIDEO', file: 'ForBiggerFun.mp4', durationSec: 60, desc: 'A short, bright burst of colour to start your feed.' },
+    { title: 'Joyride', kind: 'SHORT', mediaType: 'VIDEO', file: 'ForBiggerJoyrides.mp4', durationSec: 15, desc: 'Fifteen seconds of pure motion — no brakes.' },
+    { title: 'Sunday Roads', kind: 'POST', mediaType: 'VIDEO', file: 'SubaruOutbackOnStreetAndDirt.mp4', durationSec: 594, desc: 'Open road, quiet gravel, and the best windows-down playlist.' },
+    { title: 'Welcome to the Video Hub', kind: 'POST', mediaType: 'TEXT', file: '', durationSec: 0, desc: 'This demo channel shows off the hub: shorts, long videos, posts and the creator studio — all from one account. Try searching the feed or checking the Creators shelf.' },
+  ];
+
+  for (const post of posts) {
+    const existing = await prisma.videoPost.findFirst({ where: { authorId: creator.id, title: post.title } });
+    if (existing) continue;
+    await prisma.videoPost.create({
+      data: {
+        authorId: creator.id,
+        title: post.title,
+        description: post.desc,
+        kind: post.kind,
+        mediaType: post.mediaType,
+        externalUrl: post.file ? `${DEMO_MEDIA_BASE}${post.file}` : '',
+        durationSec: post.durationSec,
+        visibility: 'PUBLIC',
+        workflowStatus: 'PUBLISHED',
+      },
+    });
+  }
+  console.log('[boot] Demo video catalog seeded.');
+}
+
 applyPendingMigrations();
 ensureDemoCatalog().catch((e) => console.error('[boot] demo catalog seed error:', e && e.message));
 backfillDemoLyrics().catch((e) => console.error('[boot] demo lyrics backfill error:', e && e.message));
 ensureDemoEntertainment().catch((e) => console.error('[boot] demo entertainment seed error:', e && e.message));
+ensureDemoVideo().catch((e) => console.error('[boot] demo video seed error:', e && e.message));
 
 app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));
