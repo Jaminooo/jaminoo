@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Film, Pause, Play, RefreshCw, Share2, SkipBack, Sparkles, UsersRound, Tv } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
+import { useTranslations } from '@/providers/use-translations';
 import { connectLive, emitLive, emitWhenConnected, liveConnected, onLive } from '@/lib/live';
 
 export interface AnimeEpisodeItem {
@@ -34,6 +35,7 @@ function episodeLabel(e: AnimeEpisodeItem) {
 }
 
 export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: React.ReactNode }) {
+  const t = useTranslations();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [items, setItems] = useState<AnimeEpisodeItem[]>([]);
   const [state, setState] = useState<AnimeState>({
@@ -117,39 +119,39 @@ export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Rea
         }
       }
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not sync the anime playback.', 'error');
+      toast(error instanceof Error ? error.message : t('anime.syncError'), 'error');
     } finally {
       setBusy(false);
     }
   };
 
-const shareParty = async () => {
-  await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`).catch(() => {});
-  toast('Anime Party link copied.', 'ok');
-};
+  const shareParty = async () => {
+    await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`).catch(() => {});
+    toast(t('anime.linkCopied'), 'ok');
+  };
 
-const sendPartyReaction = async (emoji: string) => {
-  await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} Anime Party reaction` }) }).catch(() => {});
-};
+  const sendPartyReaction = async (emoji: string) => {
+    await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('anime.reaction')}` }) }).catch(() => {});
+  };
 
-const selected = items.find((item) => String(item.id) === selectedId) ?? state.now;
+  const selected = items.find((item) => String(item.id) === selectedId) ?? state.now;
 
   return (
     <div className="anime-room-player">
       <div className="room-col-title">
-        <Tv size={14} /> Anime sync
+        <Tv size={14} /> {t('anime.sync')}
       </div>
       <div className="anime-party-bar">
         <div>
           <span className="anime-party-kicker">
-            <Sparkles size={12} /> ANIME PARTY
+            <Sparkles size={12} /> {t('anime.partyKicker')}
           </span>
           <b>
-            <UsersRound size={13} /> Watch together, react together
+            <UsersRound size={13} /> {t('anime.partyTagline')}
           </b>
         </div>
         <div className="anime-party-actions">
-          <button type="button" className="btn-icon" onClick={shareParty} title="Share party">
+          <button type="button" className="btn-icon" onClick={shareParty} title={t('anime.shareParty')}>
             <Share2 size={14} />
           </button>
           <button type="button" onClick={() => void sendPartyReaction('🔥')}>🔥</button>
@@ -161,13 +163,13 @@ const selected = items.find((item) => String(item.id) === selectedId) ?? state.n
       {items.length === 0 ? (
         <div className="anime-room-empty">
           <Film size={20} />
-          <span>No anime episodes are available yet.</span>
+          <span>{t('anime.emptyCatalogue')}</span>
         </div>
       ) : (
         <>
           <div className="anime-room-select">
             <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} disabled={!state.canControl}>
-              <option value="">Choose an episode</option>
+              <option value="">{t('anime.choose')}</option>
               {items.map((item) => (
                 <option key={item.id} value={item.id}>
                   {episodeLabel(item)}
@@ -178,7 +180,7 @@ const selected = items.find((item) => String(item.id) === selectedId) ?? state.n
               className="btn-icon violet"
               disabled={!state.canControl || !selectedId || busy}
               onClick={() => void control('load', { episodeId: Number(selectedId) })}
-              title="Load episode"
+              title={t('anime.load')}
             >
               <RefreshCw size={15} />
             </button>
@@ -188,18 +190,18 @@ const selected = items.find((item) => String(item.id) === selectedId) ?? state.n
             {!state.now && (
               <div className="anime-room-video-empty">
                 <Film size={26} />
-                <span>Select an anime episode to start.</span>
+                <span>{t('anime.selectToStart')}</span>
               </div>
             )}
           </div>
           <div className="anime-room-controls">
-            <button type="button" className="btn-icon" disabled={!state.canControl || !state.now} onClick={() => void control('seek', { position: 0 })} title="Restart">
+            <button type="button" className="btn-icon" disabled={!state.canControl || !state.now} onClick={() => void control('seek', { position: 0 })} title={t('anime.restart')}>
               <SkipBack size={15} />
             </button>
             <button type="button" className="btn btn-violet pill-sm" disabled={!state.canControl || !state.now} onClick={() => void control(state.playing ? 'pause' : 'resume')}>
-              {state.playing ? <Pause size={14} /> : <Play size={14} />} {state.playing ? 'Pause' : 'Play'}
+              {state.playing ? <Pause size={14} /> : <Play size={14} />} {state.playing ? t('anime.pause') : t('anime.play')}
             </button>
-            <span>{state.now?.title || 'Waiting for an episode'}</span>
+            <span>{state.now?.title || t('anime.waiting')}</span>
           </div>
         </>
       )}

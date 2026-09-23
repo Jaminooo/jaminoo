@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Film, Pause, Play, RefreshCw, Share2, SkipBack, Sparkles, UsersRound } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
+import { useTranslations } from '@/providers/use-translations';
 import { connectLive, emitLive, emitWhenConnected, liveConnected, onLive } from '@/lib/live';
 
 interface CinemaItem {
@@ -27,6 +28,7 @@ interface CinemaState {
 }
 
 export function CinemaPlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: React.ReactNode }) {
+  const t = useTranslations();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [items, setItems] = useState<CinemaItem[]>([]);
   const [state, setState] = useState<CinemaState>({ now: null, playing: false, positionMs: 0, atMs: Date.now(), durationSec: 0, canControl: false });
@@ -93,7 +95,7 @@ export function CinemaPlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Re
         }
       }
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Could not sync the cinema player.', 'error');
+      toast(error instanceof Error ? error.message : t('cinema.syncError'), 'error');
     } finally {
       setBusy(false);
     }
@@ -103,22 +105,80 @@ export function CinemaPlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Re
 
   const shareParty = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`).catch(() => {});
-    toast('Cinema Party link copied.', 'ok');
+    toast(t('cinema.linkCopied'), 'ok');
   };
 
   const sendPartyReaction = async (emoji: string) => {
-    await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} Cinema Party reaction` }) }).catch(() => {});
+    await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('cinema.reaction')}` }) }).catch(() => {});
   };
+
+  const kindLabel = (kind: string) => (kind === 'MOVIE' ? t('cinema.movie') : t('cinema.seriesBadge'));
 
   return (
     <div className="cinema-room-player">
-      <div className="room-col-title"><Film size={14} /> Cinema sync</div>
-      <div className="cinema-party-bar"><div><span className="cinema-party-kicker"><Sparkles size={12} /> CINEMA PARTY</span><b><UsersRound size={13} /> Watch together, react together</b></div><div className="cinema-party-actions"><button type="button" className="btn-icon" onClick={shareParty} title="Share party"><Share2 size={14} /></button><button type="button" onClick={() => void sendPartyReaction('🔥')}>🔥</button><button type="button" onClick={() => void sendPartyReaction('😂')}>😂</button><button type="button" onClick={() => void sendPartyReaction('👏')}>👏</button></div></div>
-      {items.length === 0 ? <div className="cinema-room-empty"><Film size={20} /><span>No Cinema Hub titles are available yet.</span></div> : <>
-        <div className="cinema-room-select"><select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={!state.canControl}><option value="">Choose from Cinema Hub</option>{items.map((item) => <option key={item.id} value={item.id}>{item.title} · {item.kind}</option>)}</select><button type="button" className="btn-icon violet" disabled={!state.canControl || !selectedId || busy} onClick={() => void control('load', { videoId: Number(selectedId) })} title="Load title"><RefreshCw size={15} /></button></div>
-        <div className="cinema-room-video-wrap"><video ref={videoRef} poster={state.now?.thumbnailUrl || undefined} playsInline preload="metadata" onEnded={() => void control('ended')} />{!state.now && <div className="cinema-room-video-empty"><Film size={26} /><span>Select a Cinema Hub title to start.</span></div>}</div>
-        <div className="cinema-room-controls"><button type="button" className="btn-icon" disabled={!state.canControl || !state.now} onClick={() => void control('seek', { position: 0 })} title="Restart"><SkipBack size={15} /></button><button type="button" className="btn btn-violet pill-sm" disabled={!state.canControl || !state.now} onClick={() => void control(state.playing ? 'pause' : 'resume')} >{state.playing ? <Pause size={14} /> : <Play size={14} />} {state.playing ? 'Pause' : 'Play'}</button><span>{state.now?.title || 'Waiting for a title'}</span></div>
-      </>}
+      <div className="room-col-title">
+        <Film size={14} /> {t('cinema.sync')}
+      </div>
+      <div className="cinema-party-bar">
+        <div>
+          <span className="cinema-party-kicker">
+            <Sparkles size={12} /> {t('cinema.partyKicker')}
+          </span>
+          <b>
+            <UsersRound size={13} /> {t('cinema.partyTagline')}
+          </b>
+        </div>
+        <div className="cinema-party-actions">
+          <button type="button" className="btn-icon" onClick={shareParty} title={t('cinema.shareParty')}><Share2 size={14} /></button>
+          <button type="button" onClick={() => void sendPartyReaction('🔥')}>🔥</button>
+          <button type="button" onClick={() => void sendPartyReaction('😂')}>😂</button>
+          <button type="button" onClick={() => void sendPartyReaction('👏')}>👏</button>
+        </div>
+      </div>
+      {items.length === 0 ? (
+        <div className="cinema-room-empty">
+          <Film size={20} />
+          <span>{t('cinema.emptyCatalogue')}</span>
+        </div>
+      ) : (
+        <>
+          <div className="cinema-room-select">
+            <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={!state.canControl}>
+              <option value="">{t('cinema.choose')}</option>
+              {items.map((item) => (
+                <option key={item.id} value={item.id}>{item.title} · {kindLabel(item.kind)}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn-icon violet"
+              disabled={!state.canControl || !selectedId || busy}
+              onClick={() => void control('load', { videoId: Number(selectedId) })}
+              title={t('cinema.load')}
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
+          <div className="cinema-room-video-wrap">
+            <video ref={videoRef} poster={state.now?.thumbnailUrl || undefined} playsInline preload="metadata" onEnded={() => void control('ended')} />
+            {!state.now && (
+              <div className="cinema-room-video-empty">
+                <Film size={26} />
+                <span>{t('cinema.selectToStart')}</span>
+              </div>
+            )}
+          </div>
+          <div className="cinema-room-controls">
+            <button type="button" className="btn-icon" disabled={!state.canControl || !state.now} onClick={() => void control('seek', { position: 0 })} title={t('cinema.restart')}>
+              <SkipBack size={15} />
+            </button>
+            <button type="button" className="btn btn-violet pill-sm" disabled={!state.canControl || !state.now} onClick={() => void control(state.playing ? 'pause' : 'resume')}>
+              {state.playing ? <Pause size={14} /> : <Play size={14} />} {state.playing ? t('cinema.pause') : t('cinema.play')}
+            </button>
+            <span>{state.now?.title || t('cinema.waiting')}</span>
+          </div>
+        </>
+      )}
       {chatSlot}
     </div>
   );

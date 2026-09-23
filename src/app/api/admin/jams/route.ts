@@ -12,7 +12,7 @@ export const GET = handle(async (req) => {
   const per = Math.min(50, Math.max(1, Number(u.searchParams.get('per') ?? 25)));
   const where: any = {};
   if (q) where.OR = [{ name: { contains: q } }, { desc: { contains: q } }, { id: { contains: q } }];
-  if (kind === 'CHAT' || kind === 'MOVIE' || kind === 'MUSIC' || kind === 'HANGOUT') where.kind = kind;
+  if (kind === 'CHAT' || kind === 'MOVIE' || kind === 'MUSIC' || kind === 'HANGOUT' || kind === 'ANIME') where.kind = kind;
   if (type === 'PUBLIC' || type === 'PRIVATE') where.type = type;
   if (state === 'open') where.closed = false;
   if (state === 'closed') where.closed = true;

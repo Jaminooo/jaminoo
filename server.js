@@ -275,9 +275,87 @@ async function backfillDemoLyrics() {
 
 let io;
 
+// When the cinema or anime catalog is empty (fresh database), seed a small demo
+// shelf so the Cinema/Anime hubs and room players have playable content.
+// Only runs on empty tables — user/admin data is never touched or overwritten.
+const DEMO_MEDIA_BASE = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
+async function ensureDemoEntertainment() {
+  const [cinemaCount, animeCount] = await Promise.all([
+    prisma.cinemaVideo.count().catch(() => 0),
+    prisma.anime.count().catch(() => 0),
+  ]);
+
+  if (cinemaCount === 0) {
+    console.log('[boot] Empty cinema catalog — seeding demo titles...');
+    const movies = [
+      { title: 'Midnight Circuit', kind: 'MOVIE', description: 'A synth-drenched chase across a city that never switches off. Feel the neon.', file: 'BigBuckBunny.mp4', durationSec: 596 },
+      { title: 'Neon Drift', kind: 'MOVIE', description: 'An exhausted courier takes one last run across a rain-lit megacity.', file: 'Sintel.mp4', durationSec: 888 },
+      { title: 'Skyline Stories', kind: 'SERIES', description: 'Every rooftop holds a different story — one building, a thousand lives.', file: 'ElephantsDream.mp4', durationSec: 653 },
+      { title: 'Paper Cities', kind: 'MOVIE', description: 'A film crew builds a city from paper to shoot the impossible ending.', file: 'TearsOfSteel.mp4', durationSec: 734 },
+      { title: 'Orbit 9', kind: 'SERIES', description: 'Life, love and loose gravel on the slowest highway in the solar system.', file: 'SubaruOutbackOnStreetAndDirt.mp4', durationSec: 594 },
+      { title: 'First Light', kind: 'MOVIE', description: 'A short, bright burst of colour to open your watch party.', file: 'ForBiggerFun.mp4', durationSec: 60 },
+    ];
+    for (const m of movies) {
+      const existing = await prisma.cinemaVideo.findFirst({ where: { title: m.title } });
+      if (existing) continue;
+      await prisma.cinemaVideo.create({
+        data: { title: m.title, kind: m.kind, description: m.description, externalUrl: `${DEMO_MEDIA_BASE}${m.file}`, durationSec: m.durationSec, visibility: 'PUBLIC' },
+      });
+    }
+    console.log('[boot] Demo cinema titles seeded.');
+  }
+
+  if (animeCount === 0) {
+    console.log('[boot] Empty anime catalog — seeding demo titles...');
+    const series = [
+      {
+        slug: 'neon-tokyo-2049', title: 'Neon Tokyo 2049', original: 'ネオントーキョー', overview: 'In a Tokyo rebuilt on holograms, a data hoarder stumbles on a signal that was never meant to be found.', type: 'TV', status: 'AIRING', year: 2026, rating: 9.1, genres: JSON.stringify(['Sci-Fi', 'Action', 'Mystery']), studio: 'Studio Ame', colorFrom: 200, colorTo: 285, episodes: [
+          { slug: 'e01', title: 'The Signal', number: 1, file: 'BigBuckBunny.mp4', durationSec: 596 },
+          { slug: 'e02', title: 'Ghost Streets', number: 2, file: 'Sintel.mp4', durationSec: 888 },
+        ],
+      },
+      {
+        slug: 'starlight-express', title: 'Starlight Express', original: 'スターライト急行', overview: 'A sleepy night train that only runs between dying stars — and the conductor who refuses to let them go.', type: 'TV', status: 'FINISHED', year: 2025, rating: 8.7, genres: JSON.stringify(['Adventure', 'Drama', 'Fantasy']), studio: 'Orbit Works', colorFrom: 260, colorTo: 330, episodes: [
+          { slug: 'e01', title: 'Departure', number: 1, file: 'ElephantsDream.mp4', durationSec: 653 },
+          { slug: 'e02', title: 'Red Giant', number: 2, file: 'TearsOfSteel.mp4', durationSec: 734 },
+        ],
+      },
+      {
+        slug: 'paper-moon-cafe', title: 'Paper Moon Café', original: 'ペーパームーンカフェ', overview: 'A tiny café open only on rainy nights serves drinks for memories you almost forgot.', type: 'TV', status: 'AIRING', year: 2026, rating: 8.2, genres: JSON.stringify(['Slice of Life', 'Comedy']), studio: 'Kodama Films', colorFrom: 30, colorTo: 60, episodes: [
+          { slug: 'e01', title: 'Rain Check', number: 1, file: 'ForBiggerFun.mp4', durationSec: 60 },
+        ],
+      },
+      {
+        slug: 'summer-comet', title: 'Summer Comet', original: '夏の彗星', overview: 'A once-a-century comet brings a small town its strangest summer — a film about goodbyes in soft focus.', type: 'MOVIE', status: 'FINISHED', year: 2024, rating: 9.0, genres: JSON.stringify(['Romance', 'Drama']), studio: 'Kodama Films', colorFrom: 320, colorTo: 20, episodes: [
+          { slug: 'e01', title: 'The Movie', number: 1, file: 'SubaruOutbackOnStreetAndDirt.mp4', durationSec: 594 },
+        ],
+      },
+    ];
+    for (const s of series) {
+      const existing = await prisma.anime.findUnique({ where: { slug: s.slug } });
+      if (existing) continue;
+      const anime = await prisma.anime.create({
+        data: {
+          slug: s.slug, title: s.title, original: s.original, overview: s.overview,
+          type: s.type, status: s.status, year: s.year, rating: s.rating,
+          genres: s.genres, studio: s.studio, episodes: s.episodes.length,
+          colorFrom: s.colorFrom, colorTo: s.colorTo, visibility: 'PUBLIC',
+        },
+      });
+      for (const ep of s.episodes) {
+        await prisma.animeEpisode.create({
+          data: { animeId: anime.id, slug: ep.slug, title: ep.title, number: ep.number, externalUrl: `${DEMO_MEDIA_BASE}${ep.file}`, durationSec: ep.durationSec },
+        });
+      }
+    }
+    console.log('[boot] Demo anime titles seeded.');
+  }
+}
+
 applyPendingMigrations();
 ensureDemoCatalog().catch((e) => console.error('[boot] demo catalog seed error:', e && e.message));
 backfillDemoLyrics().catch((e) => console.error('[boot] demo lyrics backfill error:', e && e.message));
+ensureDemoEntertainment().catch((e) => console.error('[boot] demo entertainment seed error:', e && e.message));
 
 app.prepare().then(async () => {
   const server = createServer((req, res) => handle(req, res));

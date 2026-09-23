@@ -1,6 +1,8 @@
 import { handle, json, err, requireUser } from '@/lib/api';
 import { prisma } from '@/lib/prisma';
 import { jamCardPayload } from '@/lib/jam-card';
+import { normalizeJamKind } from '@/lib/jam-kind';
+import { rateLimitByUser } from '@/lib/rate-limit';
 import { randomBytes } from 'crypto';
 
 const CARD_INCLUDE = {
@@ -23,7 +25,7 @@ export const GET = handle(async () => {
 
   return json({
     jams: memberships
-      .filter((m) => m.jam.kind === 'MUSIC' && !m.jam.closed)
+      .filter((m) => !m.jam.closed)
       .map((m) => ({
         ...jamCardPayload(m.jam, me.id),
         role: m.role,
@@ -33,28 +35,35 @@ export const GET = handle(async () => {
   });
 });
 
-// POST { name, desc?, type: 'PUBLIC'|'PRIVATE' } — create a music DJ set.
+// POST { name, desc?, type: 'PUBLIC'|'PRIVATE', kind?: 'MUSIC'|'MOVIE'|'ANIME' }
+// Create a fresh room: a DJ set (music), a cinema party or an anime party.
 export const POST = handle(async (req) => {
   const me = await requireUser();
-  const { name, desc, type } = (await req.json()) as { name?: string; desc?: string; type?: string };
+  const { name, desc, type, kind } = (await req.json()) as {
+    name?: string;
+    desc?: string;
+    type?: string;
+    kind?: unknown;
+  };
   if (!name || name.trim().length < 2 || name.trim().length > 40) return err('Name must be 2–40 characters');
+  rateLimitByUser(req, me.id, 10, 60 * 1000);
   const jtype = type === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC';
+  const jkind = normalizeJamKind(kind);
 
-  const ownedCount = await prisma.jam.count({ where: { ownerId: me.id } });
-  if (ownedCount >= 1) return err('You can only own one jam', 403);
-
-  const id = `J${Date.now().toString(36)}${randomBytes(4).toString('hex').toUpperCase()}`;
+  // One owned room per kind: a music DJ set, a cinema party and an anime party can coexist.
+  const ownedCount = await prisma.jam.count({ where: { ownerId: me.id, kind: jkind } });
+  if (ownedCount >= 1) return err(`You already own a ${jkind.toLowerCase()} room — leave or close it before starting another`);
 
   const jam = await prisma.jam.create({
     data: {
-      id,
+      id: randomBytes(5).toString('hex'),
       name: name.trim(),
-      desc: (desc ?? '').trim().slice(0, 120),
+      desc: (desc || '').trim().slice(0, 300),
       type: jtype,
-      kind: 'MUSIC',
+      kind: jkind,
       ownerId: me.id,
-      members: { create: { userId: me.id, role: 'HOST' } },
     },
   });
+  await prisma.jamMember.create({ data: { jamId: jam.id, userId: me.id, role: 'OWNER' } });
   return json({ ok: true, jam: { id: jam.id, name: jam.name, desc: jam.desc, type: jam.type, kind: jam.kind } }, 201);
 });
