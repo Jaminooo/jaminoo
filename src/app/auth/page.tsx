@@ -9,11 +9,12 @@ import { toast } from '@/components/toast';
 import { PasswordMeter } from '@/components/password-meter';
 import { SECURITY_QUESTIONS } from '@/lib/constants';
 import Link from 'next/link';
-import { Globe } from 'lucide-react';
+import { Clapperboard, Globe, Headphones, MessageCircle, Music2, Sparkles } from 'lucide-react';
 
 export default function AuthPage() {
   const { authView, setAuthView } = useAppStore();
   const { locale, setLocale } = useLocale();
+  const t = useTranslations();
   const toggleLang = () => setLocale(locale === 'fa' ? 'en' : 'fa');
 
   useEffect(() => {
@@ -42,18 +43,32 @@ export default function AuthPage() {
         </button>
       </nav>
 
-      <div className="auth-page-inner">
-        <motion.div
-          key={authView}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
-          className="auth-card auth-card--single"
-        >
-          {authView === 'login' && <LoginForm onSwitch={setAuthView} />}
-          {authView === 'signup' && <SignupForm onSwitch={setAuthView} />}
-          {authView === 'forgot' && <ForgotForm onSwitch={setAuthView} />}
-        </motion.div>
+      <div className="auth-page-layout">
+        <section className="auth-page-brand">
+          <div className="auth-page-brand-mark"><span className="wordmark-mark"><Sparkles size={18} /></span><b>{t('brand.name')}</b></div>
+          <span className="auth-page-kicker"><span /> {t('landing.connected')}</span>
+          <h1>{t('brand.tagline')} <em>{t('brand.taglineEm')}</em></h1>
+          <p>{t('auth.signInSub')}</p>
+          <div className="auth-page-products">
+            <span><MessageCircle size={15} /> {t('landing.community')}</span>
+            <span><Music2 size={15} /> {t('landing.music')}</span>
+            <span><Clapperboard size={15} /> {t('landing.watch')}</span>
+            <span><Headphones size={15} /> {t('landing.synced')}</span>
+          </div>
+        </section>
+        <div className="auth-page-inner">
+          <motion.div
+            key={authView}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            className="auth-card auth-card--single"
+          >
+            {authView === 'login' && <LoginForm onSwitch={setAuthView} />}
+            {authView === 'signup' && <SignupForm onSwitch={setAuthView} />}
+            {authView === 'forgot' && <ForgotForm onSwitch={setAuthView} />}
+          </motion.div>
+        </div>
       </div>
     </main>
   );
