@@ -13,6 +13,7 @@ import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { connectLive, onLive } from '@/lib/live';
 import { VinylPlayer } from '@/components/vinyl-player';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 import { WATCH_QUALITIES, DEFAULT_QUALITY, resolveWatchSource, type QualitySources, type WatchQuality } from '@/lib/watch-select';
 import {
   animeItem as toWatchAnime,
@@ -156,6 +157,7 @@ export function WatchHub() {
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     try {
@@ -169,6 +171,7 @@ export function WatchHub() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [cinema, anime] = await Promise.all([
         api<{ items: CinemaRow[] }>('/api/cinema?kind=ALL'),
@@ -176,14 +179,12 @@ export function WatchHub() {
       ]);
       setCinemaItems(cinema.items || []);
       setAnimeItems(anime.items || []);
-    } catch (error) {
-      toast(error instanceof Error ? error.message : t('watch.loadError'), 'error');
-      setCinemaItems([]);
-      setAnimeItems([]);
+    } catch {
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
@@ -586,6 +587,8 @@ export function WatchHub() {
             )}
           </div>
         </div>
+
+        {loadError && <WorkspaceErrorState message={t('watch.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
 
         {loading ? (
           <div className="anime-loading"><span className="admin-loader" /> {t('watch.loading')}</div>
