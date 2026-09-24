@@ -9,6 +9,7 @@ import { useTranslations } from '@/providers/use-translations';
 import type { QualitySources } from '@/lib/watch-select';
 import { connectLive, onLive } from '@/lib/live';
 import { Badge, ConfirmModal, EmptyRow, LoadingRow, StatCard, useConfirm } from './admin-ui';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 
 interface CinemaAdminItem {
   id: number;
@@ -37,6 +38,7 @@ export function AdminCinema() {
   const t = useTranslations();
   const [items, setItems] = useState<CinemaAdminItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<Filter>('ALL');
   const [q, setQ] = useState('');
@@ -53,7 +55,8 @@ export function AdminCinema() {
 
   const load = useCallback(() => {
     setLoading(true);
-    api<{ items: CinemaAdminItem[] }>('/api/admin/cinema').then((data) => setItems(data.items)).catch(() => {}).finally(() => setLoading(false));
+    setLoadError(false);
+    api<{ items: CinemaAdminItem[] }>('/api/admin/cinema').then((data) => setItems(data.items)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
   useEffect(load, [load]);
 
@@ -276,7 +279,8 @@ export function AdminCinema() {
           <table className="admin-table">
             <tbody>
               {loading && <LoadingRow text={t('admin.loadingCinema')} />}
-              {!loading && filtered.length === 0 && <EmptyRow text={t('admin.noCinemaTitles')} />}
+              {!loading && loadError && <tr><td colSpan={5}><WorkspaceErrorState message={t('admin.loadError')} retryLabel={t('admin.refresh')} onRetry={load} /></td></tr>}
+              {!loading && !loadError && filtered.length === 0 && <EmptyRow text={t('admin.noCinemaTitles')} />}
               {filtered.map((item) => (
                 <tr key={item.id} className={item.visibility === 'HIDDEN' ? 'admin-hidden-row' : ''}>
                   <td><div className="admin-cinema-thumb">{item.thumbnailUrl ? <Image src={item.thumbnailUrl} alt="" fill unoptimized loading="lazy" /> : kindIcon(item.kind)}</div></td>

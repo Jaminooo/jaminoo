@@ -8,6 +8,7 @@ import { toast } from '@/components/toast';
 import { useTranslations } from '@/providers/use-translations';
 import { connectLive, onLive } from '@/lib/live';
 import { Badge, ConfirmModal, EmptyRow, LoadingRow, StatCard, useConfirm } from './admin-ui';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 import { animePayload, ANIME_TYPES, ANIME_STATUSES } from '@/lib/anime';
 import type { QualitySources } from '@/lib/watch-select';
 
@@ -68,6 +69,7 @@ export function AdminAnime() {
   const t = useTranslations();
   const [items, setItems] = useState<AnimeAdminItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -86,6 +88,7 @@ export function AdminAnime() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(false);
     const params = new URLSearchParams();
     if (q.trim()) params.set('q', q.trim());
     if (filterType) params.set('type', filterType);
@@ -93,7 +96,7 @@ export function AdminAnime() {
     if (filterVisibility) params.set('visibility', filterVisibility);
     api<{ items: AnimeAdminItem[] }>(`/api/admin/anime?${params.toString()}`)
       .then((data) => setItems(data.items))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [filterStatus, filterType, filterVisibility, q]);
   useEffect(load, [load]);
@@ -348,7 +351,8 @@ export function AdminAnime() {
           <table className="admin-table">
             <tbody>
               {loading && <LoadingRow text={t('admin.loadingAnime')} />}
-              {!loading && filtered.length === 0 && <EmptyRow text={t('admin.noAnimeTitles')} />}
+              {!loading && loadError && <tr><td colSpan={6}><WorkspaceErrorState message={t('admin.loadError')} retryLabel={t('admin.refresh')} onRetry={load} /></td></tr>}
+              {!loading && !loadError && filtered.length === 0 && <EmptyRow text={t('admin.noAnimeTitles')} />}
               {filtered.map((item) => (
                 <tr key={item.id} className={item.visibility === 'HIDDEN' ? 'admin-hidden-row' : ''}>
                   <td>

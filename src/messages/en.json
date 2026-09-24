@@ -477,6 +477,7 @@
     "healthy": "Healthy",
     "live": "Live",
     "refresh": "Refresh",
+    "loadError": "Could not load this admin catalogue.",
     "language": "Switch language",
     "openApp": "Open app",
     "menu": "Open menu",
