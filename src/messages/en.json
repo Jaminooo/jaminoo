@@ -2200,6 +2200,7 @@
     "add": "Add reaction"
   },
   "feed": {
+    "loadError": "Could not load your activity feed.",
     "kicker": "NOW FEED",
     "title": "What is happening now?",
     "subtitle": "Jump into a live room, follow the energy or continue a sound your people are playing.",

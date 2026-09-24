@@ -6,6 +6,7 @@ import { api } from '@/lib/client-api';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 
 interface NowPayload {
   friends: { id: number; username: string; avatarId: number; avatarPhoto: string | null; status: string; statusText: string }[];
@@ -23,10 +24,18 @@ export function NowFeed() {
   const setRoomId = useAppStore((state) => state.setRoomId);
   const [data, setData] = useState<NowPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    api<NowPayload>('/api/now').then(setData).catch(() => setData(null)).finally(() => setLoading(false));
+    setLoadError(false);
+    try {
+      setData(await api<NowPayload>('/api/now'));
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -51,7 +60,11 @@ export function NowFeed() {
       </header>
       {loading && !data ? (
         <div className="now-feed-loading"><Loader2 size={18} className="spin" /> {t('feed.loading')}</div>
+      ) : loadError && !data ? (
+        <WorkspaceErrorState message={t('feed.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />
       ) : (
+        <>
+        {loadError && <WorkspaceErrorState message={t('feed.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
         <div className="now-feed-grid">
           <article className="now-feed-card now-feed-people">
             <div className="now-feed-card-head">
@@ -126,6 +139,7 @@ export function NowFeed() {
             )}
           </article>
         </div>
+        </>
       )}
       <div className="now-feed-footer"><Activity size={14} /> {t('feed.footer')}</div>
     </section>
