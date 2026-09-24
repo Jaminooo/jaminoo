@@ -42,6 +42,7 @@ import { toast } from '@/components/toast';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useAppStore } from '@/store/app-store';
 import { WorkspaceTopbar } from '@/components/hub-gateway';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 import { useTranslations } from '@/providers/use-translations';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { CreatorProfileModal } from '@/components/creator-profile-modal';
@@ -353,13 +354,27 @@ function CommentsModal({ post, open, onClose, onAdded }: { post: VideoPost | nul
   const [comments, setComments] = useState<VideoComment[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const loadComments = useCallback(async () => {
+    if (!post) return;
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const data = await api<{ comments: VideoComment[] }>(`/api/video/posts/${post.id}/comments`);
+      setComments(data.comments);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [post]);
 
   useEffect(() => {
     if (!open || !post) return;
-    setLoading(true);
-    api<{ comments: VideoComment[] }>(`/api/video/posts/${post.id}/comments`).then((data) => setComments(data.comments)).catch(() => setComments([])).finally(() => setLoading(false));
-  }, [open, post]);
+    void loadComments();
+  }, [open, post, loadComments]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -382,7 +397,7 @@ function CommentsModal({ post, open, onClose, onAdded }: { post: VideoPost | nul
     <div className="video-modal-backdrop" style={{ backdropFilter: 'blur(24px) saturate(1.2)', WebkitBackdropFilter: 'blur(24px) saturate(1.2)' }} onMouseDown={onClose}>
       <section className="video-comments-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
         <header className="video-modal-head"><div><div className="hub-kicker">{t('video.comments.kicker')}</div><h2>{post.title || t('video.comments.title')}</h2></div><button type="button" className="btn-icon" onClick={onClose} aria-label={t('video.common.close')}><X size={18} /></button></header>
-        <div className="video-comments-list">{loading && <div className="video-modal-loading"><span className="admin-loader" /> {t('video.comments.loading')}</div>}{!loading && comments.length === 0 && <div className="video-modal-empty"><MessageCircle size={20} /><span>{t('video.comments.empty')}</span></div>}{comments.map((comment) => <div className="video-comment-row" key={comment.id}><JaminoAvatar avatarId={comment.user.avatarId} size={32} photo={comment.user.avatarPhoto} name={comment.user.username} /><div><b>@{comment.user.username}</b><p>{comment.text}</p><small>{timeAgo(comment.createdAt, t)}</small></div></div>)}</div>
+        <div className="video-comments-list">{loading && <div className="video-modal-loading"><span className="admin-loader" /> {t('video.comments.loading')}</div>}{loadError && <WorkspaceErrorState message={t('video.comments.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void loadComments()} />}{!loading && !loadError && comments.length === 0 && <div className="video-modal-empty"><MessageCircle size={20} /><span>{t('video.comments.empty')}</span></div>}{comments.map((comment) => <div className="video-comment-row" key={comment.id}><JaminoAvatar avatarId={comment.user.avatarId} size={32} photo={comment.user.avatarPhoto} name={comment.user.username} /><div><b>@{comment.user.username}</b><p>{comment.text}</p><small>{timeAgo(comment.createdAt, t)}</small></div></div>)}</div>
         <form className="video-comment-form" onSubmit={submit}><input value={text} onChange={(event) => setText(event.target.value)} maxLength={1000} placeholder={t('video.comments.placeholder')} /><button type="submit" className="btn-icon violet" disabled={sending || !text.trim()} aria-label={t('video.comments.send')}><Send size={17} /></button></form>
       </section>
     </div>
@@ -622,13 +637,19 @@ function CreatorsView({ onOpenCreator }: { onOpenCreator: (id: number) => void }
   const [creators, setCreators] = useState<DiscoverCreator[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  const load = useCallback((q: string) => {
+  const load = useCallback(async (q: string) => {
     setLoading(true);
-    api<{ creators: DiscoverCreator[] }>(`/api/video/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`)
-      .then((data) => setCreators(data.creators))
-      .catch(() => setCreators([]))
-      .finally(() => setLoading(false));
+    setLoadError(false);
+    try {
+      const data = await api<{ creators: DiscoverCreator[] }>(`/api/video/discover${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+      setCreators(data.creators);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(''); }, [load]);
@@ -656,7 +677,8 @@ function CreatorsView({ onOpenCreator }: { onOpenCreator: (id: number) => void }
         <button type="submit" className="btn btn-violet pill-sm">{t('video.common.search')}</button>
       </form>
       {loading && <div className="video-loading-grid">{[1, 2, 3].map((item) => <div className="video-skeleton" key={item} />)}</div>}
-      {!loading && creators.length === 0 && (
+      {loadError && <WorkspaceErrorState message={t('video.creators.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load(query.trim())} />}
+      {!loading && !loadError && creators.length === 0 && (
         <div className="video-hub-empty large">
           <Camera size={26} />
           <b>{query ? t('video.creators.notFoundFor', { q: query }) : t('video.creators.notFound')}</b>

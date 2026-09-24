@@ -1109,6 +1109,7 @@
       "kicker": "COMMENTS",
       "title": "Post comments",
       "loading": "Loading comments…",
+      "loadError": "Could not load comments.",
       "empty": "Be the first to say something.",
       "placeholder": "Write a comment…",
       "send": "Send comment",
@@ -1151,6 +1152,7 @@
     },
     "creators": {
       "searchPh": "Search creators by name, handle or topic",
+      "loadError": "Could not load creators.",
       "notFound": "No creators found.",
       "notFoundFor": "No creators found for “{q}”.",
       "emptyHint": "Approved Video Hub creators appear here — be the first by applying from Create.",
