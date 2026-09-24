@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
+import { toast } from '@/components/toast';
 import { CheckSquare, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 
 export function formatBytes(n: number) {
@@ -352,6 +353,7 @@ export interface ListOptions<R> {
 }
 
 export function useAdminList<R>({ path, extra = {}, per = 25 }: ListOptions<R>) {
+  const t = useTranslations();
   const [rows, setRows] = useState<R[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -375,7 +377,9 @@ export function useAdminList<R>({ path, extra = {}, per = 25 }: ListOptions<R>) 
         setRows(d.rows);
         setTotal(d.total);
       })
-      .catch(() => {})
+      .catch(() => {
+        if (alive) toast(t('admin.loadError'), 'error');
+      })
       .finally(() => {
         if (alive) setLoading(false);
       });
@@ -383,7 +387,7 @@ export function useAdminList<R>({ path, extra = {}, per = 25 }: ListOptions<R>) 
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, page, query, per, extraKey, nonce]);
+  }, [path, page, query, per, extraKey, nonce, t]);
 
   const pages = Math.max(1, Math.ceil(total / per));
   return { rows, total, page, pages, setPage, q, setQ, query, setQuery, loading, reload };
