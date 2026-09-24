@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { OnlineDot } from '@/components/online-dot';
 import { api } from '@/lib/client-api';
 import { connectLive } from '@/lib/live';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 import { Users, Radio, MessagesSquare, ArrowRight, Plus, Globe, Lock } from 'lucide-react';
 
 interface GroupCard {
@@ -51,15 +52,25 @@ export function CommunityHome() {
   const [friends, setFriends] = useState<FriendCard[]>([]);
   const [jams, setJams] = useState<JamCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    let failed = false;
+    await Promise.all([
+      api<{ mine: GroupCard[] }>('/api/groups').then((d) => setGroups(d.mine)).catch(() => { failed = true; }),
+      api<{ friends: FriendCard[] }>('/api/friends').then((d) => setFriends(d.friends)).catch(() => { failed = true; }),
+      api<{ jams: JamCard[] }>('/api/jams').then((d) => setJams(d.jams)).catch(() => { failed = true; }),
+    ]);
+    setLoadError(failed);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     connectLive();
-    Promise.all([
-      api<{ mine: GroupCard[] }>('/api/groups').then((d) => setGroups(d.mine)).catch(() => {}),
-      api<{ friends: FriendCard[] }>('/api/friends').then((d) => setFriends(d.friends)).catch(() => {}),
-      api<{ jams: JamCard[] }>('/api/jams').then((d) => setJams(d.jams)).catch(() => {}),
-    ]).finally(() => setLoading(false));
-  }, []);
+    void load();
+  }, [load]);
 
   const onlineFriends = friends.filter((f) => online.includes(f.id));
 
@@ -102,6 +113,8 @@ export function CommunityHome() {
           </button>
         ))}
       </div>
+
+      {loadError && <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
 
       <section className="ch-section">
         <div className="ch-section-head">

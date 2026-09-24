@@ -1,15 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-  import { useTranslations } from '@/providers/use-translations';
-  import { useAppStore } from '@/store/app-store';
-  import { JaminoAvatar } from '@/components/jamino-avatar';
-  import { EmojiText } from '@/components/emoji-text';
-  import { api } from '@/lib/client-api';
-  import { toast } from '@/components/toast';
-  import { loadUnread } from '@/lib/unread';
-  import { onLive } from '@/lib/live';
-  import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck, Loader2, Video, ListVideo, Compass } from 'lucide-react';
+import { useTranslations } from '@/providers/use-translations';
+import { useAppStore } from '@/store/app-store';
+import { JaminoAvatar } from '@/components/jamino-avatar';
+import { EmojiText } from '@/components/emoji-text';
+import { api } from '@/lib/client-api';
+import { toast } from '@/components/toast';
+import { loadUnread } from '@/lib/unread';
+import { onLive } from '@/lib/live';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
+import { ArrowLeft, MessageCircle, UserPlus, UserMinus, Check, X, Users, Radio, MessageSquare, Github, CalendarDays, UserCheck, Video, ListVideo, Compass } from 'lucide-react';
 
 interface JamChip {
   id: string;
@@ -52,9 +53,19 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
   const presenceMap = useAppStore((s) => s.presenceMap);
   const [data, setData] = useState<ProfileData | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  const load = useCallback(() => {
-    api<ProfileData>(`/api/users/${userId}/profile`).then(setData).catch(() => {});
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      setData(await api<ProfileData>(`/api/users/${userId}/profile`));
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -77,7 +88,9 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
     }
   };
 
-  if (!data) return <div className="empty-state" style={{ padding: 64 }}><Loader2 className="spin" size={20} /></div>;
+  if (loading && !data) return <WorkspaceLoadingState label={t('admin.loading')} rows={3} />;
+  if (loadError && !data) return <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />;
+  if (!data) return null;
   const u = data.user;
   const isOnline = online.includes(u.id);
   const livePresence = presenceMap[u.id];
@@ -96,6 +109,7 @@ export function FriendProfilePanel({ userId, onBack }: { userId: number; onBack:
           <div className="room-members">{u.uid}</div>
         </div>
       </div>
+      {loadError && <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
 
       <div className="fp-hero" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="fp-banner" aria-hidden="true" />
