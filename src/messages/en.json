@@ -1803,6 +1803,8 @@
   },
   "notif": {
     "title": "Notifications",
+    "loadFailed": "Could not load notifications.",
+    "retry": "Try again",
     "all": "All",
     "unread": "Unread",
     "empty": "No notifications yet.",

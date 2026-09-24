@@ -8,6 +8,7 @@ import { onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
 import { metaFor, describeNotification, type NotifActor } from '@/lib/notification-meta';
 import { JaminoAvatar } from '@/components/jamino-avatar';
+import { toast } from '@/components/toast';
 import { Bell, Loader2, Check, Trash2, CheckCheck, X } from 'lucide-react';
 
 interface NotifItem {
@@ -39,6 +40,7 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(
     (cursor?: string) => {
@@ -55,10 +57,14 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
           }
           setNextCursor(res.nextCursor);
           setHasMore(res.hasMore);
+          setLoadError(false);
           useAppStore.getState().setUnread({ notifications: res.unread });
           return res;
         })
-        .catch(() => null);
+        .catch(() => {
+          setLoadError(true);
+          return null;
+        });
     },
     [filter]
   );
@@ -78,22 +84,34 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
   }, [open, load]);
 
   const markAllRead = async () => {
-    await api('/api/notifications', { method: 'PATCH', body: JSON.stringify({ all: true }) }).catch(() => {});
-    useAppStore.getState().setUnread({ notifications: 0 });
-    setReloadKey((k) => k + 1);
+    try {
+      await api('/api/notifications', { method: 'PATCH', body: JSON.stringify({ all: true }) });
+      useAppStore.getState().setUnread({ notifications: 0 });
+      setReloadKey((k) => k + 1);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('toast.unknownError'), 'error');
+    }
   };
 
   const markOneRead = async (item: NotifItem) => {
     if (item.read) return;
-    await api('/api/notifications', { method: 'PATCH', body: JSON.stringify({ id: item.id }) }).catch(() => {});
-    setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true, readAt: new Date().toISOString() } : n)));
-    loadUnread();
+    try {
+      await api('/api/notifications', { method: 'PATCH', body: JSON.stringify({ id: item.id }) });
+      setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true, readAt: new Date().toISOString() } : n)));
+      loadUnread();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('toast.unknownError'), 'error');
+    }
   };
 
   const removeOne = async (item: NotifItem) => {
-    await api(`/api/notifications?id=${item.id}`, { method: 'DELETE' }).catch(() => {});
-    setItems((prev) => prev.filter((n) => n.id !== item.id));
-    loadUnread();
+    try {
+      await api(`/api/notifications?id=${item.id}`, { method: 'DELETE' });
+      setItems((prev) => prev.filter((n) => n.id !== item.id));
+      loadUnread();
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('toast.unknownError'), 'error');
+    }
   };
 
   const openTarget = (item: NotifItem) => {
@@ -115,8 +133,7 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
   const loadMore = async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
-    await load(nextCursor);
-    setLoadingMore(false);
+    try { await load(nextCursor); } finally { setLoadingMore(false); }
   };
 
   const unreadItems = items.filter((n) => !n.read).length;
@@ -155,6 +172,11 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
         <div className="notification-state">
           <Loader2 className="spin" size={20} />
         </div>
+      ) : loadError ? (
+        <div className="notification-empty" role="alert">
+          <span>{t('notif.loadFailed')}</span>
+          <button type="button" className="btn btn-ghost pill-sm" onClick={() => setReloadKey((key) => key + 1)}>{t('notif.retry')}</button>
+        </div>
       ) : items.length === 0 ? (
         <div className="notification-empty">
           <Bell size={22} />
@@ -168,7 +190,7 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
               const Icon = meta.icon;
               const { heading, detail } = describeNotification(item, t, locale);
               return (
-                <div key={item.id} className={`notification-item ${item.read ? '' : 'unread'}`} onClick={() => openTarget(item)} role="button" tabIndex={0}>
+                <div key={item.id} className={`notification-item ${item.read ? '' : 'unread'}`} onClick={() => openTarget(item)} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openTarget(item); } }} role="button" tabIndex={0}>
                   {!item.read && <span className="notification-dot" />}
                   <span className={`notification-icon ${meta.tone}`}>
                     <Icon size={14} />
@@ -192,6 +214,7 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
                           markOneRead(item);
                         }}
                         title={t('notif.markRead')}
+                        aria-label={t('notif.markRead')}
                       >
                         <Check size={13} />
                       </button>
@@ -204,6 +227,7 @@ export function NotificationPopover({ open, onClose }: { open: boolean; onClose:
                         removeOne(item);
                       }}
                       title={t('notif.delete')}
+                      aria-label={t('notif.delete')}
                     >
                       <Trash2 size={13} />
                     </button>
