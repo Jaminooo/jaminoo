@@ -5,10 +5,11 @@ import { useTranslations } from '@/providers/use-translations';
 import { EMOJI_CATEGORIES } from '@/lib/emoji';
 import { MAX_VOICE_SECONDS } from '@/lib/constants';
 import { Send, Mic, X, Square, Check, Smile } from 'lucide-react';
+import { toast } from '@/components/toast';
 
 interface Props {
   placeholder: string;
-  onSendText: (text: string) => void | Promise<void>;
+  onSendText: (text: string) => void | boolean | Promise<void | boolean>;
   onSendVoice: (blob: Blob) => void | Promise<void>;
   onTyping?: () => void;
   disabled?: boolean;
@@ -35,11 +36,13 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
     e.preventDefault();
     if (!text.trim() || disabled || busy || sendingText) return;
     const clean = text.trim();
-    setText('');
     setEmojiOpen(false);
     setSendingText(true);
     try {
-      await onSendText(clean);
+      const sent = await onSendText(clean);
+      if (sent !== false) setText((current) => current === clean ? '' : current);
+    } catch {
+      toast(t('toast.unknownError'), 'error');
     } finally {
       setSendingText(false);
     }
@@ -69,8 +72,9 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
         setSeconds(el);
         if (el >= MAX_VOICE_SECONDS) finishRec();
       }, 200);
-    } catch {
+    } catch (error) {
       setRec('idle');
+      toast(error instanceof DOMException && error.name === 'NotAllowedError' ? t('room.voiceDenied') : t('room.voiceUnavailable'), 'error');
     }
   };
 
@@ -118,6 +122,7 @@ export function MessageComposer({ placeholder, onSendText, onSendVoice, onTyping
         <input
           className="auth-input"
           value={text}
+          aria-label={placeholder}
           onChange={(e) => {
             setText(e.target.value);
             onTyping?.();

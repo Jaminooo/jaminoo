@@ -373,12 +373,14 @@ export function DJRoomPanel({ jamId, onBack }: { jamId: string; onBack: () => vo
   }, [jam?.now?.id, jam?.playing]);
 
   const sendText = async (text: string) => {
-    if (sendingText) return;
+    if (sendingText) return false;
     setSendingText(true);
     try {
       await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text }) });
+      return true;
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+      return false;
     } finally {
       setSendingText(false);
     }

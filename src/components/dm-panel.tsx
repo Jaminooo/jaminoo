@@ -14,7 +14,8 @@ import { connectLive, emitLive, onLive, liveSocketId, liveConnected } from '@/li
 import { toast } from '@/components/toast';
 import { loadUnread } from '@/lib/unread';
 import { ReportMessageModal } from '@/components/report-message-modal';
-import { ArrowLeft, Copy, User, Check, CheckCheck, Flag, Loader2 } from 'lucide-react';
+import { ArrowLeft, Copy, User, Check, CheckCheck, Flag } from 'lucide-react';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 interface ChatUser {
   id: number;
@@ -49,6 +50,8 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
   const me = useAppStore((s) => s.me);
   const setProfileUserId = useAppStore((s) => s.setProfileUserId);
   const [convo, setConvo] = useState<ConvoData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [live, setLive] = useState(false);
   const [sendingVoice, setSendingVoice] = useState(false);
   const [sendingText, setSendingText] = useState(false);
@@ -59,10 +62,16 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
   const bodyRef = useRef<HTMLDivElement>(null);
   const { menu, closeCm, onContextMenu } = useContextMenu();
 
-  const load = () => api<ConvoData>(`/api/dm/${otherId}`).then(setConvo).catch(() => {});
+  const load = (showLoading = false) => {
+    if (showLoading) { setLoading(true); setLoadError(false); }
+    return api<ConvoData>(`/api/dm/${otherId}`)
+      .then((data) => { setConvo(data); setLoadError(false); })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    load();
+    void load(true);
     loadUnread();
     const socket = connectLive();
     const offNew = onLive('dm:new', (d: { userA: number; userB: number; message: ChatMsg }) => {
@@ -109,7 +118,7 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
     setLive(liveConnected());
     const poll = setInterval(() => {
       if (liveConnected()) return;
-      load();
+      void load();
     }, 6000);
     return () => {
       offNew();
@@ -133,13 +142,15 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
   }, [convo]);
 
   const sendText = async (text: string) => {
-    if (sendingText) return;
+    if (sendingText) return false;
     setSendingText(true);
     try {
       await api(`/api/dm/${otherId}/send`, { method: 'POST', body: JSON.stringify({ text }) });
       loadUnread();
+      return true;
     } catch (err) {
       toast(err instanceof Error ? err.message : t('toast.unknownError'), 'error');
+      return false;
     } finally {
       setSendingText(false);
     }
@@ -214,10 +225,13 @@ export function DmPanel({ otherId, onBack }: { otherId: number; onBack: () => vo
     return items;
   };
 
-  if (!convo) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
+  if (!convo) return loading
+    ? <WorkspaceLoadingState label={t('admin.loading')} rows={5} />
+    : <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load(true)} />;
 
   return (
     <div className="room" style={{ marginTop: 24 }}>
+      {loadError && <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
       <div className="room-head">
         <button type="button" className="btn-icon" onClick={onBack} title={t('modal.close')}>
           <ArrowLeft size={16} />

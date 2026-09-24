@@ -10,6 +10,7 @@ import { toast } from '@/components/toast';
 import { connectLive, onLive, emitWhenConnected } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
 import { REACTION_EMOJIS } from '@/lib/constants';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 import {
   ArrowLeft, Hash, Plus, Send, Users as UsersIcon, MessageCircle, Globe, Lock,
   Trash2, LogOut, Crown, Shield, User as UserIcon, Settings2, X, Search,
@@ -57,6 +58,8 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
   const [detail, setDetail] = useState<GroupDetail | null>(null);
   const [channelId, setChannelId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<GMsg[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesError, setMessagesError] = useState(false);
   const [newText, setNewText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -66,6 +69,7 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
   const [memberQ, setMemberQ] = useState('');
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const messagesRequestRef = useRef(0);
 
   const myRole = detail?.myRole ?? null;
   const canMod = myRole === 'OWNER' || myRole === 'ADMIN';
@@ -82,16 +86,29 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
   }, [groupId, onBack]);
 
   const loadMsgs = useCallback(async (ch: string | null) => {
-    if (!ch) return;
+    const request = ++messagesRequestRef.current;
+    if (!ch) {
+      setMessagesLoading(false);
+      return;
+    }
+    setMessagesLoading(true);
+    setMessagesError(false);
     try {
       const d = await api<{ messages: GMsg[] }>(`/api/groups/${groupId}/messages?channelId=${encodeURIComponent(ch)}`);
-      setMsgs(d.messages);
-    } catch {}
+      if (request === messagesRequestRef.current) setMsgs(d.messages);
+    } catch {
+      if (request === messagesRequestRef.current) setMessagesError(true);
+    } finally {
+      if (request === messagesRequestRef.current) setMessagesLoading(false);
+    }
   }, [groupId]);
 
   useEffect(() => {
     connectLive();
     setMsgs([]);
+    messagesRequestRef.current += 1;
+    setMessagesLoading(true);
+    setMessagesError(false);
     setDetail(null);
     setChannelId(null);
     setLoading(true);
@@ -107,10 +124,9 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
   }, [groupId, detail?.myRole]);
 
   useEffect(() => {
-    loadMsgs(channelId);
     setMsgs([]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelId]);
+    void loadMsgs(channelId);
+  }, [channelId, loadMsgs]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
@@ -285,8 +301,13 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
             {t('groups.members', { count: detail?.members.length ?? 0 })} · #{activeChannel?.name ?? ''}
           </span>
         </div>
+        {detail?.channels && detail.channels.length > 1 && (
+          <select className="ch-mobile-channel" aria-label={t('groups.channels')} value={channelId ?? ''} onChange={(event) => setChannelId(event.target.value)}>
+            {detail.channels.map((channel) => <option key={channel.id} value={channel.id}># {channel.name}</option>)}
+          </select>
+        )}
         <div className="ch-group-actions">
-          <button type="button" className={`btn-icon${manageOpen ? ' violet' : ''}`} onClick={() => setManageOpen((v) => !v)} title={t('groups.manageMembers')}>
+          <button type="button" className={`btn-icon${manageOpen ? ' violet' : ''}`} onClick={() => setManageOpen((v) => !v)} title={t('groups.manageMembers')} aria-label={t('groups.manageMembers')} aria-expanded={manageOpen} aria-haspopup="dialog">
             <UsersIcon size={17} />
           </button>
           {myRole === 'OWNER' ? (
@@ -350,8 +371,12 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
             </div>
           ) : (
             <>
-              <div ref={listRef} className="ch-msgs">
-                {msgs.length === 0 ? (
+              <div ref={listRef} className="ch-msgs" aria-busy={messagesLoading}>
+                {messagesLoading ? (
+                  <WorkspaceLoadingState label={t('admin.loading')} rows={3} />
+                ) : messagesError ? (
+                  <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void loadMsgs(channelId)} />
+                ) : msgs.length === 0 ? (
                   <div className="ch-empty ch-empty-sm">
                     <p>{t('groups.noMessages')}</p>
                   </div>
@@ -429,10 +454,10 @@ export function GroupChat({ groupId, onBack }: { groupId: string; onBack: () => 
 
       {manageOpen && detail && (
         <div className="modal-backdrop" onClick={() => setManageOpen(false)}>
-          <div className="modal ch-manage-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal ch-manage-modal" role="dialog" aria-modal="true" aria-labelledby="ch-manage-title" onClick={(e) => e.stopPropagation()}>
             <div className="ch-modal-head">
-              <h3>{t('groups.manageMembers')}</h3>
-              <button type="button" className="btn-icon" onClick={() => setManageOpen(false)}>
+              <h3 id="ch-manage-title">{t('groups.manageMembers')}</h3>
+              <button type="button" className="btn-icon" onClick={() => setManageOpen(false)} aria-label={t('modal.close')}>
                 <X size={16} />
               </button>
             </div>
