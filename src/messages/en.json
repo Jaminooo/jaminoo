@@ -62,9 +62,11 @@
   "security": {
     "title": "Sessions & devices",
     "subtitle": "Active sign-ins across devices.",
+    "loadError": "Could not load your active sessions.",
     "current": "Current",
     "revoke": "Sign out",
     "noOtherSessions": "No other active sessions.",
+    "noSessions": "No active sessions were found.",
     "lastSeen": "Last seen {{time}}"
   },
   "profile": {

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 import { Monitor, Smartphone, Tablet, Shield, Loader2 } from 'lucide-react';
 
 interface Session {
@@ -30,15 +31,20 @@ export function SecurityPanel() {
   const t = useTranslations();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
     try {
       const d = await api<{ sessions: Session[] }>('/api/auth/sessions');
       setSessions(d.sessions);
-    } catch {} finally { setLoading(false); }
-  };
+    } catch {
+      setLoadError(true);
+    } finally { setLoading(false); }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, [load]);
 
   const revoke = async (suffix: string, current: boolean) => {
     try {
@@ -71,6 +77,8 @@ export function SecurityPanel() {
           <Loader2 className="spin" size={18} />
           <span>{t('admin.loading')}</span>
         </div>
+      ) : loadError ? (
+        <WorkspaceErrorState message={t('security.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />
       ) : (
         <div className="security-session-list">
           {sessions.map((s) => (
@@ -92,7 +100,7 @@ export function SecurityPanel() {
           {sessions.length <= 1 && sessions.length > 0 && (
             <p className="security-session-hint">{t('security.noOtherSessions')}</p>
           )}
-          {sessions.length === 0 && <div className="empty-state">{t('security.noOtherSessions')}</div>}
+          {sessions.length === 0 && <div className="empty-state">{t('security.noSessions')}</div>}
         </div>
       )}
     </>
