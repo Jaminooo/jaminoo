@@ -297,6 +297,7 @@
 }
 
 /* Related rail */
+.watch-theater-related-trigger { min-height: 1px; }
 .watch-theater-related {
   max-width: 1280px;
   margin-inline: auto;

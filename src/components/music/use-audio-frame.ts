@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { getAudioAnalyzer } from '@/lib/audio/analyzer';
 import { BeatDetector } from '@/lib/audio/beat';
 
@@ -44,20 +44,21 @@ export function useAudioFrame(opts: {
   const lastFrame = useRef<AudioFrame>({ ...IDLE });
   const onTickRef = useRef(onTick);
   onTickRef.current = onTick;
-  const playingRef = useRef(playing);
-  playingRef.current = playing;
-
   useEffect(() => {
     beatRef.current.reset();
     getAudioAnalyzer().read();
   }, [resetKey]);
 
   useEffect(() => {
-    let running = true;
+    let running = false;
+
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(rafRef.current);
+    };
 
     const loop = () => {
-      if (!running) return;
-      rafRef.current = requestAnimationFrame(loop);
+      if (!running || document.hidden) return;
 
       const time = getTime();
       const duration = getDuration();
@@ -93,19 +94,36 @@ export function useAudioFrame(opts: {
         beat,
         time,
         duration,
-        playing: playingRef.current,
+        playing: true,
         spectrum,
         wave,
       };
       lastFrame.current = frame;
       onTickRef.current(frame);
+      rafRef.current = requestAnimationFrame(loop);
     };
 
-    rafRef.current = requestAnimationFrame(loop);
+    const start = () => {
+      if (running || document.hidden || !playing) return;
+      running = true;
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    if (playing) start();
+    else {
+      const frame: AudioFrame = { ...lastFrame.current, time: getTime(), duration: getDuration(), playing: false };
+      lastFrame.current = frame;
+      onTickRef.current(frame);
+    }
 
     return () => {
-      running = false;
-      cancelAnimationFrame(rafRef.current);
+      stop();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [getTime, getDuration, analysisEnabled]);
+  }, [getTime, getDuration, analysisEnabled, playing]);
 }

@@ -1,20 +1,23 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { api } from '@/lib/client-api';
 import { useAppStore } from '@/store/app-store';
-import { PanelShell } from '@/components/panel-shell';
 import { TopRightControls } from '@/components/top-controls';
 import { ToastHost } from '@/components/toast-host';
 import { motion, AnimatePresence } from 'motion/react';
-import { HubGateway } from '@/components/hub-gateway';
-import { MusicHub } from '@/components/music-hub';
-import { VideoHub } from '@/components/video-hub';
-import { WatchHub } from '@/components/watch-hub';
-import { TweetHub } from '@/components/tweet-hub';
-import { LandingPage } from '@/components/landing-page';
 import { GlobalMusicPlayer } from '@/components/global-music-player';
 import { useSyncRouting } from '@/lib/sync-routing';
+
+const sceneLoading = () => <div className="app-scene-loading" role="status" aria-label="Loading workspace" />;
+const PanelShell = dynamic(() => import('@/components/panel-shell').then((module) => module.PanelShell), { loading: sceneLoading });
+const HubGateway = dynamic(() => import('@/components/hub-gateway').then((module) => module.HubGateway), { loading: sceneLoading });
+const MusicHub = dynamic(() => import('@/components/music-hub').then((module) => module.MusicHub), { loading: sceneLoading });
+const VideoHub = dynamic(() => import('@/components/video-hub').then((module) => module.VideoHub), { loading: sceneLoading });
+const WatchHub = dynamic(() => import('@/components/watch-hub').then((module) => module.WatchHub), { loading: sceneLoading });
+const TweetHub = dynamic(() => import('@/components/tweet-hub').then((module) => module.TweetHub), { loading: sceneLoading });
+const LandingPage = dynamic(() => import('@/components/landing-page').then((module) => module.LandingPage), { loading: sceneLoading });
 
 export function AppShell() {
   const { me, booted, setMe, setBooted, product } = useAppStore();

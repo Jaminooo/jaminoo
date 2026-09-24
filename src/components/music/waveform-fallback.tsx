@@ -10,15 +10,17 @@ const BAR = 5;
 export function WaveformFallback({
   getFrame,
   enabled,
+  playing,
 }: {
   getFrame: () => AudioFrame | null;
   enabled: boolean;
+  playing: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !playing) return;
     const wrap = wrapRef.current;
     const canvas = canvasRef.current;
     if (!wrap || !canvas) return;
@@ -37,13 +39,17 @@ export function WaveformFallback({
     };
     resize();
     let raf = 0;
-    let running = true;
+    let running = false;
     let last = 0;
 
+    const stop = () => {
+      running = false;
+      cancelAnimationFrame(raf);
+    };
+
     const loop = () => {
-      if (!running) return;
-      raf = requestAnimationFrame(loop);
-      if (document.hidden) return;
+      raf = 0;
+      if (!running || document.hidden) return;
       const now = performance.now();
       const frame = getFrame();
       const w = canvas.clientWidth || 1;
@@ -72,8 +78,20 @@ export function WaveformFallback({
         }
         ctx.globalAlpha = 1;
       }
+      raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+
+    const start = () => {
+      if (running || document.hidden) return;
+      running = true;
+      raf = requestAnimationFrame(loop);
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) stop();
+      else start();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    start();
     const ro = new ResizeObserver(() => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       resize();
@@ -81,12 +99,12 @@ export function WaveformFallback({
     ro.observe(wrap);
 
     return () => {
-      running = false;
-      cancelAnimationFrame(raf);
+      stop();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       ro.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
+  }, [enabled, playing]);
 
   if (!enabled) return null;
   return (

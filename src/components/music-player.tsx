@@ -644,8 +644,8 @@ export function MusicPlayer({ jamId, canOwner, miniHost, chatSlot }: { jamId: st
 
   return (
     <div className="music-room" ref={rootRef}>
-      <MusicVisualizer getFrame={getFrame} reduced={prefersReduced} enabled={show2D ? false : show3D} />
-      <WaveformFallback getFrame={getFrame} enabled={show2D} />
+      <MusicVisualizer getFrame={getFrame} reduced={prefersReduced} enabled={show2D ? false : show3D} playing={!!state?.playing} />
+      <WaveformFallback getFrame={getFrame} enabled={show2D} playing={!!state?.playing} />
 
       <div className="music-player">
         <div className="music-art">

@@ -9,13 +9,16 @@ export function MusicVisualizer({
   getFrame,
   reduced,
   enabled,
+  playing,
 }: {
   getFrame: () => AudioFrame | null;
   reduced: boolean;
   enabled: boolean;
+  playing: boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sceneRef = useRef<VisualizerScene | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -31,24 +34,32 @@ export function MusicVisualizer({
       return;
     }
     scene.setFrameGetter(getFrame);
+    sceneRef.current = scene;
 
+    let inViewport = false;
     const io = new IntersectionObserver((entries) => {
-      scene?.setVisible(entries[0]?.isIntersecting ?? false);
+      inViewport = entries[0]?.isIntersecting ?? false;
+      scene?.setVisible(inViewport && !document.hidden);
     });
     io.observe(wrap);
 
     const onVis = () => {
-      scene?.setVisible(true);
+      scene?.setVisible(inViewport && !document.hidden);
     };
     document.addEventListener('visibilitychange', onVis);
 
     return () => {
+      sceneRef.current = null;
       io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       scene?.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, reduced]);
+
+  useEffect(() => {
+    sceneRef.current?.setPlaying(playing);
+  }, [playing]);
 
   if (!enabled) return null;
   return (

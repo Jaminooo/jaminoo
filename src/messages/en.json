@@ -2169,6 +2169,37 @@
     "quickFriends": "Search friends",
     "quickNewGroup": "Create a group"
   },
+  "publicIdentity": {
+    "notFound": "Profile not found",
+    "back": "Back to Jamino",
+    "opening": "Opening profile…",
+    "title": "Jamino public identity",
+    "kicker": "PUBLIC PROFILE",
+    "fallbackBio": "A Jamino member making space for good moments.",
+    "joined": "Joined {date}",
+    "friends": "friends",
+    "roomMessages": "room messages",
+    "worldsHosted": "worlds hosted",
+    "worldsJoined": "worlds joined",
+    "videos": "videos",
+    "posts": "posts",
+    "playlists": "playlists",
+    "hostedWorlds": "Hosted worlds",
+    "explore": "Explore Jamino"
+  },
+  "momentPage": {
+    "notFound": "Moment not found",
+    "back": "Back to Jamino",
+    "opening": "Opening this moment…",
+    "liveMoment": "LIVE MOMENT · {kind}",
+    "fallbackNote": "A shared moment from Jamino.",
+    "peopleInside": "people inside",
+    "join": "Join this world",
+    "copy": "Copy link",
+    "copied": "Moment link copied.",
+    "copyFailed": "Could not copy this link.",
+    "explore": "Explore Jamino"
+  },
   "jamWorld": {
     "liveSpace": "JAM WORLD · LIVE SPACE",
     "warming": "The room is warming up.",

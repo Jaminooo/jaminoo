@@ -44,6 +44,27 @@ h3 {
   position: relative;
 }
 
+.app-scene-loading {
+  display: grid;
+  min-height: 55vh;
+  place-items: center;
+}
+
+.app-scene-loading::after {
+  width: 22px;
+  height: 22px;
+  border: 2px solid color-mix(in srgb, var(--text, #fff) 18%, transparent);
+  border-top-color: var(--accent, #8b72ff);
+  border-radius: 50%;
+  content: '';
+  animation: app-scene-loading-spin .8s linear infinite;
+}
+
+@keyframes app-scene-loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .app-scene-loading::after { animation: none; }
+}
+
 [hidden] {
   display: none !important;
 }

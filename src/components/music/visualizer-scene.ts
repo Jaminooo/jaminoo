@@ -122,7 +122,8 @@ export class VisualizerScene {
   private resizeObs: ResizeObserver | null = null;
   private raf = 0;
   private disposed = false;
-  private visible = true;
+  private visible = false;
+  private playing = false;
   private last = 0;
   private elapsed = 0;
   private currentScale = 1;
@@ -215,9 +216,7 @@ export class VisualizerScene {
     this.resizeObs.observe(canvas.parentElement ?? canvas);
     this.resize();
 
-    // Resume the loop.
     this.last = performance.now();
-    this.loop();
   }
 
   get canvas(): HTMLCanvasElement {
@@ -236,21 +235,37 @@ export class VisualizerScene {
 
   setVisible(v: boolean): void {
     this.visible = v;
-    if (!v) this.last = performance.now();
+    this.updateLoop();
   }
 
-  private loop = (): void => {
-    if (this.disposed) return;
-    this.raf = requestAnimationFrame(this.loop);
-    if (!this.visible || document.hidden) {
+  setPlaying(v: boolean): void {
+    this.playing = v;
+    this.updateLoop();
+  }
+
+  private updateLoop(): void {
+    const shouldRun = this.visible && this.playing && !document.hidden && !this.disposed;
+    if (!shouldRun) {
+      cancelAnimationFrame(this.raf);
+      this.raf = 0;
       this.last = performance.now();
       return;
     }
+    if (!this.raf) {
+      this.last = performance.now();
+      this.raf = requestAnimationFrame(this.loop);
+    }
+  }
+
+  private loop = (): void => {
+    this.raf = 0;
+    if (this.disposed || !this.visible || !this.playing || document.hidden) return;
     const now = performance.now();
     const dtSec = Math.min(0.064, (now - this.last) / 1000);
     this.last = now;
     this.elapsed += dtSec;
     this.tick(this.frameGetter ? this.frameGetter() : null, dtSec);
+    this.raf = requestAnimationFrame(this.loop);
   };
 
   private lastFrame: AudioFrame | null = null;

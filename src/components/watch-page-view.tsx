@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Clapperboard, Film, Play, Sparkles, Star, Tv2 } from 'lucide-react';
@@ -98,6 +98,9 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
   );
   const [activeSeason, setActiveSeason] = useState(1);
   const [related, setRelated] = useState<RelatedCandidate[]>([]);
+  const [relatedItem, setRelatedItem] = useState<WatchItem | null>(null);
+  const relatedRequestedRef = useRef(false);
+  const relatedTriggerRef = useRef<HTMLDivElement>(null);
 
   const isAnime = source === 'anime';
   const hasEpisodes = episodes.length > 0;
@@ -106,12 +109,13 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
+    setRelated([]);
+    setRelatedItem(null);
+    relatedRequestedRef.current = false;
     try {
-      const [detail, cinemaAll, animeAll] = await Promise.all([
-        isAnime ? api<{ anime: AnimeDetail; episodes: { id: number; number: number; season: number; title: string; externalUrl: string | null; qualitySources: QualitySources; subtitlesUrl: string | null; thumbnailUrl: string | null }[] }>(`/api/anime/${id}`) : api<{ item: CinemaDetail; episodes: CinemaDetail['episodes'] }>(`/api/cinema/${id}`),
-        api<{ items: CinemaDetail[] }>('/api/cinema?kind=ALL').catch(() => ({ items: [] })),
-        api<{ items: AnimeDetail[] }>('/api/anime?sort=latest').catch(() => ({ items: [] })),
-      ]);
+      const detail = isAnime
+        ? await api<{ anime: AnimeDetail; episodes: { id: number; number: number; season: number; title: string; externalUrl: string | null; qualitySources: QualitySources; subtitlesUrl: string | null; thumbnailUrl: string | null }[] }>(`/api/anime/${id}`)
+        : await api<{ item: CinemaDetail; episodes: CinemaDetail['episodes'] }>(`/api/cinema/${id}`);
 
       let item: WatchItem | null = null;
       let eps: WatchSelectEpisode[] = [];
@@ -208,16 +212,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
       }
 
       if (item) {
-        const candidates = mergeWatchCatalog(cinemaAll.items || [], animeAll.items || []).map((w): RelatedCandidate => ({
-          key: w.key,
-          title: w.title,
-          source: w.source,
-          kind: w.kind,
-          genres: w.genres,
-          rating: w.rating,
-          slug: w.slug,
-        }));
-        setRelated(relatedTitles(item, candidates));
+        setRelatedItem(item);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('watchPage.notFound'));
@@ -227,6 +222,40 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
   }, [isAnime, id, episodeParam, t]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const trigger = relatedTriggerRef.current;
+    if (loading || error || !trigger || !relatedItem || relatedRequestedRef.current) return;
+    let active = true;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      relatedRequestedRef.current = true;
+      observer.disconnect();
+      void Promise.all([
+        api<{ items: CinemaDetail[] }>('/api/cinema?kind=ALL').catch(() => ({ items: [] })),
+        api<{ items: AnimeDetail[] }>('/api/anime?sort=latest').catch(() => ({ items: [] })),
+      ]).then(([cinemaAll, animeAll]) => {
+        if (!active) return;
+        const candidates = mergeWatchCatalog(cinemaAll.items || [], animeAll.items || []).map((item): RelatedCandidate => ({
+          key: item.key,
+          title: item.title,
+          source: item.source,
+          kind: item.kind,
+          genres: item.genres,
+          rating: item.rating,
+          slug: item.slug,
+        }));
+        setRelated(relatedTitles(relatedItem, candidates));
+      }).catch(() => {
+        if (active) setRelated([]);
+      });
+    }, { rootMargin: '240px' });
+    observer.observe(trigger);
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, [relatedItem, loading, error]);
 
   const activeSources = activeEpisode?.qualitySources ?? qualitySources;
   const qualityOptions = availableWatchQualities(activeSources);
@@ -378,6 +407,7 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
         </div>
       )}
 
+      {!loading && !error && relatedItem && <div ref={relatedTriggerRef} className="watch-theater-related-trigger" aria-hidden="true" />}
       {!loading && !error && related.length > 0 && (
         <section className="watch-theater-related">
           <div className="watch-theater-related-head">
