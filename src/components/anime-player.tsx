@@ -48,6 +48,8 @@ export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Rea
   });
   const [selectedId, setSelectedId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
+  const [playBlocked, setPlayBlocked] = useState(false);
 
   useEffect(() => {
     api<{ items: AnimeEpisodeItem[] }>('/api/anime/episodes')
@@ -76,16 +78,23 @@ export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Rea
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !state.now?.externalUrl) return;
+    if (!video) return;
+    if (!state.now?.externalUrl) {
+      setMediaError(false);
+      setPlayBlocked(false);
+      return;
+    }
     const source = state.now.externalUrl;
     if (video.src !== new URL(source, window.location.origin).href) {
+      setMediaError(false);
+      setPlayBlocked(false);
       video.src = source;
       video.load();
     }
     const sync = () => {
       const target = Math.max(0, state.positionMs / 1000);
       if (Math.abs(video.currentTime - target) > 1.2) video.currentTime = target;
-      if (state.playing) video.play().catch(() => {});
+      if (state.playing) video.play().then(() => setPlayBlocked(false)).catch(() => setPlayBlocked(true));
       else video.pause();
     };
     if (video.readyState >= 1) sync();
@@ -132,6 +141,13 @@ export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Rea
 
   const sendPartyReaction = async (emoji: string) => {
     await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('anime.reaction')}` }) }).catch(() => {});
+  };
+
+  const retryPlayback = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (mediaError) video.load();
+    video.play().then(() => { setMediaError(false); setPlayBlocked(false); }).catch(() => setPlayBlocked(true));
   };
 
   const selected = items.find((item) => String(item.id) === selectedId) ?? state.now;
@@ -186,7 +202,8 @@ export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Rea
             </button>
           </div>
           <div className="anime-room-video-wrap">
-            <video ref={videoRef} poster={state.now?.thumbnailUrl || undefined} playsInline preload="metadata" onEnded={() => void control('ended')} />
+            <video ref={videoRef} poster={state.now?.thumbnailUrl || undefined} playsInline preload="metadata" onPlaying={() => { setMediaError(false); setPlayBlocked(false); }} onError={() => setMediaError(true)} onEnded={() => void control('ended')} />
+            {(mediaError || playBlocked) && <div className="watch-party-media-notice" role={mediaError ? 'alert' : 'status'}><span>{mediaError ? t('anime.mediaError') : t('anime.tapToResume')}</span><button type="button" onClick={retryPlayback}>{mediaError ? t('anime.retryPlayback') : t('anime.play')}</button></div>}
             {!state.now && (
               <div className="anime-room-video-empty">
                 <Film size={26} />
