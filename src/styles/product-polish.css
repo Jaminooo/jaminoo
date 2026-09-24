@@ -1,0 +1,82 @@
+/* Final shared interaction layer for the product UI refresh. */
+
+:where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(button, a, [role='button'], input, select, textarea):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--jamino-cyan, #67dce0) 78%, white);
+  outline-offset: 3px;
+}
+
+:where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(input:not([type='range']):not([type='checkbox']):not([type='radio']), select, textarea) {
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+:where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(input:not([type='range']):not([type='checkbox']):not([type='radio']), select, textarea):focus-visible {
+  border-color: color-mix(in srgb, var(--jamino-violet, var(--accent)) 58%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jamino-violet, var(--accent)) 14%, transparent);
+}
+
+button:disabled,
+[role='button'][aria-disabled='true'],
+a[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+[role='dialog'] {
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+:where(.admin-modal, .global-search-modal, .notification-panel, .anime-detail-modal, .video-post-modal, .tweet-modal, .creator-modal, .video-editor-modal) {
+  border-color: var(--jamino-glass-line, var(--line));
+  box-shadow: 0 28px 88px rgba(2, 4, 17, .32), inset 0 1px 0 var(--jamino-glass-highlight, transparent);
+}
+
+.empty-state,
+.ch-empty,
+.notification-empty,
+.video-hub-empty.large,
+.tweet-empty.large {
+  border-color: color-mix(in srgb, var(--jamino-glass-line, var(--line)) 88%, transparent);
+  border-radius: 18px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--jamino-glass, var(--panel)) 58%, transparent), color-mix(in srgb, var(--jamino-glass-strong, var(--panel-2)) 48%, transparent));
+  box-shadow: inset 0 1px 0 var(--jamino-glass-highlight, transparent);
+}
+
+.global-player-mobile-more:focus-visible,
+.global-player-mobile-option:focus-visible,
+.global-player-queue button:focus-visible {
+  outline-color: color-mix(in srgb, var(--jamino-cyan) 78%, white);
+  outline-offset: 2px;
+}
+
+.global-player-mobile-volume input:focus-visible,
+.global-player input[type='range']:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--jamino-cyan) 82%, white);
+  outline-offset: 5px;
+}
+
+[data-theme='light'] :where(.empty-state, .ch-empty, .notification-empty, .video-hub-empty.large, .tweet-empty.large) {
+  background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(243, 245, 251, .78));
+  box-shadow: 0 14px 38px rgba(34, 42, 68, .055), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+
+@media (max-width: 680px) {
+  :where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(input:not([type='range']):not([type='checkbox']):not([type='radio']), select, textarea) {
+    font-size: max(16px, 1em);
+  }
+
+  [role='dialog'] {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    overscroll-behavior-y: contain;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(button, a, [role='button'], input, select, textarea) {
+    scroll-behavior: auto;
+    transition-duration: .01ms !important;
+  }
+}

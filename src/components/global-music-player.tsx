@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Heart, ListMusic, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume1, Volume2, VolumeX, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Heart, ListMusic, MoreHorizontal, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume1, Volume2, VolumeX, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import type { MusicSong } from '@/components/music-player';
@@ -29,6 +29,7 @@ export function GlobalMusicPlayer() {
   const [liked, setLiked] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
   const [blocked, setBlocked] = useState(false);
 
   const currentIndex = useMemo(() => song ? queue.findIndex((item) => item.id === song.id) : -1, [queue, song]);
@@ -136,10 +137,29 @@ export function GlobalMusicPlayer() {
       <div className="global-player-main">
         <button className="global-player-cover" type="button" onClick={() => setExpanded((value) => !value)} aria-label={t('music.expandPlayer')}>{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</button>
         <div className="global-player-track"><strong>{song.title}</strong><span>{artistLabel}</span></div>
-        <div className="global-player-actions"><button type="button" className={`global-player-icon ${shuffle ? 'is-active' : ''}`} onClick={() => setShuffle((value) => !value)} aria-label={t('music.shuffle')}><Shuffle size={16} /></button><button type="button" className="global-player-icon" onClick={previous} aria-label={t('music.previousSong')}><SkipBack size={17} /></button><button type="button" className="global-player-play" onClick={toggle} aria-label={playing ? t('music.pause') : t('music.play')}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}</button><button type="button" className="global-player-icon" onClick={next} aria-label={t('music.nextSong')}><SkipForward size={17} /></button><button type="button" className={`global-player-icon ${repeat !== 'off' ? 'is-active' : ''}`} onClick={cycleRepeat} aria-label={t('music.repeat')}><Repeat size={16} /><small>{repeat === 'one' ? '1' : ''}</small></button></div>
+        <div className="global-player-actions">
+          <button type="button" className={`global-player-icon global-player-shuffle ${shuffle ? 'is-active' : ''}`} onClick={() => setShuffle((value) => !value)} aria-label={t('music.shuffle')} aria-pressed={shuffle}><Shuffle size={16} /></button>
+          <button type="button" className="global-player-icon" onClick={previous} aria-label={t('music.previousSong')}><SkipBack size={17} /></button>
+          <button type="button" className="global-player-play" onClick={toggle} aria-label={playing ? t('music.pause') : t('music.play')} aria-pressed={playing}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />}</button>
+          <button type="button" className="global-player-icon" onClick={next} aria-label={t('music.nextSong')}><SkipForward size={17} /></button>
+          <button type="button" className={`global-player-icon global-player-repeat ${repeat !== 'off' ? 'is-active' : ''}`} onClick={cycleRepeat} aria-label={t('music.repeat')} aria-pressed={repeat !== 'off'}><Repeat size={16} /><small>{repeat === 'one' ? '1' : ''}</small></button>
+          <button type="button" className="global-player-icon global-player-mobile-more" onClick={() => setMobileOptionsOpen((value) => !value)} aria-label={t('music.playerOptions')} aria-expanded={mobileOptionsOpen} aria-controls="global-player-mobile-options"><MoreHorizontal size={18} /></button>
+        </div>
         <div className="global-player-seek"><span>{clock(position)}</span><input aria-label={t('music.seek')} type="range" min="0" max={max} step="0.1" value={Math.min(position, max)} onChange={(event) => { const value = Number(event.target.value); if (audioRef.current) audioRef.current.currentTime = value; setPosition(value); }} /><span>{clock(max)}</span></div>
         <div className="global-player-extra"><button type="button" className={`global-player-icon ${liked ? 'is-liked' : ''}`} onClick={() => void toggleLike()} aria-label={t('music.favorite')}><Heart size={16} fill={liked ? 'currentColor' : 'none'} /></button><button type="button" className="global-player-icon" onClick={() => setQueueOpen((value) => !value)} aria-label={t('music.queue')}><ListMusic size={16} /></button><button type="button" className={`global-player-icon ${muted || volume < 0.01 ? 'is-active' : ''}`} onClick={() => setMuted((value) => !value)} aria-label={t('music.mute')}>{muted || volume === 0 ? <VolumeX size={15} /> : volume < .5 ? <Volume1 size={15} /> : <Volume2 size={15} />}</button><div className="global-player-volbar"><input aria-label={t('music.volume')} type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} style={{ ['--gp-vol' as string]: `${Math.round((muted ? 0 : volume) * 100)}%` }} onChange={(event) => { setMuted(false); setVolume(Number(event.target.value)); }} /></div><button type="button" className="global-player-icon" onClick={() => setExpanded((value) => !value)} aria-label={expanded ? t('music.collapsePlayer') : t('music.expandPlayer')}>{expanded ? <ChevronDown size={17} /> : <ChevronUp size={17} />}</button><button type="button" className="global-player-icon" onClick={closePlayer} aria-label={t('music.closePlayer')}><X size={16} /></button></div>
       </div>
+      {mobileOptionsOpen && (
+        <div className="global-player-mobile-options" id="global-player-mobile-options" role="group" aria-label={t('music.playerOptions')}>
+          <button type="button" className={`global-player-mobile-option ${liked ? 'is-active' : ''}`} onClick={() => void toggleLike()} aria-label={t('music.favorite')} aria-pressed={liked}><Heart size={16} fill={liked ? 'currentColor' : 'none'} /><span>{t('music.favorite')}</span></button>
+          <button type="button" className={`global-player-mobile-option ${queueOpen ? 'is-active' : ''}`} onClick={() => { setQueueOpen((value) => !value); setMobileOptionsOpen(false); }} aria-label={t('music.queue')} aria-pressed={queueOpen}><ListMusic size={16} /><span>{t('music.queue')}</span></button>
+          <button type="button" className={`global-player-mobile-option ${muted || volume < 0.01 ? 'is-active' : ''}`} onClick={() => setMuted((value) => !value)} aria-label={t('music.mute')} aria-pressed={muted}>{muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}<span>{t('music.mute')}</span></button>
+          <label className="global-player-mobile-volume">
+            <span>{t('music.volume')}</span>
+            <input aria-label={t('music.volume')} type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} style={{ ['--gp-vol' as string]: `${Math.round((muted ? 0 : volume) * 100)}%` }} onChange={(event) => { setMuted(false); setVolume(Number(event.target.value)); }} />
+          </label>
+          <button type="button" className="global-player-mobile-option is-danger" onClick={closePlayer} aria-label={t('music.closePlayer')}><X size={16} /><span>{t('music.closePlayer')}</span></button>
+        </div>
+      )}
       {blocked && <div className="global-player-blocked">{t('music.pressPlay')}</div>}
       {expanded && <div className="global-player-expanded"><div className="global-player-expanded-art">{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</div><div><small>{t('music.nowPlaying')}</small><h3>{song.title}</h3><p>{artistLabel}{song.album ? ` · ${song.album.title}` : ''}</p></div></div>}
     </section>

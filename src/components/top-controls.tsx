@@ -42,19 +42,22 @@ export function TopRightControls({ inline = false }: { inline?: boolean }) {
   return (
     <div className={`top-right-controls${inline ? ' inline' : ''}`} ref={wrapperRef}>
       <div className="theme-switcher">
-        <button className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title={t('theme.dark')} aria-label={t('theme.dark')}>
+        <button type="button" className={`theme-btn ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')} title={t('theme.dark')} aria-label={t('theme.dark')} aria-pressed={theme === 'dark'}>
           <Moon size={15} />
         </button>
-        <button className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} title={t('theme.light')} aria-label={t('theme.light')}>
+        <button type="button" className={`theme-btn ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')} title={t('theme.light')} aria-label={t('theme.light')} aria-pressed={theme === 'light'}>
           <Sun size={15} />
         </button>
       </div>
 
       <button
+        type="button"
         className="btn btn-ghost pill-sm notification-btn"
         onClick={() => setOpen((o) => !o)}
         title={t('panel.notifications')}
         aria-label={t('panel.notifications')}
+        aria-expanded={open}
+        aria-haspopup="dialog"
       >
         <Bell size={15} />
         {notificationCount > 0 && <span className="top-notification-badge">{notificationCount > 9 ? '9+' : notificationCount}</span>}
@@ -62,6 +65,7 @@ export function TopRightControls({ inline = false }: { inline?: boolean }) {
       {open && <NotificationPopover open={open} onClose={() => setOpen(false)} />}
 
       <button
+        type="button"
         className="btn btn-ghost pill-sm"
         onClick={() => setLocale(locale === 'en' ? 'fa' : 'en')}
         title={locale === 'en' ? 'فارسی' : 'English'}
@@ -71,6 +75,7 @@ export function TopRightControls({ inline = false }: { inline?: boolean }) {
       </button>
 
       <button
+        type="button"
         className="btn btn-ghost pill-sm"
         onClick={async () => {
           try {
@@ -79,6 +84,7 @@ export function TopRightControls({ inline = false }: { inline?: boolean }) {
           window.location.reload();
         }}
         title={t('panel.logout')}
+        aria-label={t('panel.logout')}
       >
         <LogOut size={15} />
       </button>
