@@ -15,6 +15,17 @@
 .security-session-meta { margin-top: 3px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
 .security-session-hint { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
 
+.workspace-loading-list { display: grid; gap: 8px; }
+.workspace-loading-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 11px 14px; overflow: hidden; border: 1px solid var(--jamino-glass-line, var(--line)); border-radius: 15px; background: var(--jamino-glass, var(--panel)); }
+.workspace-loading-avatar,
+.workspace-loading-copy i { display: block; background: linear-gradient(100deg, color-mix(in srgb, var(--text) 5%, transparent) 20%, color-mix(in srgb, var(--text) 12%, transparent) 48%, color-mix(in srgb, var(--text) 5%, transparent) 76%); background-size: 220% 100%; animation: jamino-skeleton-sheen 1.8s ease-in-out infinite; }
+.workspace-loading-avatar { flex: 0 0 38px; width: 38px; height: 38px; border-radius: 13px; }
+.workspace-loading-copy { display: grid; flex: 1; gap: 8px; max-width: 360px; }
+.workspace-loading-copy i { height: 8px; border-radius: 99px; }
+.workspace-loading-copy i:last-child { width: 64%; opacity: .72; }
+.workspace-loading-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.workspace-error-state { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, #f08787 28%, var(--line)); border-radius: 15px; background: color-mix(in srgb, #f08787 8%, var(--panel)); color: var(--text); font-size: 12px; }
+
 :where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(input:not([type='range']):not([type='checkbox']):not([type='radio']), select, textarea) {
   transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
@@ -87,6 +98,7 @@ a[aria-disabled='true'] {
 @media (max-width: 520px) {
   .security-session-card { gap: 10px; padding: 12px; }
   .security-session-card .btn { margin-inline-start: auto; padding-inline: 10px; font-size: 11px; }
+  .workspace-error-state { align-items: stretch; flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {

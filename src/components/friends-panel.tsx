@@ -9,6 +9,7 @@ import { connectLive, onLive } from '@/lib/live';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
 import { Search, UserPlus, Check, X, Trash2, UserMinus, MessageCircle, User, Users } from 'lucide-react';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 interface PubUser {
   id: number;
@@ -36,10 +37,13 @@ export function FriendsPanel() {
   const [data, setData] = useState<FriendsData | null>(null);
   const [q, setQ] = useState('');
   const [results, setResults] = useState<PubUser[]>([]);
+  const [searching, setSearching] = useState(false);
   const [statuses, setStatuses] = useState<Record<number, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = () => {
-    api<FriendsData>('/api/friends').then(setData).catch(() => {});
+    api<FriendsData>('/api/friends').then((next) => { setData(next); setLoadError(false); }).catch(() => setLoadError(true)).finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -59,14 +63,18 @@ export function FriendsPanel() {
   useEffect(() => {
     if (q.trim().length < 2) {
       setResults([]);
+      setSearching(false);
       return;
     }
+    let cancelled = false;
+    setSearching(true);
     const id = setTimeout(() => {
       api<{ users: PubUser[] }>(`/api/users/search?q=${encodeURIComponent(q.trim())}`)
-        .then((d) => setResults(d.users))
-        .catch(() => setResults([]));
+        .then((d) => { if (!cancelled) setResults(d.users); })
+        .catch(() => { if (!cancelled) setResults([]); })
+        .finally(() => { if (!cancelled) setSearching(false); });
     }, 250);
-    return () => clearTimeout(id);
+    return () => { cancelled = true; clearTimeout(id); };
   }, [q]);
 
   const addFriend = async (id: number) => {
@@ -151,7 +159,11 @@ export function FriendsPanel() {
         </div>
       </header>
 
-      {data && data.friends.length > 0 && (
+      {loading && !data ? <WorkspaceLoadingState label={t('admin.loading')} rows={4} /> : null}
+      {!loading && loadError && !data ? <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={load} /> : null}
+      {loadError && data ? <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={load} /> : null}
+
+      {(!loading || data) && data && data.friends.length > 0 && (
         <div className="ch-presence-bar">
           <span className="ch-presence-total">
             <Users size={14} /> {data.friends.length}
@@ -165,9 +177,9 @@ export function FriendsPanel() {
         </div>
       )}
 
-      {q.trim().length >= 2 && (
+      {(!loading || data) && q.trim().length >= 2 && (
         <div className="list" style={{ marginBottom: 24 }}>
-          {results.length === 0 ? (
+          {searching ? <WorkspaceLoadingState label={t('admin.loading')} rows={2} /> : results.length === 0 ? (
             <div className="empty-state">{t('friends.noMatches')}</div>
           ) : (
             results.map((u) => (
@@ -192,7 +204,7 @@ export function FriendsPanel() {
         </div>
       )}
 
-      <div className="friends-cols">
+      {data && <div className="friends-cols">
         <div>
           <div className="pane-sub" style={{ marginBottom: 12 }}>{t('friends.friendsCount')}</div>
           <div className="list">
@@ -254,7 +266,7 @@ export function FriendsPanel() {
             )}
           </div>
         </div>
-      </div>
+      </div>}
     </>
   );
 }

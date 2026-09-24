@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { EmojiText } from '@/components/emoji-text';
 import { api } from '@/lib/client-api';
+import { onLive } from '@/lib/live';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 interface InboxItem {
   id: string;
@@ -27,15 +29,34 @@ export function DmInboxPanel() {
   const me = useAppStore((s) => s.me);
   const setDmWith = useAppStore((s) => s.setDmWith);
   const [convs, setConvs] = useState<InboxItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const d = await api<{ conversations: InboxItem[] }>('/api/dm/inbox');
+      setConvs(d.conversations);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    api<{ conversations: InboxItem[] }>('/api/dm/inbox').then((d) => setConvs(d.conversations)).catch(() => {});
-  }, []);
+    void load();
+    const offNew = onLive('dm:new', () => void load());
+    const offSeen = onLive('dm:seen', () => void load());
+    return () => { offNew(); offSeen(); };
+  }, [load]);
 
   return (
     <div className="friends-panel">
       <h2 className="panel-title">{t('dm.inbox')}</h2>
-      {convs.length === 0 && <div className="empty-state">{t('dm.noChats')}</div>}
+      {loading ? <WorkspaceLoadingState label={t('admin.loading')} /> : loadError && convs.length === 0 ? <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} /> : null}
+      {!loading && loadError && convs.length > 0 && <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
+      {!loading && !loadError && convs.length === 0 && <div className="empty-state">{t('dm.noChats')}</div>}
       {convs.map((c) => {
         const preview = c.lastMessage
           ? (c.lastMessage.kind === 'VOICE' ? `[${t('dm.voiceMessage')}]` : c.lastMessage.text?.slice(0, 40)) ?? ''

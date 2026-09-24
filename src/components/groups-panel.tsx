@@ -9,6 +9,7 @@ import { toast } from '@/components/toast';
 import { connectLive, onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
 import { Plus, Globe, Lock, Users as UsersIcon, LogIn, X } from 'lucide-react';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 interface GroupCard {
   id: string;
@@ -36,13 +37,20 @@ export function GroupsPanel() {
   const [avatarId, setAvatarId] = useState(0);
   const [isPrivate, setIsPrivate] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const d = await api<{ mine: GroupCard[]; browse: BrowseGroup[] }>('/api/groups');
       setMine(d.mine);
       setBrowse(d.browse);
-    } catch {}
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -151,6 +159,13 @@ export function GroupsPanel() {
         </form>
       )}
 
+      {loading ? (
+        <WorkspaceLoadingState label={t('admin.loading')} rows={4} />
+      ) : loadError && mine.length === 0 && browse.length === 0 ? (
+        <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />
+      ) : (
+        <>
+      {loadError && <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
       <div className="ch-col-head">
         <div className="sub-label">{t('groups.myGroups')}</div>
         <span className="ch-count">{mine.length}</span>
@@ -221,6 +236,8 @@ export function GroupsPanel() {
           );
         })}
       </div>
+        </>
+      )}
     </div>
   );
 }
