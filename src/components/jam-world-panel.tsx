@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Camera, Copy, Crown, Flame, Globe2, Link2, Music2, Play, Sparkles, Tv2, UsersRound, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 import { useTranslations } from '@/providers/use-translations';
 
 interface WorldMember { id: number; username: string; }
@@ -25,13 +26,26 @@ export function JamWorldPanel({ jamId, jamName, kind, description, members, mess
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [momentsLoading, setMomentsLoading] = useState(true);
+  const [momentsError, setMomentsError] = useState(false);
   const world = WORLD[kind] ?? WORLD.CHAT;
   const worldLabel = t(`jamWorld.world${kind}`) || t('jamWorld.worldChat');
   const latestText = messages.at(-1)?.text || t('jamWorld.warming');
   const energy = Math.min(100, Math.max(18, members.length * 16 + messages.length * 3));
   const snapshot = useMemo(() => ({ memberCount: members.length, messageCount: messages.length, roomKind: kind }), [kind, members.length, messages.length]);
 
-  const loadMoments = useCallback(() => api<{ moments: Moment[] }>(`/api/jams/${jamId}/moments`).then((data) => setMoments(data.moments)).catch(() => {}), [jamId]);
+  const loadMoments = useCallback(async () => {
+    setMomentsLoading(true);
+    setMomentsError(false);
+    try {
+      const data = await api<{ moments: Moment[] }>(`/api/jams/${jamId}/moments`);
+      setMoments(data.moments);
+    } catch {
+      setMomentsError(true);
+    } finally {
+      setMomentsLoading(false);
+    }
+  }, [jamId]);
   useEffect(() => { void loadMoments(); }, [loadMoments]);
 
   const createMoment = async (event: React.FormEvent) => {
@@ -62,6 +76,8 @@ export function JamWorldPanel({ jamId, jamName, kind, description, members, mess
       <div className="jam-world-copy"><div className="jam-world-kicker"><Globe2 size={13} /> {t('jamWorld.liveSpace')}</div><h2>{jamName}</h2><p>{description || latestText}</p><div className="jam-world-tags"><span>{world.icon} {worldLabel}</span><span><UsersRound size={12} /> {members.length} {t('jamWorld.inside')}</span><span><Flame size={12} /> {energy}% {t('jamWorld.energy')}</span></div></div>
       <div className="jam-world-actions"><button type="button" className="btn btn-violet pill-sm" onClick={() => setOpen(true)} title={t('jamWorld.captureHint')}><Camera size={14} /> {t('jamWorld.captureMoment')}</button><small className="jam-world-action-hint">{t('jamWorld.captureHint')}</small>{isOwner && <span className="jam-world-owner"><Crown size={13} /> {t('jamWorld.hostWorld')}</span>}</div>
       {moments.length > 0 && <div className="jam-moments-strip"><div className="jam-moments-label"><Sparkles size={13} /> {t('jamWorld.liveMoments')}</div>{moments.slice(0, 3).map((moment) => <button type="button" className="jam-moment-chip" key={moment.id} onClick={() => void copyMoment(moment)}><span><b>{moment.title}</b><small>@{moment.user.username}</small></span><Link2 size={13} /></button>)}</div>}
+      {momentsError && <div className="jam-world-moments-error"><WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void loadMoments()} /></div>}
+      {momentsLoading && moments.length === 0 && <span className="jam-world-moments-loading" role="status">{t('admin.loading')}</span>}
       {open && <div className="jam-moment-popover"><form onSubmit={createMoment}><div className="jam-moment-popover-head"><b>{t('jamWorld.captureThis')}</b><button type="button" className="btn-icon" onClick={() => setOpen(false)}><X size={15} /></button></div><input className="auth-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('jamWorld.momentTitlePh')} maxLength={90} autoFocus /><textarea className="auth-input" value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('jamWorld.momentNotePh')} maxLength={400} rows={3} /><button type="submit" className="btn btn-violet" disabled={busy || !title.trim()}>{busy ? t('jamWorld.saving') : t('jamWorld.saveShare')}</button></form></div>}
     </section>
   );
