@@ -17,6 +17,7 @@ const MusicHub = dynamic(() => import('@/components/music-hub').then((module) =>
 const VideoHub = dynamic(() => import('@/components/video-hub').then((module) => module.VideoHub), { loading: sceneLoading });
 const WatchHub = dynamic(() => import('@/components/watch-hub').then((module) => module.WatchHub), { loading: sceneLoading });
 const TweetHub = dynamic(() => import('@/components/tweet-hub').then((module) => module.TweetHub), { loading: sceneLoading });
+const GamesHub = dynamic(() => import('@/components/games-hub').then((module) => module.GamesHub), { loading: sceneLoading });
 const LandingPage = dynamic(() => import('@/components/landing-page').then((module) => module.LandingPage), { loading: sceneLoading });
 
 export function AppShell() {
@@ -73,7 +74,7 @@ export function AppShell() {
       <AnimatePresence mode="wait">
         <motion.div key={sceneKey} className="app-scroller" ref={scrollerRef} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
           {me ? (
-            product === 'home' ? <HubGateway /> : product === 'music' ? <MusicHub /> : product === 'video' ? <VideoHub /> : product === 'watch' ? <WatchHub /> : product === 'tweet' ? <TweetHub /> : <PanelShell />
+            product === 'home' ? <HubGateway /> : product === 'music' ? <MusicHub /> : product === 'video' ? <VideoHub /> : product === 'watch' ? <WatchHub /> : product === 'tweet' ? <TweetHub /> : product === 'games' ? <GamesHub /> : <PanelShell />
           ) : (
             <LandingPage />
           )}

@@ -3,7 +3,7 @@ import { useAppStore, type HubProduct } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { TopRightControls } from '@/components/top-controls';
-import { ArrowLeft, ArrowRight, Bird, Clapperboard, House, Music2, PlaySquare, UsersRound } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bird, Clapperboard, Gamepad2, House, Music2, PlaySquare, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { GlobalSearch } from '@/components/global-search';
 import { NowFeed } from '@/components/now-feed';
@@ -16,8 +16,9 @@ const HUBS: { id: Exclude<HubProduct, 'home'>; icon: typeof Music2; tone: string
   { id: 'video', icon: PlaySquare, titleKey: 'video', descriptionKey: 'videoDesc', tone: 'video' },
   { id: 'watch', icon: Clapperboard, titleKey: 'watch', descriptionKey: 'watchDesc', tone: 'watch' },
   { id: 'tweet', icon: Bird, titleKey: 'tweet', descriptionKey: 'tweetDesc', tone: 'tweet' },
+  { id: 'games', icon: Gamepad2, titleKey: 'games', descriptionKey: 'gamesDesc', tone: 'games' },
 ];
-export function WorkspaceTopbar({ onHome, product, children }: { onHome?: () => void; product?: string; children?: ReactNode }) { const me = useAppStore((state) => state.me); const t = useTranslations();     const labels: Record<string, string> = { 'Music Hub': t('hubs.music'), 'Video Hub': t('hubs.video'), 'Cinema Hub': t('hubs.cinema'), 'Anime Hub': t('hubs.anime'), 'Watch Hub': t('hubs.watch'), 'Tweet Hub': t('hubs.tweet'), 'Community Hub': t('hubs.community') }; return <div className="topbar hub-topbar"><button className="wordmark" onClick={onHome} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}><span className="wordmark-mark"><House size={16} /></span>{t('brand.name')}</button><div className="hub-topbar-center">{(product && labels[product]) || product || t('hubs.choose')}</div><div className="tb-right"><GlobalSearch /><LiveStatus />{children}<TopRightControls inline /><div className="user-chip">{me && <JaminoAvatar avatarId={me.avatarId} size={32} photo={me.avatarPhoto} name={me.username} />}{me && <span className="friend-name" style={{ fontSize: 14 }}>{me.username}</span>}</div></div></div>; }
+export function WorkspaceTopbar({ onHome, product, children }: { onHome?: () => void; product?: string; children?: ReactNode }) { const me = useAppStore((state) => state.me); const t = useTranslations();     const labels: Record<string, string> = { 'Music Hub': t('hubs.music'), 'Video Hub': t('hubs.video'), 'Cinema Hub': t('hubs.cinema'), 'Anime Hub': t('hubs.anime'), 'Watch Hub': t('hubs.watch'), 'Tweet Hub': t('hubs.tweet'), 'Community Hub': t('hubs.community'), 'Game Hub': t('hubs.games') }; return <div className="topbar hub-topbar"><button className="wordmark" onClick={onHome} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}><span className="wordmark-mark"><House size={16} /></span>{t('brand.name')}</button><div className="hub-topbar-center">{(product && labels[product]) || product || t('hubs.choose')}</div><div className="tb-right"><GlobalSearch /><LiveStatus />{children}<TopRightControls inline /><div className="user-chip">{me && <JaminoAvatar avatarId={me.avatarId} size={32} photo={me.avatarPhoto} name={me.username} />}{me && <span className="friend-name" style={{ fontSize: 14 }}>{me.username}</span>}</div></div></div>; }
 export function HubGateway() {
   const t = useTranslations();
   const setProduct = useAppStore((state) => state.setProduct);

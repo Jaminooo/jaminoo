@@ -985,7 +985,9 @@
     "anime": "AniHub",
     "animeDesc": "Series, films and anime watch-together parties.",
     "watch": "Watch Hub",
-    "watchDesc": "Movies, series, anime & cartoons — watch solo or in a jam."
+    "watchDesc": "Movies, series, anime & cartoons — watch solo or in a jam.",
+    "games": "Game Hub",
+    "gamesDesc": "Mini arcade games — quick fun between jams and shows."
   },
   "musicNav": {
     "home": "Home",
@@ -2042,6 +2044,34 @@
     "episodeLabel": "S{season} · Ep {n}",
     "relatedKicker": "MORE LIKE THIS",
     "related": "Related anime"
+  },
+  "games": {
+    "kicker": "ARCADE",
+    "title": "Game Hub",
+    "lead": "A tiny arcade built into Jamino — quick fun between jams and watch-together sessions.",
+    "back": "Back to hubs",
+    "snake": "Snake",
+    "snakeKicker": "CLASSIC ARCADE",
+    "snakeDesc": "Eat the food, grow the snake, and don't hit the walls — or yourself.",
+    "howToPlay": "How to play",
+    "keysHint": "Move with the arrow keys, WASD or the on-screen pad.",
+    "start": "Start",
+    "pause": "Pause",
+    "resume": "Resume",
+    "restart": "Restart",
+    "score": "Score",
+    "best": "Best",
+    "gameOver": "Game over",
+    "newBest": "New best score!",
+    "length": "Length {n}",
+    "speed": "Speed {n}",
+    "playAgain": "Play again",
+    "otherGamesKicker": "MORE MINI GAMES",
+    "comingSoon": "Coming soon",
+    "tetris": "Puzzle Stack",
+    "pong": "Bumper Rally",
+    "mines": "Field Finder",
+    "soonNote": "New mini games are being pressed into the cabinet."
   },
   "cinema": {
     "sync": "Cinema sync",

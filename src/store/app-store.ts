@@ -32,7 +32,7 @@ export interface Me {
 
 export type Tab = 'home' | 'profile' | 'security' | 'friends' | 'jams' | 'dms' | 'groups';
 export type AuthView = 'login' | 'signup' | 'forgot';
-export type HubProduct = 'home' | 'community' | 'music' | 'video' | 'watch' | 'tweet';
+export type HubProduct = 'home' | 'community' | 'music' | 'video' | 'watch' | 'tweet' | 'games';
 
 export interface Unread {
   friends: number;

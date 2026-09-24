@@ -14,6 +14,7 @@
   --hub-tweet: #fbbf24;
   --hub-cinema: #f43f5e;
   --hub-watch: #fb4d6d;
+  --hub-games: #4ade80;
 }
 
 [data-theme='light'] {
@@ -24,6 +25,7 @@
   --hub-tweet: #d97706;
   --hub-cinema: #e11d48;
   --hub-watch: #e11d48;
+  --hub-games: #16a34a;
 }
 
 /* -- accent scoping -- */
@@ -34,6 +36,7 @@
 .hub-shell-tweet { --accent: var(--hub-tweet); }
 .hub-shell-cinema { --accent: var(--hub-cinema); }
 .hub-shell-watch { --accent: var(--hub-watch); --anime-accent: var(--hub-watch); }
+.hub-shell-games { --accent: var(--hub-games); --games-accent: var(--hub-games); }
 .screen-panel { --accent: var(--hub-community); }
 
 /* -- shell backdrops: accent glow over the shared surface -- */
