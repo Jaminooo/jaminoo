@@ -274,8 +274,12 @@ export function WatchPageView({ source, id, episodeParam, qualityParam }: { sour
   };
 
   const openRelated = (item: RelatedCandidate) => {
-    if (!item.slug) return;
-    router.push(`/watch/anime/${item.slug}`);
+    if (item.source === 'anime') {
+      if (item.slug) router.push(`/watch/anime/${encodeURIComponent(item.slug)}`);
+      return;
+    }
+    const cinemaId = Number(item.key.split(':').at(-1));
+    if (Number.isInteger(cinemaId) && cinemaId > 0) router.push(`/watch/cinema/${cinemaId}`);
   };
 
   const KindIcon = KIND_ICON[kind] ?? Film;

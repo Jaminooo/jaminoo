@@ -66,8 +66,12 @@ export function JamWorldPanel({ jamId, jamName, kind, description, members, mess
 
   const copyMoment = async (moment: Moment) => {
     const url = `${window.location.origin}/moment/${encodeURIComponent(moment.id)}`;
-    await navigator.clipboard.writeText(url).catch(() => {});
-    toast(t('jamWorld.linkCopied'), 'ok');
+    try {
+      await navigator.clipboard.writeText(url);
+      toast(t('jamWorld.linkCopied'), 'ok');
+    } catch {
+      toast(t('jamWorld.copyFailed'), 'error');
+    }
   };
 
   return (

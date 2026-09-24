@@ -113,12 +113,20 @@ export function CinemaPlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Re
   const selected = items.find((item) => String(item.id) === selectedId) ?? state.now;
 
   const shareParty = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`).catch(() => {});
-    toast(t('cinema.linkCopied'), 'ok');
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`);
+      toast(t('cinema.linkCopied'), 'ok');
+    } catch {
+      toast(t('cinema.linkCopyFailed'), 'error');
+    }
   };
 
   const sendPartyReaction = async (emoji: string) => {
-    await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('cinema.reaction')}` }) }).catch(() => {});
+    try {
+      await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('cinema.reaction')}` }) });
+    } catch {
+      toast(t('cinema.reactionError'), 'error');
+    }
   };
 
   const retryPlayback = () => {

@@ -135,12 +135,20 @@ export function AnimePlayer({ jamId, chatSlot }: { jamId: string; chatSlot?: Rea
   };
 
   const shareParty = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`).catch(() => {});
-    toast(t('anime.linkCopied'), 'ok');
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${jamId}`);
+      toast(t('anime.linkCopied'), 'ok');
+    } catch {
+      toast(t('anime.linkCopyFailed'), 'error');
+    }
   };
 
   const sendPartyReaction = async (emoji: string) => {
-    await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('anime.reaction')}` }) }).catch(() => {});
+    try {
+      await api(`/api/jams/${jamId}/messages`, { method: 'POST', body: JSON.stringify({ text: `${emoji} ${t('anime.reaction')}` }) });
+    } catch {
+      toast(t('anime.reactionError'), 'error');
+    }
   };
 
   const retryPlayback = () => {
