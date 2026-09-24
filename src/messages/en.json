@@ -415,6 +415,8 @@
     "music": "Music",
     "member": "Jamino member",
     "unknownArtist": "Unknown artist",
+    "loading": "Searching…",
+    "error": "Search is temporarily unavailable. Try again.",
     "empty": "No results yet."
   },
   "announcement": {
@@ -1348,7 +1350,8 @@
         "recent": "{n} recent",
         "top": "Top content",
         "drafts": "{n} drafts",
-        "barTitle": "{date}: {n} interactions"
+        "barTitle": "{date}: {n} interactions",
+        "loadError": "Could not load creator insights."
       },
       "collab": {
         "kicker": "COLLAB STUDIO",
@@ -1366,7 +1369,8 @@
         "toastSendError": "Could not send invite.",
         "toastAccepted": "Collaboration accepted.",
         "toastDeclined": "Invite declined.",
-        "toastError": "Could not update invite."
+        "toastError": "Could not update invite.",
+        "loadError": "Could not load collaboration data."
       },
       "scheduled": "Changes scheduled for publishing.",
       "workflowUpdated": "Workflow updated."
@@ -2277,6 +2281,8 @@
     "search": "Search",
     "noTracks": "No tracks here yet.",
     "noTracksSub": "Add music from a Jam or ask an admin to populate the catalog.",
+    "catalogLoadError": "Could not load the music catalog.",
+    "libraryLoadError": "Could not load your music library.",
     "searching": "Searching.",
     "artistProfile": "Artist profile",
     "becomeCreator": "Become a creator",

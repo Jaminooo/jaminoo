@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { BadgeCheck, CheckCircle2, Clock3, ExternalLink, Send, Sparkles, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
+import { useTranslations } from '@/providers/use-translations';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 
 export type CreatorHub = 'VIDEO' | 'MUSIC';
 
@@ -23,6 +25,7 @@ interface CreatorApplication {
 }
 
 export function CreatorApplyModal({ hub, open, onClose, onSubmitted }: { hub: CreatorHub; open: boolean; onClose: () => void; onSubmitted?: (application: CreatorApplication) => void }) {
+  const t = useTranslations();
   const [application, setApplication] = useState<CreatorApplication | null>(null);
   const [channelName, setChannelName] = useState('');
   const [handle, setHandle] = useState('');
@@ -30,32 +33,40 @@ export function CreatorApplyModal({ hub, open, onClose, onSubmitted }: { hub: Cr
   const [bio, setBio] = useState('');
   const [links, setLinks] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const loadApplication = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const data = await api<{ applications: CreatorApplication[] }>(`/api/creator/apply?hub=${hub}`);
+      const current = data.applications[0] ?? null;
+      setApplication(current);
+      if (current) {
+        setChannelName(current.channelName);
+        setHandle(current.handle);
+        setCategory(current.category);
+        setBio(current.bio);
+        setLinks(current.links.join('\n'));
+      } else {
+        setChannelName('');
+        setHandle('');
+        setCategory('');
+        setBio('');
+        setLinks('');
+      }
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [hub]);
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    api<{ applications: CreatorApplication[] }>(`/api/creator/apply?hub=${hub}`)
-      .then((data) => {
-        const current = data.applications[0] ?? null;
-        setApplication(current);
-        if (current) {
-          setChannelName(current.channelName);
-          setHandle(current.handle);
-          setCategory(current.category);
-          setBio(current.bio);
-          setLinks(current.links.join('\n'));
-        } else {
-          setChannelName('');
-          setHandle('');
-          setCategory('');
-          setBio('');
-          setLinks('');
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [hub, open]);
+    void loadApplication();
+  }, [hub, open, loadApplication]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -102,7 +113,7 @@ export function CreatorApplyModal({ hub, open, onClose, onSubmitted }: { hub: Cr
             {application?.status === 'REJECTED' && <span className="creator-status rejected">Needs another review{application.reviewNote ? ` · ${application.reviewNote}` : ''}</span>}
           </div>
 
-          {loading ? <div className="creator-modal-loading"><span className="admin-loader" /> Loading your application…</div> : (
+          {loading ? <div className="creator-modal-loading"><span className="admin-loader" /> Loading your application…</div> : loadError ? <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void loadApplication()} /> : (
             <form className="creator-form" onSubmit={submit}>
               <div className="creator-form-grid">
                 <label><span>Channel / artist name</span><input required value={channelName} onChange={(event) => setChannelName(event.target.value)} maxLength={80} placeholder={isMusic ? 'Your artist name' : 'Your channel name'} /></label>

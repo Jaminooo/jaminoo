@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, BadgeCheck, Clock3, Eye, Heart, MessageCircle, UsersRound } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 type Insights = {
   status: string | null; reviewNote: string; reviewedAt: string | null;
@@ -13,7 +14,22 @@ type Insights = {
 export function CreatorInsights() {
   const t = useTranslations();
   const [data, setData] = useState<Insights | null>(null);
-  useEffect(() => { api<Insights>('/api/creator/insights').then(setData).catch(() => setData(null)); }, []);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      setData(await api<Insights>('/api/creator/insights'));
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  if (loading) return <WorkspaceLoadingState label={t('admin.loading')} rows={2} />;
+  if (loadError) return <WorkspaceErrorState message={t('video.studio.insights.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />;
   if (!data) return null;
   if (!data.analytics) return <div className="creator-insights creator-insights-review"><Clock3 size={16} /><span>{t('video.studio.insights.review', { status: data.status ?? 'NOT SUBMITTED' })}{data.reviewNote ? ` · ${data.reviewNote}` : ''}</span></div>;
   const max = Math.max(1, ...data.analytics.trend.map((day) => day.interactions));

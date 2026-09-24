@@ -8,6 +8,7 @@ import { useTranslations } from '@/providers/use-translations';
 import { connectLive, onLive } from '@/lib/live';
 import { Badge, ConfirmModal, EmptyRow, LoadingRow, StatCard, useConfirm } from './admin-ui';
 import { HUB_ADMIN_SCOPES } from '@/lib/roles-shared';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 
 interface RoleRow {
   id: number;
@@ -33,6 +34,7 @@ export function AdminRoles() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [me, setMe] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [grantUser, setGrantUser] = useState('');
   const [grantScope, setGrantScope] = useState('ANIME');
   const [grantLoading, setGrantLoading] = useState(false);
@@ -42,12 +44,13 @@ export function AdminRoles() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(false);
     api<{ roles: RoleRow[]; me: { username: string } }>('/api/admin/roles')
       .then((d) => {
         setRoles(d.roles);
         setMe(d.me.username);
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
   useEffect(load, [load]);
@@ -198,7 +201,8 @@ export function AdminRoles() {
             </thead>
             <tbody>
               {loading && <LoadingRow text={t('admin.loading')} />}
-              {!loading && roles.length === 0 && <EmptyRow text={t('admin.rolesEmpty')} />}
+              {!loading && loadError && <tr><td colSpan={6}><WorkspaceErrorState message={t('admin.loadError')} retryLabel={t('admin.refresh')} onRetry={load} /></td></tr>}
+              {!loading && !loadError && roles.length === 0 && <EmptyRow text={t('admin.rolesEmpty')} />}
               {roles.map((r) => (
                 <tr key={r.id}>
                   <td>

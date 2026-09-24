@@ -11,6 +11,7 @@ import { WorkspaceTopbar } from '@/components/hub-gateway';
 import { CreatorApplyModal } from '@/components/creator-apply-modal';
 import { MusicCatalogSections, type MusicAlbumCard, type MusicArtistCard, type MusicPublicPlaylist } from '@/components/music-catalog-sections';
 import { useTranslations } from '@/providers/use-translations';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 
 type MusicView = 'home' | 'discover' | 'library' | 'playlists' | 'community' | 'artists' | 'albums' | 'singles' | 'favorites' | 'history' | 'radio' | 'studio';
 
@@ -115,6 +116,8 @@ export function MusicHub() {
   const [communityPlaylists, setCommunityPlaylists] = useState<MusicPublicPlaylist[]>([]);
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [catalogLoadError, setCatalogLoadError] = useState(false);
+  const [libraryLoadError, setLibraryLoadError] = useState(false);
   const [playlistName, setPlaylistName] = useState('');
   const [playlistPublic, setPlaylistPublic] = useState(false);
   const [current, setCurrent] = useState<MusicSong | null>(null);
@@ -127,18 +130,25 @@ export function MusicHub() {
   const favoriteIds = useMemo(() => new Set(favorites.map((item) => item.songId)), [favorites]);
 
   const loadLibrary = useCallback(async () => {
-    const [favoriteData, historyData, playlistData] = await Promise.all([
-      api<{ favorites: FavoriteRow[] }>('/api/music/favorites'),
-      api<{ history: HistoryRow[] }>('/api/music/history'),
-      api<{ playlists: Playlist[] }>('/api/music/playlists'),
-    ]);
-    setFavorites(favoriteData.favorites);
-    setHistory(historyData.history);
-    setPlaylists(playlistData.playlists);
+    setLibraryLoadError(false);
+    try {
+      const [favoriteData, historyData, playlistData] = await Promise.all([
+        api<{ favorites: FavoriteRow[] }>('/api/music/favorites'),
+        api<{ history: HistoryRow[] }>('/api/music/history'),
+        api<{ playlists: Playlist[] }>('/api/music/playlists'),
+      ]);
+      setFavorites(favoriteData.favorites);
+      setHistory(historyData.history);
+      setPlaylists(playlistData.playlists);
+    } catch (error) {
+      setLibraryLoadError(true);
+      throw error;
+    }
   }, []);
 
   const loadCatalog = useCallback(async (search = '') => {
     setSearching(true);
+    setCatalogLoadError(false);
     try {
       if (search) {
         const data = await api<{ songs: MusicSong[] }>(`/api/music/search?q=${encodeURIComponent(search)}`);
@@ -153,6 +163,7 @@ export function MusicHub() {
       }
     } catch {
       setCatalog([]);
+      setCatalogLoadError(true);
     } finally {
       setSearching(false);
     }
@@ -238,7 +249,8 @@ export function MusicHub() {
           <button type="button" className="music-hub-jam-link" onClick={() => { setProduct('community'); setTab('jams'); }}><UsersRound size={15} /> {t('jams.joinJam')}</button>
         </aside>
         <main className="music-hub-main">
-          <header className="music-hub-heading"><div><div className="hub-kicker">{t('hubs.music').toUpperCase()}</div><h1>{view === 'home' ? t('musicHub.homeTitle') : t(`musicNav.${NAV.find((item) => item.id === view)?.key ?? 'home'}`)}</h1><p>{view === 'home' ? t('musicHub.lifetimeSub') : t('musicHub.otherSub')}</p></div><div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> {creatorStatus === 'APPROVED' ? t('musicHub.artistProfile') : t('musicHub.becomeCreator')}</button>{view === 'discover' && <form className="music-hub-search" onSubmit={(event) => { event.preventDefault(); loadCatalog(query); }}><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('musicHub.searchPlaceholderLong')} /><button type="submit" className="btn btn-violet pill-sm">{t('musicHub.searchAction')}</button></form>}</div></header>
+          <header className="music-hub-heading"><div><div className="hub-kicker">{t('hubs.music').toUpperCase()}</div><h1>{view === 'home' ? t('musicHub.homeTitle') : t(`musicNav.${NAV.find((item) => item.id === view)?.key ?? 'home'}`)}</h1><p>{view === 'home' ? t('musicHub.lifetimeSub') : t('musicHub.otherSub')}</p></div><div className="hub-heading-actions"><button type="button" className="btn btn-ghost pill-sm" onClick={() => setCreatorOpen(true)}><BadgeCheck size={14} /> {creatorStatus === 'APPROVED' ? t('musicHub.artistProfile') : t('musicHub.becomeCreator')}</button>{view === 'discover' && <form className="music-hub-search" onSubmit={(event) => { event.preventDefault(); void loadCatalog(query); }}><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('musicHub.searchPlaceholderLong')} /><button type="submit" className="btn btn-violet pill-sm">{t('musicHub.searchAction')}</button></form>}</div></header>
+          {libraryLoadError && <WorkspaceErrorState message={t('musicHub.libraryLoadError')} retryLabel={t('admin.refresh')} onRetry={() => void loadLibrary().catch(() => {})} />}
 
           {view === 'home' && <>
             <div className="music-hub-hero"><div><Sparkles size={20} /><h2>{t('musicHub.heroTitle')}</h2><p>{t('musicHub.heroSub')}</p></div><button type="button" className="btn btn-violet" onClick={() => setView('discover')}>{t('musicHub.explore')}</button></div>
@@ -257,7 +269,7 @@ export function MusicHub() {
 
           {view === 'library' && <div className="music-library-columns"><section><div className="music-hub-section-head"><h2>Favorites</h2><button type="button" className="btn btn-ghost pill-sm" onClick={() => setView('favorites')}>Open</button></div>{favorites.slice(0, 5).map((item) => <SongRow key={item.songId} song={item.song} active={current?.id === item.song.id} playing={playing && current?.id === item.song.id} favorite onPlay={() => playSong(item.song)} onFavorite={() => toggleFavorite(item.song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, item.song.id)} />)}</section><section><div className="music-hub-section-head"><h2>History</h2><button type="button" className="btn btn-ghost pill-sm" onClick={() => setView('history')}>Open</button></div>{history.slice(0, 5).map((item) => <SongRow key={item.id} song={item.song} active={current?.id === item.song.id} playing={playing && current?.id === item.song.id} favorite={favoriteIds.has(item.song.id)} onPlay={() => playSong(item.song)} onFavorite={() => toggleFavorite(item.song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, item.song.id)} />)}</section></div>}
 
-          {(view === 'home' || view === 'discover' || view === 'favorites' || view === 'history') && <div className="music-hub-song-list">{searching && <div className="empty-state">{t('musicHub.searching')}</div>}{!searching && visibleSongs.length === 0 && <div className="music-hub-empty"><Music2 size={22} /><b>{t(view === 'favorites' ? 'musicHub.favoriteEmpty' : view === 'history' ? 'musicHub.historyEmpty' : 'musicHub.noTracks')}</b><span>{t('musicHub.noTracksSub')}</span></div>}{!searching && visibleSongs.map((song) => <SongRow key={song.id} song={song} active={current?.id === song.id} playing={playing && current?.id === song.id} favorite={favoriteIds.has(song.id)} onPlay={() => playSong(song)} onFavorite={() => toggleFavorite(song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, song.id)} />)}</div>}
+          {(view === 'home' || view === 'discover' || view === 'favorites' || view === 'history') && <div className="music-hub-song-list">{searching && <div className="empty-state">{t('musicHub.searching')}</div>}{!searching && catalogLoadError && view !== 'favorites' && view !== 'history' && <WorkspaceErrorState message={t('musicHub.catalogLoadError')} retryLabel={t('admin.refresh')} onRetry={() => void loadCatalog(query)} />}{!searching && !catalogLoadError && visibleSongs.length === 0 && <div className="music-hub-empty"><Music2 size={22} /><b>{t(view === 'favorites' ? 'musicHub.favoriteEmpty' : view === 'history' ? 'musicHub.historyEmpty' : 'musicHub.noTracks')}</b><span>{t('musicHub.noTracksSub')}</span></div>}{!searching && visibleSongs.map((song) => <SongRow key={song.id} song={song} active={current?.id === song.id} playing={playing && current?.id === song.id} favorite={favoriteIds.has(song.id)} onPlay={() => playSong(song)} onFavorite={() => toggleFavorite(song)} playlists={playlists} onAdd={(id) => addToPlaylist(id, song.id)} />)}</div>}
 
           {view === 'playlists' && <div className="music-playlist-grid">{playlists.length === 0 && <div className="music-hub-empty"><ListMusic size={22} /><b>{t('musicHub.playlistEmpty')}</b><span>{t('musicHub.firstPlaylist')}</span></div>}{playlists.map((playlist) => <section className="music-playlist-card" key={playlist.id}><div className="music-playlist-card-head"><ListMusic size={18} /><div><b>{playlist.name}</b><span>{t('musicHub.songs', { n: playlist.items.length })} · {playlist.isPublic ? t('musicHub.public') : t('musicHub.private')}</span></div></div>{playlist.items.slice(0, 6).map((item) => <button type="button" className="music-playlist-item" key={item.song.id} onClick={() => playSong(item.song)}><span>{item.song.title}</span><small>{item.song.artist?.name ?? t('musicHub.unknownArtist')}</small></button>)}</section>)}</div>}
         </main>

@@ -5,6 +5,7 @@ import { api } from '@/lib/client-api';
 import { useTranslations } from '@/providers/use-translations';
 import { Megaphone, Plus, Trash2, Loader2, Bell, Check } from 'lucide-react';
 import { AdminModal, ConfirmModal, useConfirm, fmtDateTime, EmptyRow, LoadingRow } from './admin-ui';
+import { WorkspaceErrorState } from '@/components/workspace-feedback';
 
 interface BroadcastRow {
   batchId: string;
@@ -28,6 +29,7 @@ export function AdminNotifications() {
   const t = useTranslations();
   const [rows, setRows] = useState<BroadcastRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [composer, setComposer] = useState(false);
   const { confirm, ask, close } = useConfirm();
   const [sending, setSending] = useState(false);
@@ -49,9 +51,10 @@ export function AdminNotifications() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError(false);
     api<{ broadcasts: BroadcastRow[] }>('/api/admin/notifications')
       .then((d) => setRows(d.broadcasts))
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -147,8 +150,13 @@ export function AdminNotifications() {
   };
 
   const removeBatch = async (row: BroadcastRow) => {
-    await api(`/api/admin/notifications?batch=${encodeURIComponent(row.batchId)}`, { method: 'DELETE' }).catch(() => {});
-    load();
+    try {
+      await api(`/api/admin/notifications?batch=${encodeURIComponent(row.batchId)}`, { method: 'DELETE' });
+      setStatus('');
+      load();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : t('admin.loadError'));
+    }
   };
 
   const previewHeading = title.trim() || t('notif.broadcastTitle');
@@ -181,7 +189,8 @@ export function AdminNotifications() {
           </thead>
           <tbody>
             {loading && <LoadingRow text={t('admin.loading')} />}
-            {!loading && rows.length === 0 && <EmptyRow text={t('admin.notif.empty')} />}
+            {!loading && loadError && <tr><td colSpan={6}><WorkspaceErrorState message={t('admin.loadError')} retryLabel={t('admin.refresh')} onRetry={load} /></td></tr>}
+            {!loading && !loadError && rows.length === 0 && <EmptyRow text={t('admin.notif.empty')} />}
             {!loading &&
               rows.map((row) => {
                 const heading = typeof row.title === 'string' ? row.title : (row.message?.en || row.message?.fa || '').slice(0, 40);

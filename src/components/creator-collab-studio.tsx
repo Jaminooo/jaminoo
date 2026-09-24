@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Check, Handshake, Mail, Send, UsersRound, X } from 'lucide-react';
 import { api } from '@/lib/client-api';
 import { connectLive, onLive } from '@/lib/live';
 import { toast } from '@/components/toast';
 import { JaminoAvatar } from '@/components/jamino-avatar';
 import { useTranslations } from '@/providers/use-translations';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 interface CollabPost { id: number; title: string; kind: string; }
 interface Friend { id: number; username: string; avatarId: number; avatarPhoto?: string | null; }
@@ -21,15 +22,33 @@ export function CreatorCollabStudio({ posts }: { posts: CollabPost[] }) {
   const [friendId, setFriendId] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [friendData, inviteData] = await Promise.all([
+        api<{ friends: Friend[] }>('/api/friends'),
+        api<{ received: Invite[]; sent: Invite[] }>('/api/video/collabs'),
+      ]);
+      setFriends(friendData.friends);
+      setReceived(inviteData.received);
+      setSent(inviteData.sent);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    api<{ friends: Friend[] }>('/api/friends').then((data) => setFriends(data.friends)).catch(() => {});
-    api<{ received: Invite[]; sent: Invite[] }>('/api/video/collabs').then((data) => { setReceived(data.received); setSent(data.sent); }).catch(() => {});
+    void load();
     connectLive();
-    const refresh = () => api<{ received: Invite[]; sent: Invite[] }>('/api/video/collabs').then((data) => { setReceived(data.received); setSent(data.sent); }).catch(() => {});
-    const off = onLive('video:collab:update', refresh);
+    const off = onLive('video:collab:update', () => void load());
     return off;
-  }, []);
+  }, [load]);
 
   useEffect(() => { if (!postId && posts[0]?.id) setPostId(String(posts[0].id)); }, [posts, postId]);
 
@@ -57,8 +76,10 @@ export function CreatorCollabStudio({ posts }: { posts: CollabPost[] }) {
   return (
     <section className="creator-collab-studio">
       <div className="creator-collab-head"><div><div className="hub-kicker"><Handshake size={13} /> {t('video.studio.collab.kicker')}</div><h3>{t('video.studio.collab.title')}</h3><p>{t('video.studio.collab.sub')}</p></div><span className="creator-collab-count"><UsersRound size={15} /> {t('video.studio.collab.pending', { n: sent.filter((item) => item.status === 'PENDING').length })}</span></div>
-      <form className="creator-collab-form" onSubmit={invite}><select value={postId} onChange={(event) => setPostId(event.target.value)}><option value="">{t('video.studio.collab.choosePost')}</option>{posts.map((post) => <option key={post.id} value={post.id}>{post.title || t('video.common.untitledPost')} · {post.kind}</option>)}</select><select value={friendId} onChange={(event) => setFriendId(event.target.value)}><option value="">{t('video.studio.collab.chooseFriend')}</option>{friends.map((friend) => <option key={friend.id} value={friend.id}>@{friend.username}</option>)}</select><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={t('video.studio.collab.briefPh')} maxLength={240} /><button type="submit" className="btn btn-violet pill-sm" disabled={busy || !postId || !friendId}><Send size={14} /> {t('video.studio.collab.invite')}</button></form>
-      {received.filter((item) => item.status === 'PENDING').length > 0 && <div className="creator-collab-inbox"><div className="creator-collab-label"><Mail size={14} /> {t('video.studio.collab.inbox')}</div>{received.filter((item) => item.status === 'PENDING').map((item) => <div className="creator-collab-invite" key={item.id}><JaminoAvatar avatarId={item.from.avatarId} size={30} photo={item.from.avatarPhoto} name={item.from.username} /><span><b>@{item.from.username}</b><small>{item.post.title || t('video.common.untitledPost')}{item.message ? ` · ${item.message}` : ''}</small></span><button type="button" className="btn-icon violet" onClick={() => void respond(item.id, 'accept')} title={t('video.studio.collab.acceptTitle')}><Check size={15} /></button><button type="button" className="btn-icon" onClick={() => void respond(item.id, 'decline')} title={t('video.studio.collab.declineTitle')}><X size={15} /></button></div>)}</div>}
+      {loading && <WorkspaceLoadingState label={t('admin.loading')} rows={2} />}
+      {!loading && loadError && <WorkspaceErrorState message={t('video.studio.collab.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
+      {!loading && !loadError && <form className="creator-collab-form" onSubmit={invite}><select value={postId} onChange={(event) => setPostId(event.target.value)}><option value="">{t('video.studio.collab.choosePost')}</option>{posts.map((post) => <option key={post.id} value={post.id}>{post.title || t('video.common.untitledPost')} · {post.kind}</option>)}</select><select value={friendId} onChange={(event) => setFriendId(event.target.value)}><option value="">{t('video.studio.collab.chooseFriend')}</option>{friends.map((friend) => <option key={friend.id} value={friend.id}>@{friend.username}</option>)}</select><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder={t('video.studio.collab.briefPh')} maxLength={240} /><button type="submit" className="btn btn-violet pill-sm" disabled={busy || !postId || !friendId}><Send size={14} /> {t('video.studio.collab.invite')}</button></form>}
+      {!loading && !loadError && received.filter((item) => item.status === 'PENDING').length > 0 && <div className="creator-collab-inbox"><div className="creator-collab-label"><Mail size={14} /> {t('video.studio.collab.inbox')}</div>{received.filter((item) => item.status === 'PENDING').map((item) => <div className="creator-collab-invite" key={item.id}><JaminoAvatar avatarId={item.from.avatarId} size={30} photo={item.from.avatarPhoto} name={item.from.username} /><span><b>@{item.from.username}</b><small>{item.post.title || t('video.common.untitledPost')}{item.message ? ` · ${item.message}` : ''}</small></span><button type="button" className="btn-icon violet" onClick={() => void respond(item.id, 'accept')} title={t('video.studio.collab.acceptTitle')}><Check size={15} /></button><button type="button" className="btn-icon" onClick={() => void respond(item.id, 'decline')} title={t('video.studio.collab.declineTitle')}><X size={15} /></button></div>)}</div>}
     </section>
   );
 }
