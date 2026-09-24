@@ -98,38 +98,38 @@ export function CreatorApplyModal({ hub, open, onClose, onSubmitted }: { hub: Cr
           <div className="creator-modal-title-wrap">
             <span className="creator-modal-icon"><Sparkles size={18} /></span>
             <div>
-              <div className="hub-kicker">{isMusic ? 'MUSIC CREATOR' : 'VIDEO CREATOR'}</div>
-              <h2 id="creator-modal-title">{isMusic ? 'Build your artist profile' : 'Start your creator channel'}</h2>
+              <div className="hub-kicker">{t(isMusic ? 'creatorApply.musicKicker' : 'creatorApply.videoKicker')}</div>
+              <h2 id="creator-modal-title">{t(isMusic ? 'creatorApply.musicTitle' : 'creatorApply.videoTitle')}</h2>
             </div>
           </div>
-          <button type="button" className="btn-icon" onClick={onClose} aria-label="Close creator form"><X size={18} /></button>
+          <button type="button" className="btn-icon" onClick={onClose} aria-label={t('creatorApply.close')}><X size={18} /></button>
         </header>
 
         <div className="creator-modal-body">
           <div className="creator-modal-intro">
-            <p>Tell us what you want to publish. An admin reviews this once, then your channel can publish inside this hub.</p>
-            {isApproved && <span className="creator-status approved"><BadgeCheck size={14} /> Approved creator</span>}
-            {isPending && <span className="creator-status pending"><Clock3 size={14} /> Waiting for review</span>}
-            {application?.status === 'REJECTED' && <span className="creator-status rejected">Needs another review{application.reviewNote ? ` · ${application.reviewNote}` : ''}</span>}
+            <p>{t('creatorApply.intro')}</p>
+            {isApproved && <span className="creator-status approved"><BadgeCheck size={14} /> {t('creatorApply.approved')}</span>}
+            {isPending && <span className="creator-status pending"><Clock3 size={14} /> {t('creatorApply.pending')}</span>}
+            {application?.status === 'REJECTED' && <span className="creator-status rejected">{t('creatorApply.rejected')}{application.reviewNote ? ` · ${application.reviewNote}` : ''}</span>}
           </div>
 
-          {loading ? <div className="creator-modal-loading"><span className="admin-loader" /> Loading your application…</div> : loadError ? <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void loadApplication()} /> : (
+          {loading ? <div className="creator-modal-loading"><span className="admin-loader" /> {t('creatorApply.loading')}</div> : loadError ? <WorkspaceErrorState message={t('toast.unknownError')} retryLabel={t('admin.refresh')} onRetry={() => void loadApplication()} /> : (
             <form className="creator-form" onSubmit={submit}>
               <div className="creator-form-grid">
-                <label><span>Channel / artist name</span><input required value={channelName} onChange={(event) => setChannelName(event.target.value)} maxLength={80} placeholder={isMusic ? 'Your artist name' : 'Your channel name'} /></label>
-                <label><span>Handle</span><input required value={handle} onChange={(event) => setHandle(event.target.value.replace(/^@+/, ''))} maxLength={40} placeholder="creator.handle" /></label>
-                <label><span>Category</span><input value={category} onChange={(event) => setCategory(event.target.value)} maxLength={80} placeholder={isMusic ? 'Pop, hip-hop, electronic…' : 'Gaming, education, lifestyle…'} /></label>
-                <label className="creator-form-wide"><span>About your channel</span><textarea required value={bio} onChange={(event) => setBio(event.target.value)} maxLength={700} rows={4} placeholder="What will people find here?" /></label>
-                <label className="creator-form-wide"><span>Links <small>one per line</small></span><textarea value={links} onChange={(event) => setLinks(event.target.value)} rows={3} placeholder="https://instagram.com/…\nhttps://youtube.com/…" /></label>
+                <label><span>{t('creatorApply.channelName')}</span><input required value={channelName} onChange={(event) => setChannelName(event.target.value)} maxLength={80} placeholder={t(isMusic ? 'creatorApply.musicNamePlaceholder' : 'creatorApply.videoNamePlaceholder')} /></label>
+                <label><span>{t('creatorApply.handle')}</span><input required value={handle} onChange={(event) => setHandle(event.target.value.replace(/^@+/, ''))} maxLength={40} placeholder="creator.handle" /></label>
+                <label><span>{t('creatorApply.category')}</span><input value={category} onChange={(event) => setCategory(event.target.value)} maxLength={80} placeholder={t(isMusic ? 'creatorApply.musicCategoryPlaceholder' : 'creatorApply.videoCategoryPlaceholder')} /></label>
+                <label className="creator-form-wide"><span>{t('creatorApply.bio')}</span><textarea required value={bio} onChange={(event) => setBio(event.target.value)} maxLength={700} rows={4} placeholder={t('creatorApply.bioPlaceholder')} /></label>
+                <label className="creator-form-wide"><span>{t('creatorApply.links')} <small>{t('creatorApply.onePerLine')}</small></span><textarea value={links} onChange={(event) => setLinks(event.target.value)} rows={3} placeholder={t('creatorApply.linksPlaceholder')} /></label>
               </div>
               <div className="creator-form-foot">
-                <span><ExternalLink size={13} /> You can update this while it is pending.</span>
-                <button type="submit" className="btn btn-violet" disabled={saving}>{saving ? 'Saving…' : isApproved ? 'Save profile' : isPending ? 'Update application' : <><Send size={14} /> Send for review</>}</button>
+                <span><ExternalLink size={13} /> {t('creatorApply.updatePending')}</span>
+                <button type="submit" className="btn btn-violet" disabled={saving}>{saving ? t('creatorApply.saving') : isApproved ? t('creatorApply.saveProfile') : isPending ? t('creatorApply.updateApplication') : <><Send size={14} /> {t('creatorApply.sendForReview')}</>}</button>
               </div>
             </form>
           )}
 
-          {isApproved && <div className="creator-approved-note"><CheckCircle2 size={20} /><div><b>You are ready to publish.</b><span>Update your public profile here, then keep creating inside the hub.</span></div></div>}
+          {isApproved && <div className="creator-approved-note"><CheckCircle2 size={20} /><div><b>{t('creatorApply.readyTitle')}</b><span>{t('creatorApply.readyBody')}</span></div></div>}
         </div>
       </section>
     </div>
