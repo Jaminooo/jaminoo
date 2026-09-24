@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { api } from '@/lib/client-api';
 import { toast } from '@/components/toast';
-import { Monitor, Smartphone, Tablet, Globe, Shield } from 'lucide-react';
+import { Monitor, Smartphone, Tablet, Shield, Loader2 } from 'lucide-react';
 
 interface Session {
   suffix: string;
@@ -67,15 +67,18 @@ export function SecurityPanel() {
       </header>
 
       {loading ? (
-        <div className="card" style={{ padding: 32, textAlign: 'center', color: 'var(--color-fog)' }}>...</div>
+        <div className="security-sessions-loading" aria-busy="true" role="status">
+          <Loader2 className="spin" size={18} />
+          <span>{t('admin.loading')}</span>
+        </div>
       ) : (
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="security-session-list">
           {sessions.map((s) => (
-            <div key={s.suffix} className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, opacity: s.current ? 1 : 0.92 }}>
-              <div style={{ color: s.current ? 'var(--color-violet)' : 'var(--color-fog)' }}>{icon(s.device)}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, color: '#fff', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name || 'Browser'}</div>
-                <div style={{ fontSize: 12, color: 'var(--color-fog)', marginTop: 2 }}>{s.device}{s.createdAt ? ` · ${t('security.lastSeen', { time: timeAgo(s.createdAt) })}` : ''}</div>
+            <div key={s.suffix} className={`security-session-card ${s.current ? 'is-current' : ''}`}>
+              <div className="security-session-icon">{icon(s.device)}</div>
+              <div className="security-session-copy">
+                <div className="security-session-name">{s.name || 'Browser'}</div>
+                <div className="security-session-meta">{s.device}{s.createdAt ? ` · ${t('security.lastSeen', { time: timeAgo(s.createdAt) })}` : ''}</div>
               </div>
               {s.current ? (
                 <span className="badge badge-violet">{t('security.current')}</span>
@@ -86,9 +89,10 @@ export function SecurityPanel() {
               )}
             </div>
           ))}
-          {sessions.length <= 1 && (
-            <p className="pane-sub" style={{ marginTop: 12 }}>{t('security.noOtherSessions')}</p>
+          {sessions.length <= 1 && sessions.length > 0 && (
+            <p className="security-session-hint">{t('security.noOtherSessions')}</p>
           )}
+          {sessions.length === 0 && <div className="empty-state">{t('security.noOtherSessions')}</div>}
         </div>
       )}
     </>

@@ -19,7 +19,7 @@ import { GroupChat } from '@/components/group-chat';
 import { motion, AnimatePresence } from 'motion/react';
 import { connectLive, onLive } from '@/lib/live';
 import { loadUnread } from '@/lib/unread';
-import { House, MessagesSquare, Radio, Users, MessageCircle, User } from 'lucide-react';
+import { House, MessagesSquare, Radio, Users, MessageCircle, User, Shield } from 'lucide-react';
 import { GlobalSearch } from '@/components/global-search';
 
 export function PanelShell() {
@@ -146,6 +146,8 @@ export function PanelShell() {
     { key: 'jams', icon: <Radio size={18} />, label: t('panel.jams'), badge: unread.invites },
     { key: 'friends', icon: <Users size={18} />, label: t('panel.friends'), badge: unread.friends },
     { key: 'dms', icon: <MessageCircle size={18} />, label: t('panel.messages'), badge: unread.dms },
+    { key: 'profile', icon: <User size={18} />, label: t('panel.profile'), badge: 0 },
+    { key: 'security', icon: <Shield size={18} />, label: t('panel.security'), badge: 0 },
   ];
 
   return (
@@ -162,10 +164,6 @@ export function PanelShell() {
                 {badge(n.badge)}
               </button>
             ))}
-            <button className={`side-item ${tab === 'profile' ? 'active' : ''}`} onClick={() => setTab('profile')}>
-              <User size={18} />
-              <span>{t('panel.profile')}</span>
-            </button>
           </div>
           <div className="side-foot-card">
             <div className="side-foot-title">{t('groups.subtitle')}</div>
@@ -194,9 +192,9 @@ export function PanelShell() {
         </main>
       </div>
 
-      <nav className="mobile-tabnav" aria-label="Primary">
-        {nav.slice(0, 5).map((n) => (
-          <button key={n.key} type="button" className={tab === n.key ? 'active' : ''} onClick={() => setTab(n.key as any)}>
+      <nav className="mobile-tabnav" aria-label={t('panel.navigation')}>
+        {nav.map((n) => (
+          <button key={n.key} type="button" className={tab === n.key ? 'active' : ''} onClick={() => setTab(n.key as any)} aria-current={tab === n.key ? 'page' : undefined}>
             {n.icon}
             <span>{n.label}</span>
             {badge(n.badge)}

@@ -129,8 +129,11 @@ table-wrap {
     bottom: 0;
     z-index: 40;
     display: flex;
-    justify-content: space-around;
+    justify-content: flex-start;
     gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
     padding: 8px 4px calc(8px + var(--safe-bottom));
     border-top: 1px solid var(--line);
     background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -138,12 +141,15 @@ table-wrap {
     -webkit-backdrop-filter: blur(18px);
   }
 
+  .mobile-tabnav::-webkit-scrollbar { display: none; }
+
   .mobile-tabnav button {
     position: relative;
     display: grid;
     place-items: center;
     gap: 3px;
     min-width: 54px;
+    flex: 1 0 54px;
     min-height: 48px;
     padding: 4px 6px;
     border: 0;

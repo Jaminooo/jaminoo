@@ -5,6 +5,16 @@
   outline-offset: 3px;
 }
 
+.security-session-list { display: grid; gap: 10px; }
+.security-sessions-loading { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 112px; border: 1px solid var(--jamino-glass-line, var(--line)); border-radius: 18px; background: var(--jamino-glass, var(--panel)); color: var(--muted); font-size: 12px; }
+.security-session-card { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 14px 18px; border: 1px solid var(--jamino-glass-line, var(--line)); border-radius: 17px; background: linear-gradient(145deg, var(--jamino-glass, var(--panel)), color-mix(in srgb, var(--jamino-glass-strong, var(--panel-2)) 70%, transparent)); box-shadow: inset 0 1px 0 var(--jamino-glass-highlight, transparent); }
+.security-session-card.is-current { border-color: color-mix(in srgb, var(--jamino-violet, var(--accent)) 32%, var(--jamino-glass-line, var(--line))); }
+.security-session-icon { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border: 1px solid color-mix(in srgb, var(--jamino-violet, var(--accent)) 20%, transparent); border-radius: 13px; background: color-mix(in srgb, var(--jamino-violet, var(--accent)) 10%, transparent); color: var(--jamino-violet, var(--accent)); }
+.security-session-copy { flex: 1; min-width: 0; }
+.security-session-name { overflow: hidden; color: var(--text); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.security-session-meta { margin-top: 3px; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.security-session-hint { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+
 :where(.app-root, .screen-panel, .hub-shell, .admin-root, .watch-theater, .auth-page, .landing-page) :where(input:not([type='range']):not([type='checkbox']):not([type='radio']), select, textarea) {
   transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
 }
@@ -72,6 +82,11 @@ a[aria-disabled='true'] {
     max-height: calc(100dvh - 16px);
     overscroll-behavior-y: contain;
   }
+}
+
+@media (max-width: 520px) {
+  .security-session-card { gap: 10px; padding: 12px; }
+  .security-session-card .btn { margin-inline-start: auto; padding-inline: 10px; font-size: 11px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
