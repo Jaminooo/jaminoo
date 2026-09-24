@@ -409,13 +409,26 @@ function SaveToPlaylistModal({ post, open, onClose, onSaved }: { post: VideoPost
   const [playlists, setPlaylists] = useState<VideoPlaylistSummary[]>([]);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const loadPlaylists = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const data = await api<{ playlists: VideoPlaylistSummary[] }>('/api/video/playlists');
+      setPlaylists(data.playlists);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    api<{ playlists: VideoPlaylistSummary[] }>('/api/video/playlists').then((data) => setPlaylists(data.playlists)).catch(() => setPlaylists([])).finally(() => setLoading(false));
-  }, [open]);
+    void loadPlaylists();
+  }, [open, loadPlaylists]);
 
   const addTo = async (playlistId: number) => {
     if (!post || busy) return;
@@ -456,7 +469,8 @@ function SaveToPlaylistModal({ post, open, onClose, onSaved }: { post: VideoPost
         <header className="video-modal-head"><div><div className="hub-kicker">{t('video.playlist.kicker')}</div><h2>{post.title || t('video.common.untitledPost')}</h2></div><button type="button" className="btn-icon" onClick={onClose} aria-label={t('video.common.close')}><X size={18} /></button></header>
         <div className="video-playlist-picker">
           {loading && <div className="video-modal-loading"><span className="admin-loader" /> {t('video.playlist.loading')}</div>}
-          {!loading && playlists.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>{t('video.playlist.empty')}</span></div>}
+          {loadError && <WorkspaceErrorState message={t('video.playlist.toastLoadError')} retryLabel={t('admin.refresh')} onRetry={() => void loadPlaylists()} />}
+          {!loading && !loadError && playlists.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>{t('video.playlist.empty')}</span></div>}
           {playlists.map((playlist) => (
             <button type="button" key={playlist.id} className="video-playlist-option" disabled={busy} onClick={() => void addTo(playlist.id)}>
               <ListVideo size={16} />
@@ -529,6 +543,7 @@ function PlaylistDetailModal({ playlistId, open, onClose, onChanged, onDeleted, 
   const t = useTranslations();
   const [detail, setDetail] = useState<VideoPlaylistDetail | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -536,9 +551,10 @@ function PlaylistDetailModal({ playlistId, open, onClose, onChanged, onDeleted, 
   const load = useCallback(() => {
     if (!playlistId) return;
     setLoading(true);
+    setLoadError(false);
     api<{ playlist: VideoPlaylistDetail }>(`/api/video/playlists?playlistId=${playlistId}`)
       .then((data) => { setDetail(data.playlist); setName(data.playlist.name); setDescription(data.playlist.description); })
-      .catch((error) => toast(error instanceof Error ? error.message : t('video.playlist.toastLoadError'), 'error'))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [playlistId, t]);
 
@@ -608,7 +624,8 @@ function PlaylistDetailModal({ playlistId, open, onClose, onChanged, onDeleted, 
         </header>
         <div className="video-playlist-items">
           {loading && <div className="video-modal-loading"><span className="admin-loader" /> {t('video.playlist.loadingVideos')}</div>}
-          {!loading && detail && detail.items.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>{t('video.playlist.emptyDetail')}</span></div>}
+          {loadError && <WorkspaceErrorState message={t('video.playlist.toastLoadError')} retryLabel={t('admin.refresh')} onRetry={load} />}
+          {!loading && !loadError && detail && detail.items.length === 0 && <div className="video-modal-empty"><ListVideo size={20} /><span>{t('video.playlist.emptyDetail')}</span></div>}
           {!loading && detail && detail.items.map((item) => item.post && (
             <div className="video-playlist-item" key={item.id}>
               <div className="video-playlist-item-media" style={item.post.thumbnailUrl ? undefined : { background: coverGradient(item.post.title) }}>
