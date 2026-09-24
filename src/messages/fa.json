@@ -87,7 +87,19 @@
     "statusOffline": "آفلاین",
     "statusText": "متن وضعیت",
     "statusPlaceholder": "چه خبر؟...",
-    "title": "مشاهدهٔ پروفایل"
+    "title": "مشاهدهٔ پروفایل",
+    "copyId": "کپی شناسهٔ کاربری",
+    "musicLibrary": "کتابخانهٔ موسیقی",
+    "favorites": "موردعلاقه‌ها",
+    "recentlyPlayed": "پخش‌شده‌های اخیر",
+    "playlists": "پلی‌لیست‌ها",
+    "noFavorites": "هنوز آهنگ موردعلاقه‌ای نیست.",
+    "noHistory": "تاریخچهٔ شنیداری خالی است.",
+    "noPlaylists": "هنوز پلی‌لیستی نیست.",
+    "unknownArtist": "هنرمند ناشناس",
+    "songCount": "{n} آهنگ",
+    "mediaLoadError": "بارگذاری کتابخانهٔ رسانه ممکن نشد.",
+    "libraryLoadError": "بارگذاری کتابخانهٔ موسیقی ممکن نشد."
   },
   "friends": {
     "search": "جستجوی آیدی یا نام کاربری...",

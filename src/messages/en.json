@@ -87,7 +87,19 @@
     "statusOffline": "Offline",
     "statusText": "Status text",
     "statusPlaceholder": "What's on your mind…",
-    "title": "View profile"
+    "title": "View profile",
+    "copyId": "Copy user ID",
+    "musicLibrary": "Music library",
+    "favorites": "Favorites",
+    "recentlyPlayed": "Recently played",
+    "playlists": "Playlists",
+    "noFavorites": "No favorites yet.",
+    "noHistory": "No listening history yet.",
+    "noPlaylists": "No playlists yet.",
+    "unknownArtist": "Unknown artist",
+    "songCount": "{n} songs",
+    "mediaLoadError": "Could not load your media library.",
+    "libraryLoadError": "Could not load your music library."
   },
   "friends": {
     "search": "Search ID or username...",

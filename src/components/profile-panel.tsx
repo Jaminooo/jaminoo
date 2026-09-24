@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useAppStore } from '@/store/app-store';
 import { useTranslations } from '@/providers/use-translations';
@@ -11,6 +11,7 @@ import { uidDisplay } from '@/store/app-store';
 import { MAX_PROFILE_MEDIA } from '@/lib/constants';
 import { Copy, Check, Lock, Upload, X, Star, CircleDot, Heart, History, ListMusic } from 'lucide-react';
 import { IdentityCard } from '@/components/identity-card';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 
 interface MediaItem {
   id: string;
@@ -33,6 +34,8 @@ export function ProfilePanel() {
   const [copied, setCopied] = useState(false);
 
   const [media, setMedia] = useState<MediaItem[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(true);
+  const [mediaError, setMediaError] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -41,19 +44,47 @@ export function ProfilePanel() {
 
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [library, setLibrary] = useState<{ favorites: LibrarySong[]; history: LibrarySong[]; playlists: { id: number; name: string; items: { song: LibrarySong }[] }[] }>({ favorites: [], history: [], playlists: [] });
+  const [libraryLoading, setLibraryLoading] = useState(true);
+  const [libraryError, setLibraryError] = useState(false);
+
+  const loadMedia = useCallback(async () => {
+    setMediaLoading(true);
+    setMediaError(false);
+    try {
+      const data = await api<{ media: MediaItem[] }>('/api/media');
+      setMedia(data.media);
+    } catch {
+      setMediaError(true);
+    } finally {
+      setMediaLoading(false);
+    }
+  }, []);
+
+  const loadLibrary = useCallback(async () => {
+    setLibraryLoading(true);
+    setLibraryError(false);
+    try {
+      const [favorites, history, playlists] = await Promise.all([
+        api<{ favorites: { song: LibrarySong }[] }>('/api/music/favorites'),
+        api<{ history: { song: LibrarySong }[] }>('/api/music/history'),
+        api<{ playlists: { id: number; name: string; items: { song: LibrarySong }[] }[] }>('/api/music/playlists'),
+      ]);
+      setLibrary({
+        favorites: favorites.favorites.map((item) => item.song),
+        history: history.history.map((item) => item.song),
+        playlists: playlists.playlists,
+      });
+    } catch {
+      setLibraryError(true);
+    } finally {
+      setLibraryLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    api<{ media: MediaItem[] }>('/api/media').then((d) => setMedia(d.media)).catch(() => {});
-    Promise.all([
-      api<{ favorites: { song: LibrarySong }[] }>('/api/music/favorites'),
-      api<{ history: { song: LibrarySong }[] }>('/api/music/history'),
-      api<{ playlists: { id: number; name: string; items: { song: LibrarySong }[] }[] }>('/api/music/playlists'),
-    ]).then(([favorites, history, playlists]) => setLibrary({
-      favorites: favorites.favorites.map((item) => item.song),
-      history: history.history.map((item) => item.song),
-      playlists: playlists.playlists,
-    })).catch(() => {});
-  }, []);
+    void loadMedia();
+    void loadLibrary();
+  }, [loadLibrary, loadMedia]);
 
   if (!me) return null;
 
@@ -224,7 +255,7 @@ export function ProfilePanel() {
             </span>
             <div className="id-row">
               <span className="id-code">{uidDisplay(me.id)}</span>
-              <button type="button" className="btn-icon" onClick={copyId} title="Copy">
+              <button type="button" className="btn-icon" onClick={copyId} title={t('profile.copyId')} aria-label={t('profile.copyId')}>
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </div>
@@ -271,12 +302,14 @@ export function ProfilePanel() {
       </section>
 
       <section className="card profile-library-card" style={{ padding: "var(--space-card, 24px)", marginBottom: "var(--space-section, 16px)" }}>
-        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)", display: 'flex', alignItems: 'center', gap: 8 }}><ListMusic size={16} /> Music library</h3>
-        <div className="profile-library-grid">
-          <div><div className="profile-library-title"><Heart size={14} /> Favorites</div>{library.favorites.length === 0 ? <span className="pane-sub">No favorites yet.</span> : library.favorites.slice(0, 8).map((item) => <div className="profile-library-row" key={item.id}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
-          <div><div className="profile-library-title"><History size={14} /> Recently played</div>{library.history.length === 0 ? <span className="pane-sub">No history yet.</span> : library.history.slice(0, 8).map((item, index) => <div className="profile-library-row" key={`${item.id}-${index}`}><b>{item.title}</b><span>{item.artist?.name ?? 'Unknown artist'}</span></div>)}</div>
-          <div><div className="profile-library-title"><ListMusic size={14} /> Playlists</div>{library.playlists.length === 0 ? <span className="pane-sub">No playlists yet.</span> : library.playlists.map((playlist) => <div className="profile-library-row" key={playlist.id}><b>{playlist.name}</b><span>{playlist.items.length} songs</span></div>)}</div>
-        </div>
+        <h3 style={{ fontSize: 15, color: '#fff', marginBottom: "var(--space-md, 16px)", display: 'flex', alignItems: 'center', gap: 8 }}><ListMusic size={16} /> {t('profile.musicLibrary')}</h3>
+        {libraryError && <WorkspaceErrorState message={t('profile.libraryLoadError')} retryLabel={t('admin.refresh')} onRetry={() => void loadLibrary()} />}
+        {libraryLoading && <WorkspaceLoadingState label={t('admin.loading')} rows={2} />}
+        {!libraryLoading && <div className="profile-library-grid">
+          <div><div className="profile-library-title"><Heart size={14} /> {t('profile.favorites')}</div>{library.favorites.length === 0 ? <span className="pane-sub">{t('profile.noFavorites')}</span> : library.favorites.slice(0, 8).map((item) => <div className="profile-library-row" key={item.id}><b>{item.title}</b><span>{item.artist?.name ?? t('profile.unknownArtist')}</span></div>)}</div>
+          <div><div className="profile-library-title"><History size={14} /> {t('profile.recentlyPlayed')}</div>{library.history.length === 0 ? <span className="pane-sub">{t('profile.noHistory')}</span> : library.history.slice(0, 8).map((item, index) => <div className="profile-library-row" key={`${item.id}-${index}`}><b>{item.title}</b><span>{item.artist?.name ?? t('profile.unknownArtist')}</span></div>)}</div>
+          <div><div className="profile-library-title"><ListMusic size={14} /> {t('profile.playlists')}</div>{library.playlists.length === 0 ? <span className="pane-sub">{t('profile.noPlaylists')}</span> : library.playlists.map((playlist) => <div className="profile-library-row" key={playlist.id}><b>{playlist.name}</b><span>{t('profile.songCount', { n: playlist.items.length })}</span></div>)}</div>
+        </div>}
       </section>
 
       <div className="grid-2" style={{ marginTop: 0 }}>
@@ -314,6 +347,8 @@ export function ProfilePanel() {
             <Upload size={16} /> {t('media.profilePhotos')}
           </h3>
           <div className="media-card">
+            {mediaError && <WorkspaceErrorState message={t('profile.mediaLoadError')} retryLabel={t('admin.refresh')} onRetry={() => void loadMedia()} />}
+            {mediaLoading && <WorkspaceLoadingState label={t('admin.loading')} rows={2} />}
             <div
               className={`media-dropzone ${dragOver ? 'active' : ''}`}
               onClick={() => fileRef.current?.click()}
@@ -345,7 +380,7 @@ export function ProfilePanel() {
                 e.target.value = '';
               }}
             />
-            {media.length > 0 && (
+            {!mediaLoading && media.length > 0 && (
               <div className="media-grid">
                 {media.map((m) => (
                   <div key={m.id} className="media-item">
