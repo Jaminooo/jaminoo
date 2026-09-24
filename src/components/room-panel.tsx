@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from '@/providers/use-translations';
 import { useAppStore } from '@/store/app-store';
 import { JaminoAvatar } from '@/components/jamino-avatar';
@@ -19,6 +19,7 @@ import { connectLive, emitLive, emitWhenConnected, onLive, onLiveConnect, liveCo
 import { toast } from '@/components/toast';
 import { JamWorldPanel } from '@/components/jam-world-panel';
 import { ReportMessageModal } from '@/components/report-message-modal';
+import { WorkspaceErrorState, WorkspaceLoadingState } from '@/components/workspace-feedback';
 import { ArrowLeft, Globe, Lock, Users as UsersIcon, UserPlus, LogOut, LockOpen, Ban, Copy, User, Music2, Film, Tv2, Trash2, MessageCircle, Flag, Loader2 } from 'lucide-react';
 
 interface ChatUser {
@@ -72,6 +73,9 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const me = useAppStore((s) => s.me);
   const setProfileUserId = useAppStore((s) => s.setProfileUserId);
   const [jam, setJam] = useState<JamDetail | null>(null);
+  const [roomLoading, setRoomLoading] = useState(true);
+  const [roomLoadError, setRoomLoadError] = useState(false);
+  const roomLoadRequest = useRef(0);
   const [showInvite, setShowInvite] = useState(false);
   const [friends, setFriends] = useState<ChatUser[]>([]);
   const [live, setLive] = useState(false);
@@ -87,10 +91,24 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
   const bodyRef = useRef<HTMLDivElement>(null);
   const { menu, closeCm, onContextMenu } = useContextMenu();
 
-  const load = () => api<{ jam: JamDetail }>(`/api/jams/${jamId}`).then((d) => setJam(d.jam)).catch(() => {});
+  const load = useCallback(async () => {
+    const requestId = ++roomLoadRequest.current;
+    setRoomLoading(true);
+    setRoomLoadError(false);
+    try {
+      const data = await api<{ jam: JamDetail }>(`/api/jams/${jamId}`);
+      if (requestId !== roomLoadRequest.current) return;
+      setJam(data.jam);
+    } catch {
+      if (requestId === roomLoadRequest.current) setRoomLoadError(true);
+    } finally {
+      if (requestId === roomLoadRequest.current) setRoomLoading(false);
+    }
+  }, [jamId]);
 
   useEffect(() => {
-    load();
+    setJam(null);
+    void load();
     const socket = connectLive();
     const offJoin = onLiveConnect(() => emitLive('jam:join', jamId));
     emitWhenConnected('jam:join', jamId);
@@ -160,6 +178,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
     }, 5000);
 
     return () => {
+      roomLoadRequest.current += 1;
       offJoin();
       offChat();
       offUpdate();
@@ -325,7 +344,11 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
 
   const { gridRef, gridStyle, beginResize, beginVertical } = usePanelResize(mediaKind);
 
-  if (!jam) return <div className="empty-state" style={{ padding: 48 }}><Loader2 className="spin" size={20} /></div>;
+  if (!jam) return roomLoading
+    ? <WorkspaceLoadingState label={t('admin.loading')} rows={4} />
+    : roomLoadError
+      ? <WorkspaceErrorState message={t('room.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />
+      : null;
   const isOwner = jam.ownerId === me?.id;
   const chatPreview = (
     <div className="room-modal-chat-preview">
@@ -371,6 +394,7 @@ export function RoomPanel({ jamId, onBack }: { jamId: string; onBack: () => void
           </button>
         )}
       </div>
+      {roomLoadError && <WorkspaceErrorState message={t('room.loadError')} retryLabel={t('admin.refresh')} onRetry={() => void load()} />}
 
       <div className="room-actions-row">
         {isOwner ? (

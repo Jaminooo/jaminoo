@@ -165,6 +165,7 @@
     "tapToOpen": "Open to listen"
   },
   "room": {
+    "loadError": "Could not load this jam.",
     "messagePlaceholder": "Message the jam...",
     "musicComing": "Music & more are coming to this jam — right now it's just the chat.",
     "send": "Send",
