@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/client-api';
 import { connectLive, onLive } from '@/lib/live';
@@ -128,6 +128,8 @@ export function AdminPanel() {
   const { locale, setLocale } = useLocale();
   const [tab, setTab] = useState<AdminTab>('dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLElement>(null);
+  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const [state, setState] = useState<'loading' | 'forbidden' | 'ready'>('loading');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [events, setEvents] = useState<AdminEvent[]>([]);
@@ -159,6 +161,42 @@ export function AdminPanel() {
       }),
     [reload]
   );
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const menu = mobileMenuRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const getFocusable = () => Array.from(menu?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]') ?? []);
+    requestAnimationFrame(() => getFocusable()[0]?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusable();
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (event.shiftKey && (document.activeElement === first || !menu?.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !menu?.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
+      else mobileMenuTriggerRef.current?.focus();
+    };
+  }, [mobileOpen]);
 
   const visibleTabs = useMemo(() => {
     if (!meta) return TABS;
@@ -206,8 +244,15 @@ export function AdminPanel() {
 
   return (
     <div className="admin-root">
-      {mobileOpen ? <button className="admin-side-overlay" aria-label={t('admin.closeMenu')} onClick={() => setMobileOpen(false)} /> : null}
-      <aside className={`admin-side ${mobileOpen ? 'open' : ''}`}>
+      {mobileOpen ? <button type="button" className="admin-side-overlay" aria-label={t('admin.closeMenu')} onClick={() => setMobileOpen(false)} /> : null}
+      <aside
+        ref={mobileMenuRef}
+        id="admin-navigation"
+        className={`admin-side ${mobileOpen ? 'open' : ''}`}
+        role={mobileOpen ? 'dialog' : undefined}
+        aria-modal={mobileOpen ? true : undefined}
+        aria-label={t('admin.workspace')}
+      >
         <div className="admin-brand">
           <span className="wordmark-mark">
             <RadioTower size={17} />
@@ -216,6 +261,9 @@ export function AdminPanel() {
             <b>Jamino</b>
             <em>{t('admin.title')}</em>
           </span>
+          <button type="button" className="admin-mobile-close" onClick={() => setMobileOpen(false)} aria-label={t('admin.closeMenu')}>
+            <X size={18} />
+          </button>
         </div>
         {meta?.isSuper && (
           <div className="admin-root-badge">
@@ -251,7 +299,7 @@ export function AdminPanel() {
       <main className="admin-main">
         <header className="admin-top">
           <div className="admin-top-copy">
-            <button className="admin-mobile-menu btn-icon" onClick={() => setMobileOpen(true)} aria-label={t('admin.menu')}>
+            <button ref={mobileMenuTriggerRef} type="button" className="admin-mobile-menu btn-icon" onClick={() => setMobileOpen(true)} aria-label={t('admin.menu')} aria-expanded={mobileOpen} aria-controls="admin-navigation">
               <Menu size={18} />
             </button>
             <div>

@@ -149,6 +149,7 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
 .admin-top-actions .btn-icon-label:hover { border-color: var(--admin-border-strong); background: color-mix(in srgb, var(--accent) 14%, transparent); color: #fff; }
 .admin-mobile-menu,
 .admin-close-mobile { display: none; }
+.admin-mobile-close { display: none; }
 
 .admin-card {
   border-color: var(--admin-border);
@@ -317,6 +318,7 @@ html[lang='fa'] .admin-root { font-family: var(--font-persian); }
   [dir='rtl'] .admin-side { inset-inline-start: auto; inset-inline-end: 0; transform: translateX(110%); }
   .admin-side.open { transform: translateX(0); }
   .admin-side-overlay { position: fixed; inset: 0; z-index: 50; display: block; border: 0; background: rgba(0, 0, 0, 0.62); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+  .admin-side .admin-mobile-close { position: absolute; inset-block-start: 16px; inset-inline-end: 14px; display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--admin-border); border-radius: 11px; background: var(--jamino-glass); color: var(--text); cursor: pointer; }
   .admin-nav { overflow-y: auto; }
   .admin-main { padding: 16px 14px 42px; }
   .admin-top { min-height: 68px; margin: -4px 0 18px; padding: 8px 0 14px; }
