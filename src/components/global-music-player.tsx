@@ -31,6 +31,7 @@ export function GlobalMusicPlayer() {
   const [queueOpen, setQueueOpen] = useState(false);
   const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
 
   const currentIndex = useMemo(() => song ? queue.findIndex((item) => item.id === song.id) : -1, [queue, song]);
   const max = duration || song?.durationSec || 1;
@@ -46,6 +47,7 @@ export function GlobalMusicPlayer() {
     setPosition(0);
     setDuration(next.durationSec || 0);
     setBlocked(false);
+    setMediaError(false);
     window.localStorage.setItem(SONG_KEY, JSON.stringify(next));
     if (autoplay) broadcast(next, true);
   }, [broadcast]);
@@ -131,7 +133,7 @@ export function GlobalMusicPlayer() {
   if (!song) return null;
   return (
     <section className={`global-player ${expanded ? 'is-expanded' : ''}`} aria-label={`${t('brand.name')} ${t('music.playerLabel')}`}>
-      <audio ref={audioRef} preload="metadata" onPlay={() => { setPlaying(true); broadcast(song, true); }} onPause={() => { setPlaying(false); broadcast(song, false); }} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || song.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onEnded={onEnded} />
+      <audio ref={audioRef} preload="metadata" onPlay={() => { setPlaying(true); setMediaError(false); broadcast(song, true); }} onPause={() => { setPlaying(false); broadcast(song, false); }} onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || song.durationSec || 0)} onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)} onError={() => { if (song.audioUrl || song.audioLink) { setMediaError(true); setPlaying(false); } }} onEnded={onEnded} />
       {queueOpen && <div className="global-player-queue"><div className="global-player-queue-head"><strong>{t('music.queue')}</strong><button type="button" onClick={() => setQueueOpen(false)} aria-label={t('modal.close')}><X size={16} /></button></div>{queue.length ? queue.map((item) => <button key={item.id} type="button" className={`global-player-queue-item ${item.id === song.id ? 'active' : ''}`} onClick={() => { loadSong(item); setQueueOpen(false); }}><span>{item.coverUrl ? <img src={item.coverUrl} alt="" /> : <span className="queue-placeholder">♫</span>}</span><span><b>{item.title}</b><small>{item.artist?.name || t('music.unknownArtist')}</small></span></button>) : <p>{t('music.queueEmpty')}</p>}</div>}
       <div className="global-player-progress"><span style={{ width: `${Math.min(100, (position / max) * 100)}%` }} /></div>
       <div className="global-player-main">
@@ -157,10 +159,12 @@ export function GlobalMusicPlayer() {
             <span>{t('music.volume')}</span>
             <input aria-label={t('music.volume')} type="range" min="0" max="1" step="0.01" value={muted ? 0 : volume} style={{ ['--gp-vol' as string]: `${Math.round((muted ? 0 : volume) * 100)}%` }} onChange={(event) => { setMuted(false); setVolume(Number(event.target.value)); }} />
           </label>
+          <button type="button" className={`global-player-mobile-option ${shuffle ? 'is-active' : ''}`} onClick={() => setShuffle((value) => !value)} aria-label={t('music.shuffle')} aria-pressed={shuffle}><Shuffle size={16} /><span>{t('music.shuffle')}</span></button>
+          <button type="button" className={`global-player-mobile-option ${repeat !== 'off' ? 'is-active' : ''}`} onClick={cycleRepeat} aria-label={t('music.repeat')} aria-pressed={repeat !== 'off'}><Repeat size={16} /><span>{t('music.repeat')}{repeat === 'one' ? ' · 1' : repeat === 'all' ? ' · ∞' : ''}</span></button>
           <button type="button" className="global-player-mobile-option is-danger" onClick={closePlayer} aria-label={t('music.closePlayer')}><X size={16} /><span>{t('music.closePlayer')}</span></button>
         </div>
       )}
-      {blocked && <div className="global-player-blocked">{t('music.pressPlay')}</div>}
+      {mediaError ? <div className="global-player-blocked" role="alert">{t('music.loadError')}</div> : blocked && <div className="global-player-blocked" role="status">{t('music.pressPlay')}</div>}
       {expanded && <div className="global-player-expanded"><div className="global-player-expanded-art">{song.coverUrl ? <img src={song.coverUrl} alt="" /> : <span>♫</span>}</div><div><small>{t('music.nowPlaying')}</small><h3>{song.title}</h3><p>{artistLabel}{song.album ? ` · ${song.album.title}` : ''}</p></div></div>}
     </section>
   );
